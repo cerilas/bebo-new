@@ -154,7 +154,13 @@ export const ProductSelection = ({ products, locale, imageUrl }: Props) => {
         {/* Product Grid */}
         <div className={cn(
           'grid gap-6 transition-all duration-500',
-          selectedProduct ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3',
+          selectedProduct
+            ? 'grid-cols-1'
+            : (
+                products.length === 1
+                  ? 'grid-cols-1 max-w-2xl mx-auto'
+                  : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
+              ),
         )}
         >
           {/* Product Cards */}
@@ -441,7 +447,7 @@ export const ProductSelection = ({ products, locale, imageUrl }: Props) => {
           })}
 
           {/* Placeholder for future products */}
-          {!selectedProduct && products.length < 3 && (
+          {!selectedProduct && products.length > 1 && products.length < 3 && (
             <>
               <div className="flex items-center justify-center rounded-2xl border border-dashed bg-muted/30 p-12 opacity-50">
                 <div className="text-center">

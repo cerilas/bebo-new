@@ -1,11 +1,15 @@
 'use client';
 
 import { OrganizationSwitcher, UserButton } from '@clerk/nextjs';
+import { dark } from '@clerk/themes';
 import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
+import { useTheme } from 'next-themes';
+import { useEffect, useState } from 'react';
 
 import { ActiveLink } from '@/components/ActiveLink';
 import { LocaleSwitcher } from '@/components/LocaleSwitcher';
+import { ThemeSwitcher } from '@/components/ThemeSwitcher';
 import { ToggleMenuButton } from '@/components/ToggleMenuButton';
 import {
   DropdownMenu,
@@ -25,12 +29,23 @@ export const DashboardHeader = (props: {
 }) => {
   const t = useTranslations('DashboardLayout');
   const locale = useLocale();
+  const { theme, resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const currentTheme = mounted ? (resolvedTheme || theme) : 'dark';
+  const clerkAppearance = {
+    baseTheme: currentTheme === 'dark' ? dark : undefined,
+  };
 
   return (
     <>
-      <div className="flex items-center">
+      <div className="flex items-center gap-x-2">
         <Link href="/">
-          <Logo variant="dark" />
+          <Logo variant={currentTheme === 'dark' ? 'dark' : 'light'} />
         </Link>
 
         <svg
@@ -55,8 +70,9 @@ export const DashboardHeader = (props: {
           hidePersonal
           skipInvitationScreen
           appearance={{
+            ...clerkAppearance,
             elements: {
-              organizationSwitcherTrigger: 'max-w-28 sm:max-w-52',
+              organizationSwitcherTrigger: 'max-w-28 sm:max-w-52 h-9',
             },
           }}
         />
@@ -94,6 +110,10 @@ export const DashboardHeader = (props: {
           {/* PRO: Dark mode toggle button */}
 
           <li data-fade>
+            <ThemeSwitcher />
+          </li>
+
+          <li data-fade>
             <LocaleSwitcher />
           </li>
 
@@ -106,6 +126,7 @@ export const DashboardHeader = (props: {
               userProfileMode="navigation"
               userProfileUrl="/dashboard/user-profile"
               appearance={{
+                ...clerkAppearance,
                 elements: {
                   rootBox: 'px-2 py-1.5',
                 },

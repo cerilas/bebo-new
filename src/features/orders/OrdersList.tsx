@@ -32,12 +32,12 @@ export function OrdersList({ initialOrders }: OrdersListProps) {
 
   if (orders.length === 0) {
     return (
-      <div className="rounded-lg border border-gray-200 bg-white p-12 text-center dark:border-gray-700 dark:bg-gray-800">
-        <ShoppingBag className="mx-auto size-16 text-gray-400" />
-        <h3 className="mt-4 text-lg font-semibold text-gray-900 dark:text-white">
+      <div className="rounded-lg border border-gray-200 bg-card p-12 text-center dark:border-slate-800 dark:bg-slate-900">
+        <ShoppingBag className="mx-auto size-16 text-muted-foreground" />
+        <h3 className="mt-4 text-lg font-semibold text-foreground dark:text-white">
           Henüz sipariş yok
         </h3>
-        <p className="mt-2 text-gray-600 dark:text-gray-400">
+        <p className="mt-2 text-muted-foreground">
           İlk siparişinizi oluşturmak için ürünlerimize göz atın
         </p>
       </div>
@@ -78,7 +78,7 @@ export function OrdersList({ initialOrders }: OrdersListProps) {
         {currentOrders.map(order => (
           <div
             key={order.id}
-            className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-md dark:border-gray-700 dark:bg-gray-800"
+            className="rounded-lg border border-gray-200 bg-card p-6 shadow-sm transition-shadow hover:shadow-md dark:border-slate-800 dark:bg-slate-900"
           >
             <div className="flex flex-col gap-6 lg:flex-row">
               {/* Ürün Görseli */}
@@ -104,8 +104,8 @@ export function OrdersList({ initialOrders }: OrdersListProps) {
                         />
                       )
                     : (
-                        <div className="flex size-[150px] items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-700">
-                          <Package className="size-12 text-gray-400" />
+                        <div className="flex size-[150px] items-center justify-center rounded-lg bg-muted dark:bg-slate-800">
+                          <Package className="size-12 text-muted-foreground" />
                         </div>
                       )}
               </div>
@@ -140,8 +140,8 @@ export function OrdersList({ initialOrders }: OrdersListProps) {
                           </span>
                         </div>
                         <div>
-                          <span className="text-gray-600 dark:text-gray-400">Tutar:</span>
-                          <span className="ml-2 font-medium text-gray-900 dark:text-white">
+                          <span className="text-muted-foreground">Tutar:</span>
+                          <span className="ml-2 font-medium text-foreground dark:text-white">
                             {((order.paymentAmount || 0) / 100).toFixed(2)}
                             {' '}
                             TL
@@ -152,20 +152,20 @@ export function OrdersList({ initialOrders }: OrdersListProps) {
                   : (
                       <div className="grid gap-2 text-sm sm:grid-cols-2">
                         <div>
-                          <span className="text-gray-600 dark:text-gray-400">Boyut:</span>
-                          <span className="ml-2 font-medium text-gray-900 dark:text-white">
+                          <span className="text-muted-foreground">Boyut:</span>
+                          <span className="ml-2 font-medium text-foreground dark:text-white">
                             {order.sizeName || order.sizeDimensions || '-'}
                           </span>
                         </div>
                         <div>
-                          <span className="text-gray-600 dark:text-gray-400">Çerçeve:</span>
-                          <span className="ml-2 font-medium text-gray-900 dark:text-white">
+                          <span className="text-muted-foreground">Çerçeve:</span>
+                          <span className="ml-2 font-medium text-foreground dark:text-white">
                             {order.frameName || 'Yok'}
                           </span>
                         </div>
                         <div>
-                          <span className="text-gray-600 dark:text-gray-400">Tutar:</span>
-                          <span className="ml-2 font-medium text-gray-900 dark:text-white">
+                          <span className="text-muted-foreground">Tutar:</span>
+                          <span className="ml-2 font-medium text-foreground dark:text-white">
                             {((order.paymentAmount || 0) / 100).toFixed(2)}
                             {' '}
                             TL
@@ -174,7 +174,7 @@ export function OrdersList({ initialOrders }: OrdersListProps) {
                       </div>
                     )}
 
-                <div className="text-xs text-gray-500 dark:text-gray-400">
+                <div className="text-xs text-muted-foreground">
                   {order.createdAt && (
                     <span>
                       Sipariş Tarihi:
@@ -216,11 +216,11 @@ export function OrdersList({ initialOrders }: OrdersListProps) {
 
                 {/* Teslimat Bilgileri - Sadece ürün siparişleri için */}
                 {order.orderType !== 'credit' && order.customerName && (
-                  <div className="rounded-lg bg-gray-50 p-3 dark:bg-gray-700/50">
-                    <h4 className="mb-2 text-sm font-semibold text-gray-900 dark:text-white">
+                  <div className="rounded-lg bg-muted/50 p-3 dark:bg-slate-800/50">
+                    <h4 className="mb-2 text-sm font-semibold text-foreground dark:text-white">
                       Teslimat Bilgileri
                     </h4>
-                    <div className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
+                    <div className="space-y-1 text-sm text-muted-foreground dark:text-gray-300">
                       <p>{order.customerName}</p>
                       <p>{order.customerEmail}</p>
                       <p>{order.customerPhone}</p>
@@ -254,7 +254,7 @@ export function OrdersList({ initialOrders }: OrdersListProps) {
             type="button"
             onClick={() => goToPage(currentPage - 1)}
             disabled={currentPage === 1}
-            className="flex items-center gap-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+            className="flex items-center gap-1 rounded-lg border border-gray-300 bg-card px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-800 dark:hover:bg-slate-800"
           >
             <ChevronLeft className="size-4" />
             Önceki
@@ -268,7 +268,7 @@ export function OrdersList({ initialOrders }: OrdersListProps) {
                 onClick={() => goToPage(page)}
                 className={`size-10 rounded-lg text-sm font-medium transition-colors ${currentPage === page
                   ? 'bg-purple-600 text-white'
-                  : 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'
+                  : 'border border-gray-300 bg-card text-foreground hover:bg-muted dark:border-slate-800 dark:hover:bg-slate-800'
                 }`}
               >
                 {page}
@@ -280,7 +280,7 @@ export function OrdersList({ initialOrders }: OrdersListProps) {
             type="button"
             onClick={() => goToPage(currentPage + 1)}
             disabled={currentPage === totalPages}
-            className="flex items-center gap-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+            className="flex items-center gap-1 rounded-lg border border-gray-300 bg-card px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-800 dark:hover:bg-slate-800"
           >
             Sonraki
             <ChevronRight className="size-4" />

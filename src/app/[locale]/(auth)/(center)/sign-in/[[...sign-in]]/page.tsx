@@ -1,7 +1,7 @@
-import { SignIn } from '@clerk/nextjs';
 import { getTranslations } from 'next-intl/server';
 
 import { AuthWelcomeHeader } from '@/components/AuthWelcomeHeader';
+import { ClerkAuthCard } from '@/components/ClerkAuthCard';
 import { getI18nPath } from '@/utils/Helpers';
 
 export async function generateMetadata(props: { params: { locale: string } }) {
@@ -27,10 +27,10 @@ const SignInPage = (props: {
   return (
     <div className="flex flex-col items-center px-4 sm:px-6">
       {/* Welcome Offer Banner */}
-      {/* Welcome Offer Banner */}
       <AuthWelcomeHeader />
 
-      <SignIn
+      <ClerkAuthCard
+        type="signin"
         path={getI18nPath('/sign-in', props.params.locale)}
         forceRedirectUrl={forceRedirectUrl}
       />

@@ -4,7 +4,6 @@ import gsap from 'gsap';
 import { useEffect, useRef, useState } from 'react';
 
 const ROTATING_WORDS = ['Aklındaki', 'Hayalindeki', 'Fikrindeki'];
-const FIXED_TEXT = 'birebiro';
 
 export function RotatingTextLoader({
   onComplete,
@@ -101,9 +100,13 @@ export function RotatingTextLoader({
           </div>
         </div>
 
-        {/* Fixed Part */}
-        <div className="font-anton tracking-wider text-white">
-          {FIXED_TEXT}
+        {/* Fixed Part - Brand Logo */}
+        <div className="flex h-[60px] items-center">
+          <img
+            src="/assets/images/birebiro-logo-white.svg"
+            alt="birebiro"
+            className="h-10 w-auto md:h-12 lg:h-16"
+          />
         </div>
       </div>
     </div>

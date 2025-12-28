@@ -10,6 +10,7 @@ import { unstable_setRequestLocale } from 'next-intl/server';
 import { CookieConsent } from '@/components/CookieConsent';
 import { GoogleAnalytics } from '@/components/GoogleAnalytics';
 import { LoadingProvider } from '@/components/LoadingProvider';
+import { ThemeProvider } from '@/components/ThemeProvider';
 import { AllLocales, AppConfig } from '@/utils/AppConfig';
 import { getBaseUrl } from '@/utils/Helpers';
 
@@ -123,11 +124,18 @@ export default function RootLayout(props: {
             locale={props.params.locale}
             messages={messages}
           >
-            <LoadingProvider>
-              {props.children}
-              <CookieConsent />
-              <GoogleAnalytics />
-            </LoadingProvider>
+            <ThemeProvider
+              attribute="class"
+              defaultTheme="dark"
+              enableSystem
+              disableTransitionOnChange
+            >
+              <LoadingProvider>
+                {props.children}
+                <CookieConsent />
+                <GoogleAnalytics />
+              </LoadingProvider>
+            </ThemeProvider>
           </NextIntlClientProvider>
         </ClerkProvider>
       </body>

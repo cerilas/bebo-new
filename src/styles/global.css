@@ -79,9 +79,6 @@
     overscroll-behavior-y: none;
     overflow-x: hidden;
     scroll-behavior: smooth;
-    /* Prevents white overscroll on Mac */
-    background-color: hsl(240 20% 5%);
-    /* Force dark background */
   }
 }
 

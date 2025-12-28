@@ -9,6 +9,7 @@ import { useEffect, useState } from 'react';
 
 import GooeyNav from '@/components/GooeyNav';
 import { LocaleSwitcher } from '@/components/LocaleSwitcher';
+import { ThemeSwitcher } from '@/components/ThemeSwitcher';
 
 import { Logo } from './Logo';
 
@@ -75,8 +76,8 @@ export const Navbar = () => {
             ? 'border-b border-white/10 bg-[#0a0a0f]/80 backdrop-blur-xl'
             : 'bg-transparent'
         : (isScrolled || isMobileMenuOpen)
-            ? 'border-b border-gray-200 bg-white/90 shadow-sm backdrop-blur-xl'
-            : 'border-b border-gray-100 bg-white/80 backdrop-blur-xl'
+            ? 'border-b border-gray-200 bg-white/90 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-[#0a0a0f]/80'
+            : 'border-b border-gray-100 bg-white/80 backdrop-blur-xl dark:border-white/5 dark:bg-[#0a0a0f]/60'
       }`}
     >
       <div className="mx-auto max-w-7xl px-6">
@@ -84,7 +85,7 @@ export const Navbar = () => {
           {/* Logo */}
           <Link href="/" className="group relative z-10 flex flex-col items-start">
             <Logo variant={isLandingPage ? 'light' : 'dark'} scrollProgress={scrollProgress} />
-            <span className={`-mt-1 whitespace-nowrap text-[0.55rem] font-medium sm:text-[0.65rem] ${isLandingPage ? 'text-white/60' : 'text-gray-400'}`}>
+            <span className={`-mt-1 whitespace-nowrap text-[0.55rem] font-medium sm:text-[0.65rem] ${isLandingPage ? 'text-white/60' : 'text-gray-400 dark:text-gray-500'}`}>
               {t('subtitle')}
             </span>
           </Link>
@@ -106,7 +107,8 @@ export const Navbar = () => {
 
           {/* Right side */}
           <div className="flex items-center gap-4">
-            <div className="hidden md:block">
+            <div className="hidden items-center gap-2 md:flex">
+              <ThemeSwitcher />
               <LocaleSwitcher variant={isLandingPage ? 'light' : 'dark'} />
             </div>
 
@@ -115,7 +117,7 @@ export const Navbar = () => {
                 href="/sign-in"
                 className={`hidden text-sm transition-colors md:block ${isLandingPage
                   ? 'text-gray-400 hover:text-white'
-                  : 'text-gray-600 hover:text-gray-900'
+                  : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'
                 }`}
               >
                 {t('sign_in')}
@@ -124,7 +126,7 @@ export const Navbar = () => {
                 href="/sign-up"
                 className={`rounded-full px-5 py-2 text-sm font-medium transition-all ${isLandingPage
                   ? 'bg-white text-black hover:bg-gray-200'
-                  : 'bg-gray-900 text-white hover:bg-gray-800'
+                  : 'bg-gray-900 text-white hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200'
                 }`}
               >
                 {t('sign_up')}
@@ -136,7 +138,7 @@ export const Navbar = () => {
                 afterSignOutUrl="/"
                 appearance={{
                   elements: {
-                    avatarBox: `size-9 ring-2 ${isLandingPage ? 'ring-white/20' : 'ring-gray-200'}`,
+                    avatarBox: `size-9 ring-2 ${isLandingPage ? 'ring-white/20' : 'ring-gray-200 dark:ring-white/20'}`,
                   },
                 }}
               >
@@ -171,12 +173,10 @@ export const Navbar = () => {
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               className={`rounded-lg p-2 md:hidden ${isLandingPage
                 ? 'text-gray-400 hover:bg-white/10 hover:text-white'
-                : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-white'
               }`}
             >
-              {isMobileMenuOpen
-                ? <X className="size-6" />
-                : <Menu className="size-6" />}
+              {isMobileMenuOpen ? <X className="size-6" /> : <Menu className="size-6" />}
             </button>
           </div>
         </div>
@@ -184,7 +184,7 @@ export const Navbar = () => {
         {/* Mobile Navigation */}
         {isMobileMenuOpen && (
           <div
-            className={`border-t py-4 md:hidden ${isLandingPage ? 'border-white/10' : 'border-gray-200'
+            className={`border-t py-4 md:hidden ${isLandingPage ? 'border-white/10' : 'border-gray-200 dark:border-white/10'
             }`}
           >
             <div className="flex flex-col gap-2">
@@ -197,7 +197,7 @@ export const Navbar = () => {
                         onClick={() => setIsMobileMenuOpen(false)}
                         className={`rounded-lg px-4 py-3 transition-colors ${isLandingPage
                           ? 'text-gray-400 hover:bg-white/5 hover:text-white'
-                          : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                          : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-white'
                         }`}
                       >
                         {link.label}
@@ -210,15 +210,16 @@ export const Navbar = () => {
                         onClick={link.onClick}
                         className={`rounded-lg px-4 py-3 text-left transition-colors ${isLandingPage
                           ? 'text-gray-400 hover:bg-white/5 hover:text-white'
-                          : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                          : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-white'
                         }`}
                       >
                         {link.label}
                       </button>
                     )
               ))}
-              <div className="mt-2 px-4">
+              <div className="mt-2 flex items-center justify-between px-4">
                 <LocaleSwitcher variant={isLandingPage ? 'light' : 'dark'} />
+                <ThemeSwitcher />
               </div>
             </div>
           </div>

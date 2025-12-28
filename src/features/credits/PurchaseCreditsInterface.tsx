@@ -209,7 +209,7 @@ export function PurchaseCreditsInterface() {
                   {amount}
                 </div>
                 <div className="text-xs text-gray-600 dark:text-gray-400">
-                  Sanat Hakkı
+                  Tasarım hakkı
                 </div>
               </button>
             ))}
@@ -253,7 +253,7 @@ export function PurchaseCreditsInterface() {
               <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                 {isCustom ? Number.parseInt(customAmount, 10) || 0 : selectedAmount}
                 {' '}
-                Sanat Hakkı
+                Tasarım hakkı
               </p>
             </div>
             <div className="text-right">
@@ -273,8 +273,8 @@ export function PurchaseCreditsInterface() {
         <div className="mb-6 flex items-start gap-3 rounded-lg bg-blue-50 p-4 dark:bg-blue-900/20">
           <Info className="mt-0.5 size-5 shrink-0 text-blue-600 dark:text-blue-400" />
           <p className="text-sm text-blue-900 dark:text-blue-200">
-            Satın aldığınız Sanat Hakları, hesabınıza anında yüklenecek ve sınırsız
-            süre geçerli olacaktır. Her görsel oluşturma işlemi 1 Sanat Hakkı
+            Satın aldığınız Tasarım hakları, hesabınıza anında yüklenecek ve sınırsız
+            süre geçerli olacaktır. Her görsel oluşturma işlemi 1 Tasarım hakkı
             tüketir.
           </p>
         </div>

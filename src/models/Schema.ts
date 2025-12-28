@@ -64,7 +64,7 @@ export const todoSchema = pgTable('todo', {
 // Users table for Birebiro - tracking user credits and settings
 export const userSchema = pgTable('users', {
   id: text('id').primaryKey(), // Clerk user ID
-  artCredits: integer('art_credits').default(10).notNull(), // Sanat Hakkı - starting credits
+  artCredits: integer('art_credits').default(1).notNull(), // Tasarım hakkı - starting credits
   updatedAt: timestamp('updated_at', { mode: 'date' })
     .defaultNow()
     .$onUpdate(() => new Date())

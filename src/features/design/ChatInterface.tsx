@@ -33,6 +33,7 @@ type ChatInterfaceProps = {
 };
 
 export function ChatInterface({
+  locale = 'tr',
   productSlug,
   sizeSlug,
   frameSlug,
@@ -57,6 +58,7 @@ export function ChatInterface({
   const [selectedImageDetail, setSelectedImageDetail] = useState<GeneratedImageResponse | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [artCredits, setArtCredits] = useState<number>(0);
+  const [productFullData, setProductFullData] = useState<any>(null);
   // User upload section states
   const [userUploadedImageUrl, setUserUploadedImageUrl] = useState<string>('');
   const [isUploadingUserImage, setIsUploadingUserImage] = useState(false);
@@ -126,7 +128,8 @@ export function ChatInterface({
       }
 
       try {
-        const productData = await getProductDetails(productSlug);
+        const productData = await getProductDetails(productSlug, locale);
+        setProductFullData(productData);
 
         if (productData?.imageDimensions) {
           // Parse dimensions like "1920x1080" and calculate aspect ratio
@@ -143,7 +146,7 @@ export function ChatInterface({
     }
 
     loadProductDetails();
-  }, [productSlug]);
+  }, [productSlug, locale]);
 
   // Set initial image if provided via URL parameter
   useEffect(() => {
@@ -520,19 +523,26 @@ export function ChatInterface({
                     {t('selected_product')}
                     :
                   </span>
-                  <span className="rounded-full bg-purple-100 px-3 py-1 dark:bg-purple-900">
-                    {productSlug}
+                  <span className="rounded-full bg-purple-100 px-3 py-1 font-medium text-purple-700 dark:bg-purple-900/40 dark:text-purple-300">
+                    {(() => {
+                      if (!productFullData) {
+                        return productSlug;
+                      }
+                      const size = productFullData.sizes?.find((s: any) => s.slug === sizeSlug);
+                      const frame = productFullData.frames?.find((f: any) => f.slug === frameSlug);
+
+                      let display = productFullData.name;
+                      if (size) {
+                        display += ` - ${size.dimensions} cm`;
+                      }
+                      if (frame && frameSlug !== 'none') {
+                        display += ` - ${frame.name}`;
+                      } else if (frameSlug === 'none') {
+                        display += ` - ${locale === 'tr' ? 'Çerçevesiz' : (locale === 'fr' ? 'Sans Cadre' : 'No Frame')}`;
+                      }
+                      return display;
+                    })()}
                   </span>
-                  {sizeSlug && (
-                    <span className="rounded-full bg-blue-100 px-3 py-1 dark:bg-blue-900">
-                      {sizeSlug}
-                    </span>
-                  )}
-                  {frameSlug && frameSlug !== 'none' && (
-                    <span className="rounded-full bg-green-100 px-3 py-1 dark:bg-green-900">
-                      {frameSlug}
-                    </span>
-                  )}
                 </div>
               )}
 
@@ -563,15 +573,13 @@ export function ChatInterface({
                 </span>
                 <button
                   onClick={() => setIsGenerateMode(!isGenerateMode)}
-                  className={`relative inline-flex h-8 w-16 items-center rounded-full transition-colors ${
-                    isGenerateMode
-                      ? 'bg-gradient-to-r from-purple-500 to-pink-500'
-                      : 'bg-gray-300 dark:bg-gray-600'
+                  className={`relative inline-flex h-8 w-16 items-center rounded-full transition-colors ${isGenerateMode
+                    ? 'bg-gradient-to-r from-purple-500 to-pink-500'
+                    : 'bg-gray-300 dark:bg-gray-600'
                   }`}
                 >
                   <span
-                    className={`inline-block size-6 rounded-full bg-white shadow-lg transition-transform ${
-                      isGenerateMode ? 'translate-x-9' : 'translate-x-1'
+                    className={`inline-block size-6 rounded-full bg-white shadow-lg transition-transform ${isGenerateMode ? 'translate-x-9' : 'translate-x-1'
                     }`}
                   >
                     {isGenerateMode
@@ -604,10 +612,9 @@ export function ChatInterface({
                     className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                   >
                     <div
-                      className={`max-w-[80%] rounded-2xl px-4 py-3 ${
-                        message.role === 'user'
-                          ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white'
-                          : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-100'
+                      className={`max-w-[80%] rounded-2xl px-4 py-3 ${message.role === 'user'
+                        ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white'
+                        : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-100'
                       }`}
                     >
                       <p className="whitespace-pre-wrap text-sm">{message.content}</p>
@@ -841,7 +848,7 @@ export function ChatInterface({
                             type="button"
                             onClick={() => {
                               if (!productSlug || !sizeSlug || !frameSlug) {
-                                // Navigate to product selection with uploaded image
+                              // Navigate to product selection with uploaded image
                                 router.push(
                                   `/products?imageUrl=${encodeURIComponent(userUploadedImageUrl)}`,
                                 );
@@ -1013,7 +1020,7 @@ export function ChatInterface({
                 <button
                   type="button"
                   onClick={() => {
-                  // Navigate to preview page with all necessary params
+                    // Navigate to preview page with all necessary params
                     router.push(`/design/preview?generationId=${selectedImageDetail.generation_id}&product=${productSlug}&size=${sizeSlug}&frame=${frameSlug}`);
                   }}
                   className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-500 px-6 py-3 text-base font-medium text-white transition-colors hover:bg-blue-600"

@@ -1,0 +1,55 @@
+Tarih,Kategori,Görev,Durum
+2025-12-24,SEO,"GitHub'daki alıntıda 'Birebiro' marka adını büyük harfle yaz",Yapıldı
+2025-12-24,SEO,"Dinamik sitemap.ts dosyası oluştur (tüm statik sayfalar ve diller için)",Yapıldı
+2025-12-24,SEO,"robots.txt dosyasını yapılandır (dashboard, admin, api yollarını engelle)",Yapıldı
+2025-12-24,SEO,"layout.tsx'e Open Graph metadata ekle",Yapıldı
+2025-12-24,SEO,"layout.tsx'e Twitter Card metadata ekle",Yapıldı
+2025-12-24,SEO,"Ana sayfaya Organization JSON-LD yapısal verisi ekle",Yapıldı
+2025-12-24,SEO,"Ürünler sayfasına ItemList JSON-LD yapısal verisi ekle",Yapıldı
+2025-12-24,Dashboard,"Dashboard'dan istenmeyen metin ve sponsor logolarını kaldır",Yapıldı
+2025-12-24,Siparişler,"Kullanıcı sipariş geçmişinde yalnızca başarılı siparişleri göster",Yapıldı
+2025-12-24,Ödeme,"PayTR token isteğinden önce sipariş kaydı oluştur (başarısız denemeleri takip et)",Yapıldı
+2025-12-24,Ödeme,"PayTR sepet verisinde Unicode karakterleri düzgün işle (btoa hatası düzeltmesi)",Yapıldı
+2025-12-24,Ödeme,"payment_logs tablosunu PayTR callback hata ayıklama için ekle",Yapıldı
+2025-12-24,Siparişler,"Geçmiş siparişler sayfasında başarısız siparişleri gizle",Yapıldı
+2025-12-24,Ödeme,"merchant_oid'e benzersizlik için rastgele bileşen ekle",Yapıldı
+2025-12-24,Script,"check-order script için TypeScript hatalarını çöz",Yapıldı
+2025-12-23,Ödeme,"Kredi satın alımları için iframe_redirect özelliğini etkinleştir",Yapıldı
+2025-12-23,Script,"check-order script ESM uyumluluğu ve push logging düzeltmesi",Yapıldı
+2025-12-23,Ödeme,"Kredi başarı sayfasında yarış koşulunu (race condition) düzelt",Yapıldı
+2025-12-23,Altyapı,"getBaseUrl helper ile public URL mantığını standartlaştır",Yapıldı
+2025-12-23,Altyapı,"www domain desteği için NEXT_PUBLIC_APP_URL kullan",Yapıldı
+2025-12-23,Ödeme,"Kredi action'larındaki sözdizimi hatalarını çöz",Yapıldı
+2025-12-23,Ödeme,"Lint hatalarını çöz ve PayTR düzeltmelerini push et",Yapıldı
+2025-12-23,Test,"Test script'ini localhost için güncelle",Yapıldı
+2025-12-23,Ödeme,"PayTR callback mantığını always-ok yanıtla geri yükle",Yapıldı
+2025-12-23,Debug,"PayTR callback'i minimal POST handler'a basitleştir",Yapıldı
+2025-12-23,Middleware,"PayTR callback'i middleware matcher'dan doğru şekilde hariç tut",Yapıldı
+2025-12-23,Veritabanı,"Pool ile DB bağlantısını optimize et ve runtime migration'ı kaldır",Yapıldı
+2025-12-23,Middleware,"PayTR callback'i middleware auth'dan hariç tut",Yapıldı
+2025-12-23,Lokalizasyon,"en ve fr locale'lerinde metadata ve branding'i güncelle",Yapıldı
+2025-12-23,Lokalizasyon,"Footer ve User Menu'de eksik çevirileri düzelt",Yapıldı
+2025-12-23,Analytics,"Google Analytics entegrasyonu ekle",Yapıldı
+2025-12-23,UI,"Dashboard logo görünürlüğünü düzelt",Yapıldı
+2025-12-22,UI,"3 adımlı ilerleme çubuğu (progress bar) uygula",Yapıldı
+2025-12-22,Lokalizasyon,"Tüm çevirileri tamamla",Yapıldı
+2025-12-22,UI,"Mobil logo görünürlüğünü düzelt",Yapıldı
+2025-12-22,UI,"Slot machine loader'ı yeniden tasarla",Yapıldı
+2025-12-22,UI,"Mobil duyarlılığı (responsiveness) düzelt",Yapıldı
+2025-12-21,About,"Prodüksiyonda taze veri çekmek için dinamik rendering'i zorla",Yapıldı
+2025-12-21,UI,"Hover autoplay ile ürün resim carousel'i uygula",Yapıldı
+2025-12-21,UI,"Karanlık temayı yalnızca ana sayfayla sınırla",Yapıldı
+2025-12-21,Performans,"Performansı optimize et",Yapıldı
+2025-12-21,UI,"DarkVeil'i karanlık fallback ile lazy load et",Yapıldı
+2025-12-21,UI,"html/body'de açık karanlık arka plan ve overscroll'u devre dışı bırak",Yapıldı
+2025-12-21,UI,"Kaydırmada beyaz flash'ı önlemek için karanlık temayı global olarak zorla",Yapıldı
+2025-12-21,UI,"Dark veil uygulamasını doğru Hero template'ine taşı",Yapıldı
+2025-12-21,UI,"Dark veil kullanımını ve uygulamasını güncelle",Yapıldı
+2025-12-21,UI,"Dark veil arka planı ve mobil düzeltmeleri uygula",Yapıldı
+2025-12-21,Auth,"Modern glassmorphism stiliyle auth welcome header'ı yeniden tasarla",Yapıldı
+2025-12-21,Branding,"Logoyu Anton fontu kullanacak şekilde güncelle ve gradyanları kaldır",Yapıldı
+2025-12-21,Cookie,"Cookie consent linkini güncelle ve lint hatasını düzelt",Yapıldı
+2025-12-20,UI,"Locale switcher ikonunu arka plan rengine uyarlanabilir yap",Yapıldı
+2025-12-20,Auth,"Kimlik doğrulamadan sonra redirect URL'i koru",Yapıldı
+2025-12-20,Güvenlik,"Güvenlik açıklarını düzeltmek için Next.js'i yükselt",Yapıldı
+2025-12-20,About,"About sayfası hata işleme ve logging'i iyileştir",Yapıldı

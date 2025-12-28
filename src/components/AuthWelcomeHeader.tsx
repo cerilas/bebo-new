@@ -28,7 +28,7 @@ export const AuthWelcomeHeader = () => {
         <p className="text-sm font-medium text-gray-600 dark:text-gray-300">
           Üye ol,
           {' '}
-          <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-base font-bold text-transparent">1 ücretsiz kredi</span>
+          <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-base font-bold text-transparent">1 ücretsiz tasarım hakkı</span>
           {' '}
           kazan
         </p>

@@ -136,7 +136,7 @@ export async function processSuccessfulCreditPurchase(
 
     return {
       success: true,
-      message: `${creditAmount} Sanat Hakkı başarıyla hesabınıza eklendi`,
+      message: `${creditAmount} Tasarım hakkı başarıyla hesabınıza eklendi`,
       creditsAdded: creditAmount,
     };
   } catch (error) {

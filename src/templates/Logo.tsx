@@ -9,24 +9,24 @@ type LogoProps = {
 
 export const Logo = ({ variant = 'auto', size = 'md', className = '' }: LogoProps) => {
   const sizeClasses = {
-    sm: 'text-xl md:text-2xl',
-    md: 'text-2xl md:text-3xl',
-    lg: 'text-3xl md:text-4xl',
+    sm: 'h-6 md:h-8',
+    md: 'h-8 md:h-10',
+    lg: 'h-10 md:h-12',
   };
 
+  // Determine which logo to use based on variant
+  const logoSrc = variant === 'dark'
+    ? '/assets/images/birebiro-logo-black.svg'
+    : '/assets/images/birebiro-logo-white.svg';
+
   return (
-    <div className={`group relative flex items-center ${className}`}>
-      {/* Main Logo Text */}
-      <span
-        className={`font-anton tracking-wide transition-all duration-300 ${sizeClasses[size]} ${variant === 'light'
-          ? 'text-white'
-          : variant === 'dark'
-            ? 'text-black'
-            : 'text-white'
-        }`}
-      >
-        birebiro
-      </span>
+    <div className={`group relative -ml-[5px] flex items-center ${className}`}>
+      {/* Main Logo Image */}
+      <img
+        src={logoSrc}
+        alt="birebiro"
+        className={`w-auto transition-all duration-300 ${sizeClasses[size]}`}
+      />
     </div>
   );
 };

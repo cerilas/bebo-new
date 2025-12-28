@@ -89,10 +89,10 @@ function SuccessContent() {
                 </div>
               </div>
               <h2 className="mb-2 text-xl font-semibold text-gray-900 dark:text-gray-100">
-                Krediler Yükleniyor...
+                Haklar Yükleniyor...
               </h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                Lütfen bekleyiniz, kredileriniz hesabınıza yükleniyor.
+              <p className="mt-2 text-gray-600 dark:text-gray-400">
+                Lütfen bekleyiniz, tasarım haklarınız hesabınıza yükleniyor.
               </p>
             </>
           )}
@@ -120,7 +120,7 @@ function SuccessContent() {
                     +
                     {processingResult.creditsAdded}
                     {' '}
-                    Sanat Hakkı eklendi!
+                    Tasarım hakkı eklendi!
                   </p>
                 </div>
               )}

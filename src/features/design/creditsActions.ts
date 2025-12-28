@@ -7,7 +7,7 @@ import { db } from '@/libs/DB';
 import { userSchema } from '@/models/Schema';
 
 /**
- * Get user's current art credits (Sanat Hakkı)
+ * Get user's current art credits (Tasarım hakkı)
  */
 export async function getUserArtCredits(): Promise<number> {
   const { userId } = await auth();
@@ -25,12 +25,12 @@ export async function getUserArtCredits(): Promise<number> {
       .limit(1);
 
     if (existingUser.length === 0) {
-      // Create user with default credits (10)
+      // Create user with default credits (1)
       await db.insert(userSchema).values({
         id: userId,
-        artCredits: 10,
+        artCredits: 1,
       });
-      return 10;
+      return 1;
     }
 
     return existingUser[0]!.artCredits;

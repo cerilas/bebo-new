@@ -87,7 +87,7 @@ export function OrdersList({ initialOrders }: OrdersListProps) {
                   ? (
                       <Image
                         src="/assets/images/birebiro-art-credit.jpg"
-                        alt="Sanat Kredisi"
+                        alt="Tasarım hakkı"
                         width={150}
                         height={150}
                         className="rounded-lg object-cover"
@@ -116,7 +116,7 @@ export function OrdersList({ initialOrders }: OrdersListProps) {
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                       {order.orderType === 'credit'
-                        ? `Sanat Kredisi (${Math.floor((order.paymentAmount || 0) / 100)} Kredi)`
+                        ? `Tasarım hakkı (${Math.floor((order.paymentAmount || 0) / 100)} Adet)`
                         : order.productName || 'Ürün'}
                     </h3>
                     <p className="text-sm text-gray-600 dark:text-gray-400">
@@ -132,11 +132,11 @@ export function OrdersList({ initialOrders }: OrdersListProps) {
                   ? (
                       <div className="grid gap-2 text-sm sm:grid-cols-2">
                         <div>
-                          <span className="text-gray-600 dark:text-gray-400">Kredi Sayısı:</span>
+                          <span className="text-gray-600 dark:text-gray-400">Tasarım hakkı sayısı:</span>
                           <span className="ml-2 font-medium text-gray-900 dark:text-white">
                             {Math.floor((order.paymentAmount || 0) / 100)}
                             {' '}
-                            Kredi
+                            Adet
                           </span>
                         </div>
                         <div>
@@ -266,10 +266,9 @@ export function OrdersList({ initialOrders }: OrdersListProps) {
                 key={page}
                 type="button"
                 onClick={() => goToPage(page)}
-                className={`size-10 rounded-lg text-sm font-medium transition-colors ${
-                  currentPage === page
-                    ? 'bg-purple-600 text-white'
-                    : 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'
+                className={`size-10 rounded-lg text-sm font-medium transition-colors ${currentPage === page
+                  ? 'bg-purple-600 text-white'
+                  : 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'
                 }`}
               >
                 {page}

@@ -150,7 +150,7 @@ export async function createCreditPurchase(
 
     // User basket (sepet içeriği) - PayTR formatında
     const userBasket = Buffer.from(JSON.stringify([
-      [`${creditAmount} Sanat Hakkı`, totalAmount.toString(), 1],
+      [`${creditAmount} Tasarım hakkı`, totalAmount.toString(), 1],
     ])).toString('base64');
 
     const noInstallment = 0;

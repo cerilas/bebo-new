@@ -168,9 +168,9 @@ export function SlotMachineLoader({
                       style={{ height: SLOT_HEIGHT }}
                     >
                       <img
-                        src="/assets/images/Birebiro-logo.svg"
-                        alt="Birebiro"
-                        className="h-8 w-auto opacity-40 brightness-0 invert"
+                        src="/assets/images/birebiro-logo-white.svg"
+                        alt="birebiro"
+                        className="h-8 w-auto opacity-40"
                       />
                     </div>
                   );

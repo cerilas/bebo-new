@@ -16,7 +16,7 @@ export const SignUpWrapper = ({ path, forceRedirectUrl, locale }: SignUpWrapperP
   const [accepted, setAccepted] = useState(false);
 
   return (
-    <div className="flex flex-col items-center px-4 sm:px-6">
+    <div className="flex flex-col items-center px-4 py-10 sm:px-6">
       {/* Promotional Banner */}
       <AuthWelcomeHeader />
 

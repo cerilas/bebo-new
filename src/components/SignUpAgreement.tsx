@@ -27,17 +27,18 @@ export const SignUpAgreement = ({ accepted, onChange, locale }: SignUpAgreementP
   const currentLabels = labels[locale as keyof typeof labels] || labels.tr;
 
   return (
-    <div className="mb-6 flex w-full max-w-[400px] flex-col gap-2 rounded-xl border border-gray-200 bg-white/50 p-4 shadow-sm backdrop-blur-sm dark:border-gray-800 dark:bg-black/50">
+    <div className="mb-6 flex w-full max-w-[400px] flex-col px-1">
       <label className="flex cursor-pointer items-start gap-3">
-        <div className="relative flex items-center pt-0.5">
+        <div className="relative flex items-center pt-1">
           <input
             type="checkbox"
+            id="agreement-checkbox"
             checked={accepted}
             onChange={e => onChange(e.target.checked)}
-            className="peer size-5 cursor-pointer appearance-none rounded border-2 border-gray-300 bg-white transition-all checked:border-purple-600 checked:bg-purple-600 focus:outline-none focus:ring-2 focus:ring-purple-500/20 dark:border-gray-700 dark:bg-gray-900"
+            className="peer size-4 cursor-pointer appearance-none rounded border border-gray-300 bg-white transition-all checked:border-purple-600 checked:bg-purple-600 focus:outline-none focus:ring-2 focus:ring-purple-500/20 dark:border-gray-600 dark:bg-gray-800"
           />
           <svg
-            className="pointer-events-none absolute left-0 top-0 size-5 translate-y-0.5 scale-0 text-white transition-transform peer-checked:scale-100"
+            className="pointer-events-none absolute left-0 top-0 size-4 translate-y-1 scale-0 text-white transition-transform peer-checked:scale-100"
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 24 24"
             fill="none"
@@ -49,27 +50,22 @@ export const SignUpAgreement = ({ accepted, onChange, locale }: SignUpAgreementP
             <polyline points="20 6 9 17 4 12" />
           </svg>
         </div>
-        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-          {currentLabels.text}
+        <span className="text-xs leading-relaxed text-gray-600 dark:text-gray-400">
+          <Link
+            href={`/${locale}/legal`}
+            target="_blank"
+            className="font-semibold text-purple-600 underline-offset-2 hover:underline dark:text-purple-400"
+          >
+            {currentLabels.linkText}
+          </Link>
+          {' '}
+          {locale === 'tr' ? 've' : (locale === 'fr' ? 'et' : 'and')}
+          {' '}
+          <span className="font-semibold">{locale === 'tr' ? 'Gizlilik Politikasını' : (locale === 'fr' ? 'la politique de confidentialité' : 'Privacy Policy')}</span>
+          {' '}
+          {locale === 'tr' ? 'okudum, kabul ediyorum.' : (locale === 'fr' ? 'li, j\'accepte.' : 'read, I agree.')}
         </span>
       </label>
-
-      <div className="ml-8">
-        <Link
-          href={`/${locale}/legal`}
-          target="_blank"
-          className="text-xs font-semibold text-purple-600 underline-offset-4 hover:text-purple-700 hover:underline dark:text-purple-400 dark:hover:text-purple-300"
-        >
-          {currentLabels.linkText}
-        </Link>
-      </div>
-
-      {!accepted && (
-        <div className="ml-8 mt-1 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-500">
-          <span className="flex size-3 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/30">!</span>
-          Devam etmek için işaretlemelisiniz
-        </div>
-      )}
     </div>
   );
 };

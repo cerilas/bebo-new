@@ -1,6 +1,7 @@
+import { SignUp } from '@clerk/nextjs';
 import { getTranslations } from 'next-intl/server';
 
-import { SignUpWrapper } from '@/components/SignUpWrapper';
+import { AuthWelcomeHeader } from '@/components/AuthWelcomeHeader';
 import { getI18nPath } from '@/utils/Helpers';
 
 export async function generateMetadata(props: { params: { locale: string } }) {
@@ -24,11 +25,14 @@ const SignUpPage = (props: {
     = typeof redirectUrl === 'string' ? redirectUrl : undefined;
 
   return (
-    <SignUpWrapper
-      path={getI18nPath('/sign-up', props.params.locale)}
-      forceRedirectUrl={forceRedirectUrl}
-      locale={props.params.locale}
-    />
+    <div className="flex flex-col items-center px-4 py-10 sm:px-6">
+      <AuthWelcomeHeader />
+
+      <SignUp
+        path={getI18nPath('/sign-up', props.params.locale)}
+        forceRedirectUrl={forceRedirectUrl}
+      />
+    </div>
   );
 };
 

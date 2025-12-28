@@ -38,14 +38,14 @@ export default function ContactPage({
     <>
       <Navbar />
       <NavbarSpacer />
-      <div className="min-h-screen bg-gray-100 px-4 py-12 sm:px-6 lg:px-8">
+      <div className="min-h-screen bg-background px-4 py-12 text-foreground transition-colors duration-300 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl">
           {/* Başlık */}
           <div className="mb-12 text-center">
-            <h1 className="mb-4 text-4xl font-bold text-gray-900">
+            <h1 className="mb-4 text-4xl font-bold text-foreground dark:text-white">
               {t('page_title')}
             </h1>
-            <p className="mx-auto max-w-3xl text-xl text-gray-600">
+            <p className="mx-auto max-w-3xl text-xl text-muted-foreground dark:text-gray-400">
               {t('page_subtitle')}
             </p>
           </div>
@@ -53,7 +53,7 @@ export default function ContactPage({
           {/* Success Mesajı */}
           {isSuccess && (
             <div className="mb-8">
-              <div className="mx-auto max-w-2xl rounded-lg border border-green-200 bg-green-50 p-6">
+              <div className="mx-auto max-w-2xl rounded-lg border border-green-200 bg-green-50 p-6 dark:border-green-900/50 dark:bg-green-900/20">
                 <div className="flex items-center">
                   <div className="shrink-0">
                     <svg className="size-8 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -61,10 +61,10 @@ export default function ContactPage({
                     </svg>
                   </div>
                   <div className="ml-3">
-                    <h3 className="text-lg font-medium text-green-800">
+                    <h3 className="text-lg font-medium text-green-800 dark:text-green-300">
                       {t('success_title')}
                     </h3>
-                    <p className="mt-2 text-sm text-green-700">
+                    <p className="mt-2 text-sm text-green-700 dark:text-green-400">
                       {t('success_message')}
                     </p>
                   </div>
@@ -86,11 +86,11 @@ export default function ContactPage({
               )
             : (
                 <div className="text-center">
-                  <div className="mx-auto max-w-2xl rounded-lg bg-white p-8 shadow-lg">
-                    <h2 className="mb-4 text-2xl font-bold text-gray-900">
+                  <div className="mx-auto max-w-2xl rounded-lg bg-card p-8 shadow-lg dark:bg-slate-900 dark:ring-1 dark:ring-white/10">
+                    <h2 className="mb-4 text-2xl font-bold text-foreground dark:text-white">
                       {t('success_title')}
                     </h2>
-                    <p className="mb-6 text-gray-600">
+                    <p className="mb-6 text-muted-foreground dark:text-gray-400">
                       {t('success_message')}
                     </p>
                     <a
@@ -105,11 +105,11 @@ export default function ContactPage({
 
           {/* Alt Bilgi */}
           <div className="mt-12 text-center">
-            <div className="rounded-lg bg-blue-50 p-6">
-              <h3 className="mb-2 text-lg font-medium text-blue-900">
+            <div className="rounded-lg bg-blue-50 p-6 dark:bg-blue-900/20">
+              <h3 className="mb-2 text-lg font-medium text-blue-900 dark:text-blue-300">
                 {t('response_time_title')}
               </h3>
-              <p className="text-blue-700">
+              <p className="text-blue-700 dark:text-blue-400">
                 {t('response_time_description')}
               </p>
             </div>

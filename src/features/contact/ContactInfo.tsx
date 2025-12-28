@@ -14,8 +14,8 @@ export function ContactInfo() {
   }, []);
 
   return (
-    <div className="rounded-lg bg-gray-50 p-8">
-      <h2 className="mb-6 text-2xl font-bold text-gray-900">
+    <div className="rounded-lg bg-gray-50 p-8 dark:bg-slate-900 dark:ring-1 dark:ring-white/10">
+      <h2 className="mb-6 text-2xl font-bold text-foreground dark:text-white">
         {t('info_title')}
       </h2>
 
@@ -28,7 +28,7 @@ export function ContactInfo() {
             </svg>
           </div>
           <div>
-            <h3 className="text-lg font-medium text-gray-900">{t('contact_email')}</h3>
+            <h3 className="text-lg font-medium text-foreground dark:text-white">{t('contact_email')}</h3>
             <a
               href={`mailto:${settings.contact_email || 'info@birebiro.com'}`}
               className="text-blue-600 hover:underline"
@@ -46,10 +46,10 @@ export function ContactInfo() {
             </svg>
           </div>
           <div>
-            <h3 className="text-lg font-medium text-gray-900">{t('contact_phone')}</h3>
+            <h3 className="text-lg font-medium text-foreground dark:text-white">{t('contact_phone')}</h3>
             <a
               href={`tel:${settings.contact_phone?.replace(/\s/g, '') || '+905551234567'}`}
-              className="text-gray-600 hover:text-blue-600"
+              className="text-muted-foreground hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400"
             >
               {settings.contact_phone || '+90 555 123 45 67'}
             </a>
@@ -65,7 +65,7 @@ export function ContactInfo() {
               </svg>
             </div>
             <div>
-              <h3 className="text-lg font-medium text-gray-900">WhatsApp</h3>
+              <h3 className="text-lg font-medium text-foreground dark:text-white">WhatsApp</h3>
               <a
                 href={`https://wa.me/${settings.whatsapp_number.replace(/\D/g, '')}`}
                 target="_blank"
@@ -87,8 +87,8 @@ export function ContactInfo() {
             </svg>
           </div>
           <div>
-            <h3 className="text-lg font-medium text-gray-900">{t('contact_address')}</h3>
-            <p className="whitespace-pre-line text-gray-600">
+            <h3 className="text-lg font-medium text-foreground dark:text-white">{t('contact_address')}</h3>
+            <p className="whitespace-pre-line text-muted-foreground dark:text-gray-400">
               {settings.company_address || 'İstanbul, Türkiye'}
             </p>
           </div>
@@ -102,8 +102,8 @@ export function ContactInfo() {
             </svg>
           </div>
           <div>
-            <h3 className="text-lg font-medium text-gray-900">{t('business_hours')}</h3>
-            <div className="text-gray-600">
+            <h3 className="text-lg font-medium text-foreground dark:text-white">{t('business_hours')}</h3>
+            <div className="text-muted-foreground dark:text-gray-400">
               <p>
                 {t('weekdays')}
                 :

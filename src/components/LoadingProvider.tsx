@@ -4,7 +4,7 @@ import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 
 import { LoadingContext } from '@/hooks/useLoading';
 
-import { SlotMachineLoader } from './SlotMachineLoader';
+import { RotatingTextLoader } from './RotatingTextLoader';
 
 function LoadingProviderContent({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true); // Start with loading for initial page load
@@ -45,7 +45,7 @@ function LoadingProviderContent({ children }: { children: React.ReactNode }) {
 
   return (
     <LoadingContext.Provider value={contextValue}>
-      {isLoading && <SlotMachineLoader onComplete={hideLoading} finishFast={finishFast} />}
+      {isLoading && <RotatingTextLoader onComplete={hideLoading} finishFast={finishFast} />}
       {children}
     </LoadingContext.Provider>
   );

@@ -29,7 +29,7 @@ export const LocaleSwitcher = ({ variant = 'dark' }: Props) => {
 
   const buttonClasses = variant === 'light'
     ? 'text-white/70 hover:bg-white/10 hover:text-white' // For dark backgrounds (light icon)
-    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'; // For light backgrounds (dark icon)
+    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-white'; // For light backgrounds (dark icon)
 
   return (
     <DropdownMenu>

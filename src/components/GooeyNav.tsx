@@ -1,5 +1,6 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import React, { useEffect, useRef, useState } from 'react';
 
 type GooeyNavItem = {
@@ -34,6 +35,7 @@ const GooeyNav: React.FC<GooeyNavProps> = ({
   initialActiveIndex = 0,
   variant = 'light',
 }) => {
+  const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
   const navRef = useRef<HTMLUListElement>(null);
   const filterRef = useRef<HTMLSpanElement>(null);
@@ -136,7 +138,7 @@ const GooeyNav: React.FC<GooeyNavProps> = ({
       if (item.onClick) {
         item.onClick();
       } else if (item.href) {
-        window.location.href = item.href;
+        router.push(item.href);
       }
     }, 100);
   };

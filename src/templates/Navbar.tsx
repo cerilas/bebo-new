@@ -69,6 +69,22 @@ export const Navbar = () => {
     onClick: link.onClick,
   }));
 
+  // Determine active index based on current pathname
+  const getActiveIndex = () => {
+    // On landing page, no item should be selected
+    if (isLandingPage) {
+      return -1;
+    }
+
+    // Check if we're on products page
+    if (pathname.includes('/products')) {
+      return 0;
+    }
+
+    // For other pages, no selection
+    return -1;
+  };
+
   return (
     <nav
       className={`fixed inset-x-0 top-0 z-50 transition-all duration-300 ${isLandingPage
@@ -97,7 +113,7 @@ export const Navbar = () => {
               particleCount={15}
               particleDistances={[90, 10]}
               particleR={100}
-              initialActiveIndex={0}
+              initialActiveIndex={getActiveIndex()}
               animationTime={600}
               timeVariance={300}
               colors={[1, 2, 3, 1, 2, 3, 1, 4]}

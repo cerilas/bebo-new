@@ -1,15 +1,7 @@
-import { auth } from '@clerk/nextjs/server';
 import { ChevronLeft } from 'lucide-react';
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
 
-export default async function CenteredLayout(props: { children: React.ReactNode }) {
-  const { userId } = await auth();
-
-  if (userId) {
-    redirect('/dashboard');
-  }
-
+export default function CenteredLayout(props: { children: React.ReactNode }) {
   return (
     <div className="relative flex min-h-screen items-center justify-center">
       <Link

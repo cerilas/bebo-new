@@ -116,6 +116,9 @@ const GooeyNav: React.FC<GooeyNavProps> = ({
       // If clicking the same item, still execute the action
       if (item.onClick) {
         item.onClick();
+      } else if (item.href) {
+        // Navigate to refresh the page
+        router.push(item.href);
       }
       return;
     }

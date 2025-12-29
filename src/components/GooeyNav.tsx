@@ -117,8 +117,8 @@ const GooeyNav: React.FC<GooeyNavProps> = ({
       if (item.onClick) {
         item.onClick();
       } else if (item.href) {
-        // Navigate to refresh the page
-        router.push(item.href);
+        // Use window.location for full page reload to reset state
+        window.location.href = item.href;
       }
       return;
     }

@@ -101,7 +101,7 @@ export const Navbar = () => {
           {/* Logo */}
           <Link href="/" className="group relative z-10 flex flex-col items-start">
             <Logo variant={isLandingPage ? 'light' : 'dark'} scrollProgress={scrollProgress} />
-            <span className={`-mt-1 whitespace-nowrap text-[0.55rem] font-medium sm:text-[0.65rem] ${isLandingPage ? 'text-white/60' : 'text-gray-400 dark:text-gray-500'}`}>
+            <span className={`-mt-1 whitespace-nowrap text-[0.425rem] font-medium sm:text-[0.525rem] ${isLandingPage ? 'text-white/60' : 'text-gray-400 dark:text-gray-500'}`}>
               {t('subtitle')}
             </span>
           </Link>

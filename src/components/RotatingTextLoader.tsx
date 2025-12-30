@@ -82,9 +82,9 @@ export function RotatingTextLoader({
     >
       <div className="bg-gradient-radial absolute inset-0 from-[#1a1a2e] to-black opacity-50" />
 
-      <div className="relative flex items-center gap-3 text-3xl font-bold md:text-5xl lg:text-6xl">
+      <div className="relative flex items-center gap-2 text-2xl font-bold sm:gap-3 sm:text-4xl md:text-5xl lg:text-6xl">
         {/* Rotating Part */}
-        <div className="relative h-[60px] overflow-hidden text-right sm:min-w-[280px]" style={{ minWidth: '240px' }}>
+        <div className="relative h-[60px] min-w-[120px] overflow-hidden text-right sm:min-w-[180px] md:min-w-[260px] lg:min-w-[320px]">
           <div ref={wordsRef} className="flex flex-col items-end">
             {ROTATING_WORDS.map((word, i) => (
               <div
@@ -105,7 +105,7 @@ export function RotatingTextLoader({
           <img
             src="/assets/images/birebiro-logo-white.svg"
             alt="birebiro"
-            className="h-10 w-auto md:h-12 lg:h-16"
+            className="h-8 w-auto sm:h-10 md:h-12 lg:h-16"
           />
         </div>
       </div>

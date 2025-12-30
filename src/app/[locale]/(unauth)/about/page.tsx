@@ -6,6 +6,9 @@ import { getAboutContent } from '@/features/about/aboutActions';
 import { Footer } from '@/templates/Footer';
 import { Navbar, NavbarSpacer } from '@/templates/Navbar';
 
+// Force dynamic rendering to always fetch fresh data from DB
+export const dynamic = 'force-dynamic';
+
 type AboutPageProps = {
   params: Promise<{ locale: string }>;
 };

@@ -5,6 +5,7 @@ import { aboutContentSchema } from '@/models/Schema';
 
 // Get about content by language
 export async function getAboutContent(language: string = 'tr') {
+  console.log(`🔍 [About] Fetching content for language: "${language}"`);
   try {
     const result = await db
       .select()
@@ -12,9 +13,16 @@ export async function getAboutContent(language: string = 'tr') {
       .where(eq(aboutContentSchema.language, language))
       .limit(1);
 
+    console.log(`📊 [About] Query result count: ${result.length}`);
+    if (result[0]) {
+      console.log(`✅ [About] Found content with title1: "${result[0].title1}"`);
+    } else {
+      console.log(`⚠️ [About] No content found for language "${language}"`);
+    }
+
     return result[0] || null;
   } catch (error) {
-    console.error('❌ Error fetching about content:', error);
+    console.error('❌ [About] Error fetching about content:', error);
     return null;
   }
 }

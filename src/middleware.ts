@@ -54,27 +54,9 @@ export default function middleware(
   if (isClerkRoute(request)) {
     return clerkMiddleware(async (auth, req) => {
       if (isProtectedRoute(req)) {
-        const pathSegments = req.nextUrl.pathname.split('/');
-        const localeCandidate = pathSegments[1];
-        const locale = AllLocales.includes(localeCandidate as any) ? `/${localeCandidate}` : '';
-
-        const signInUrl = new URL(`${locale}/sign-in`, req.url);
-
-        // Use relative path for redirect_url to be more robust
-        const relativePath = req.nextUrl.pathname + req.nextUrl.search;
-        signInUrl.searchParams.set('redirect_url', relativePath);
-
-        // PayTR callback and Clerk webhooks should be public
-        if (
-          req.nextUrl.pathname.includes('/api/paytr/callback')
-          || req.nextUrl.pathname.includes('/api/webhooks')
-        ) {
-          return;
-        }
-
-        await auth.protect({
-          // `unauthenticatedUrl` is needed to avoid error: "Unable to find `next-intl` locale because the middleware didn't run on this request"
-          unauthenticatedUrl: signInUrl.toString(),
+        // If the user is unauthenticated, redirect to sign-in with return_to
+        return (await auth()).redirectToSignIn({
+          returnBackUrl: req.url,
         });
       }
 

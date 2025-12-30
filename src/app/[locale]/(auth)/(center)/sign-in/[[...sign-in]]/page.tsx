@@ -22,7 +22,7 @@ const SignInPage = (props: {
   params: { locale: string };
   searchParams: { [key: string]: string | string[] | undefined };
 }) => {
-  const redirectUrl = props.searchParams.redirect_url;
+  const redirectUrl = props.searchParams.redirect_url || props.searchParams.return_to;
   const forceRedirectUrl
     = typeof redirectUrl === 'string' ? redirectUrl : undefined;
 

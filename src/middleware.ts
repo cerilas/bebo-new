@@ -54,25 +54,44 @@ export default function middleware(
 ) {
   if (isClerkRoute(request)) {
     return clerkMiddleware(async (auth, req) => {
-      if (isProtectedRoute(req)) {
+      const { userId } = await auth();
+      const isSignRoute = req.nextUrl.pathname.includes('/sign-in') || req.nextUrl.pathname.includes('/sign-up');
+
+      if (isProtectedRoute(req) && !userId) {
         const pathSegments = req.nextUrl.pathname.split('/');
         const localeCandidate = pathSegments[1];
         const locale = AllLocales.includes(localeCandidate as any) ? `/${localeCandidate}` : '';
 
-        // Manually build localized sign-in URL with redirect_url
         const destination = req.nextUrl.pathname + req.nextUrl.search;
         const signInUrl = new URL(`${locale}/sign-in?redirect_url=${encodeURIComponent(destination)}`, req.url);
 
-        const { userId } = await auth();
-        if (!userId) {
-          const response = NextResponse.redirect(signInUrl);
-          response.cookies.set('clerk-redirect-url', destination, {
+        const response = NextResponse.redirect(signInUrl);
+        response.cookies.set('clerk-redirect-url', destination, {
+          path: '/',
+          maxAge: 3600,
+          sameSite: 'lax',
+        });
+        return response;
+      }
+
+      // Sync cookie if manually visiting sign-in/up routes
+      if (isSignRoute) {
+        const response = intlMiddleware(req);
+        const redirectUrl = req.nextUrl.searchParams.get('redirect_url')
+          || req.nextUrl.searchParams.get('return_to')
+          || req.nextUrl.searchParams.get('after_sign_in_url');
+
+        if (redirectUrl) {
+          response.cookies.set('clerk-redirect-url', redirectUrl, {
             path: '/',
-            maxAge: 3600, // 1 hour
+            maxAge: 3600,
             sameSite: 'lax',
           });
-          return response;
+        } else {
+          // If no redirect param, we might want to clear it to avoid stale redirects from home page
+          response.cookies.delete('clerk-redirect-url');
         }
+        return response;
       }
 
       return intlMiddleware(req);

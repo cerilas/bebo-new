@@ -3,6 +3,7 @@ import type {
   NextFetchEvent,
   NextRequest,
 } from 'next/server';
+import { NextResponse } from 'next/server';
 import createMiddleware from 'next-intl/middleware';
 
 import { AllLocales, AppConfig } from './utils/AppConfig';
@@ -60,13 +61,10 @@ export default function middleware(
         const localeCandidate = pathSegments[1];
         const locale = AllLocales.includes(localeCandidate as any) ? `/${localeCandidate}` : '';
 
-        // Use relative path for redirect_url to be more robust across proxies/domains
-        const relativeRedirectUrl = req.nextUrl.pathname + req.nextUrl.search;
-
         const signInUrl = new URL(`${locale}/sign-in`, req.url);
-        signInUrl.searchParams.set('redirect_url', relativeRedirectUrl);
+        signInUrl.searchParams.set('redirect_url', req.nextUrl.pathname + req.nextUrl.search);
 
-        return Response.redirect(signInUrl);
+        return NextResponse.redirect(signInUrl);
       }
 
       return intlMiddleware(req);

@@ -34,6 +34,7 @@ export const ClerkAuthCard = ({ type, path, forceRedirectUrl }: Props) => {
       <SignIn
         path={path}
         forceRedirectUrl={forceRedirectUrl}
+        fallbackRedirectUrl={forceRedirectUrl || '/dashboard'}
         appearance={appearance}
       />
     );
@@ -43,6 +44,7 @@ export const ClerkAuthCard = ({ type, path, forceRedirectUrl }: Props) => {
     <SignUp
       path={path}
       forceRedirectUrl={forceRedirectUrl}
+      fallbackRedirectUrl={forceRedirectUrl || '/dashboard'}
       appearance={appearance}
     />
   );

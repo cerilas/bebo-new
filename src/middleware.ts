@@ -60,7 +60,9 @@ export default function middleware(
 
         const signInUrl = new URL(`${locale}/sign-in`, req.url);
 
-        signInUrl.searchParams.set('redirect_url', req.url);
+        // Use relative path for redirect_url to be more robust
+        const relativePath = req.nextUrl.pathname + req.nextUrl.search;
+        signInUrl.searchParams.set('redirect_url', relativePath);
 
         // PayTR callback and Clerk webhooks should be public
         if (

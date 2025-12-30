@@ -4,6 +4,8 @@ import { AuthWelcomeHeader } from '@/components/AuthWelcomeHeader';
 import { ClerkAuthCard } from '@/components/ClerkAuthCard';
 import { getI18nPath } from '@/utils/Helpers';
 
+export const dynamic = 'force-dynamic';
+
 export async function generateMetadata(props: { params: { locale: string } }) {
   const t = await getTranslations({
     locale: props.params.locale,

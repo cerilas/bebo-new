@@ -3,7 +3,6 @@ import type {
   NextFetchEvent,
   NextRequest,
 } from 'next/server';
-import { NextResponse } from 'next/server';
 import createMiddleware from 'next-intl/middleware';
 
 import { AllLocales, AppConfig } from './utils/AppConfig';
@@ -54,17 +53,14 @@ export default function middleware(
 ) {
   if (isClerkRoute(request)) {
     return clerkMiddleware(async (auth, req) => {
-      const { userId } = await auth();
-
-      if (!userId && isProtectedRoute(req)) {
+      if (isProtectedRoute(req)) {
         const pathSegments = req.nextUrl.pathname.split('/');
         const localeCandidate = pathSegments[1];
         const locale = AllLocales.includes(localeCandidate as any) ? `/${localeCandidate}` : '';
 
-        const signInUrl = new URL(`${locale}/sign-in`, req.url);
-        signInUrl.searchParams.set('redirect_url', req.nextUrl.pathname + req.nextUrl.search);
-
-        return NextResponse.redirect(signInUrl);
+        await auth.protect({
+          unauthenticatedUrl: new URL(`${locale}/sign-in`, req.url).toString(),
+        });
       }
 
       return intlMiddleware(req);

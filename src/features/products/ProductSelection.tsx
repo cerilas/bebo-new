@@ -59,24 +59,27 @@ export const ProductSelection = ({ products, locale, imageUrl }: Props) => {
   const [selectedProduct, setSelectedProduct] = useState<string | null>(null);
   const [sizes, setSizes] = useState<Size[]>([]);
   const [frames, setFrames] = useState<ProductFrame[]>([]);
+  const [productData, setProductData] = useState<Record<string, { sizes: Size[]; frames: ProductFrame[] }>>({});
   const [sizeLabel, setSizeLabel] = useState<string>('');
   const [frameLabel, setFrameLabel] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [navigating, setNavigating] = useState(false);
-  const [productFrames, setProductFrames] = useState<Record<string, ProductFrame[]>>({});
   const [config, setConfig] = useState<ProductConfig>({
     frame: null,
     size: null,
   });
 
-  // Load frames for all products on mount
+  // Load full details for all products on mount to calculate starting prices
   useEffect(() => {
     products.forEach((product) => {
       getProductDetails(product.slug, locale).then((details) => {
         if (details) {
-          setProductFrames(prev => ({
+          setProductData(prev => ({
             ...prev,
-            [product.slug]: details.frames,
+            [product.slug]: {
+              sizes: details.sizes,
+              frames: details.frames,
+            },
           }));
         }
       });
@@ -101,6 +104,20 @@ export const ProductSelection = ({ products, locale, imageUrl }: Props) => {
   const handleProductClick = (productSlug: string) => {
     setSelectedProduct(productSlug);
     setConfig({ frame: null, size: null });
+  };
+
+  const calculateStartingPrice = (productSlug: string) => {
+    const data = productData[productSlug];
+    if (!data || data.sizes.length === 0) {
+      return null;
+    }
+
+    const minSizePrice = Math.min(...data.sizes.map(s => s.price));
+    const minFramePrice = data.frames.length > 0
+      ? Math.min(...data.frames.map(f => f.price))
+      : 0;
+
+    return minSizePrice + minFramePrice;
   };
 
   const handleContinue = () => {
@@ -167,7 +184,9 @@ export const ProductSelection = ({ products, locale, imageUrl }: Props) => {
           {products.map((product) => {
             const isSelected = selectedProduct === product.slug;
             const isHidden = selectedProduct && !isSelected;
-            const productFramesList = productFrames[product.slug] || [];
+            const currentProductData = productData[product.slug];
+            const productFramesList = currentProductData?.frames || [];
+            const startingPrice = calculateStartingPrice(product.slug);
 
             // Consolidate images for carousel
             const carouselImages: string[] = [];
@@ -257,7 +276,7 @@ export const ProductSelection = ({ products, locale, imageUrl }: Props) => {
                       <span className="text-lg font-bold text-primary">
                         {t('starting_from')}
                         {' '}
-                        299₺
+                        {startingPrice !== null ? `${startingPrice}₺` : '...'}
                       </span>
                       <ChevronRight className="size-5 text-muted-foreground transition-transform group-hover:translate-x-1" />
                     </div>

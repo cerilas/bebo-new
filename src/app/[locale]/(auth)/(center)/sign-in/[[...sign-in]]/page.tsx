@@ -1,3 +1,4 @@
+import { cookies } from 'next/headers';
 import { getTranslations } from 'next-intl/server';
 
 import { AuthWelcomeHeader } from '@/components/AuthWelcomeHeader';
@@ -27,6 +28,18 @@ const SignInPage = (props: {
     || props.searchParams.after_sign_in_url;
   const forceRedirectUrl
     = typeof redirectUrl === 'string' ? redirectUrl : undefined;
+
+  // Sync cookie with current redirectUrl to avoid stale redirects
+  const cookieStore = cookies();
+  if (forceRedirectUrl) {
+    cookieStore.set('clerk-redirect-url', forceRedirectUrl, {
+      path: '/',
+      maxAge: 3600,
+      sameSite: 'lax',
+    });
+  } else {
+    cookieStore.delete('clerk-redirect-url');
+  }
 
   return (
     <div className="flex flex-col items-center px-4 sm:px-6">

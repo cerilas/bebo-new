@@ -130,7 +130,7 @@ export const Navbar = () => {
 
             <SignedOut>
               <Link
-                href="/sign-in"
+                href={`/sign-in?redirect_url=${encodeURIComponent(pathname)}`}
                 className={`hidden text-sm transition-colors md:block ${isLandingPage
                   ? 'text-gray-400 hover:text-white'
                   : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'
@@ -139,7 +139,7 @@ export const Navbar = () => {
                 {t('sign_in')}
               </Link>
               <Link
-                href="/sign-up"
+                href={`/sign-up?redirect_url=${encodeURIComponent(pathname)}`}
                 className={`rounded-full px-5 py-2 text-sm font-medium transition-all ${isLandingPage
                   ? 'bg-white text-black hover:bg-gray-200'
                   : 'bg-gray-900 text-white hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200'

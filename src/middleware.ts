@@ -58,9 +58,10 @@ export default function middleware(
         const localeCandidate = pathSegments[1];
         const locale = AllLocales.includes(localeCandidate as any) ? `/${localeCandidate}` : '';
 
-        // Explicitly add redirect_url to the unauthenticatedUrl
+        // Use relative path for redirect_url to be more robust
+        const relativeRedirectUrl = req.nextUrl.pathname + req.nextUrl.search;
         const signInUrl = new URL(`${locale}/sign-in`, req.url);
-        signInUrl.searchParams.set('redirect_url', req.url);
+        signInUrl.searchParams.set('redirect_url', relativeRedirectUrl);
 
         await auth.protect({
           unauthenticatedUrl: signInUrl.toString(),

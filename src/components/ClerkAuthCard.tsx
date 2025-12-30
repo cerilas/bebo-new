@@ -35,7 +35,7 @@ export const ClerkAuthCard = ({ type, path, forceRedirectUrl }: Props) => {
         path={path}
         routing="path"
         forceRedirectUrl={forceRedirectUrl}
-        fallbackRedirectUrl={forceRedirectUrl || '/dashboard'}
+        fallbackRedirectUrl="/dashboard"
         appearance={appearance}
       />
     );
@@ -46,7 +46,7 @@ export const ClerkAuthCard = ({ type, path, forceRedirectUrl }: Props) => {
       path={path}
       routing="path"
       forceRedirectUrl={forceRedirectUrl}
-      fallbackRedirectUrl={forceRedirectUrl || '/dashboard'}
+      fallbackRedirectUrl="/dashboard"
       appearance={appearance}
     />
   );

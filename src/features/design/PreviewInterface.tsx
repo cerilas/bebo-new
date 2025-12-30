@@ -1,11 +1,11 @@
 'use client';
 
 import { ArrowLeft, Check, Frame as FrameIcon, Image as ImageIcon, Package, RotateCcw, Ruler, Sparkles } from 'lucide-react';
-import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 
 import { MockupPreview } from '@/components/MockupPreview';
+import { ProtectedImage } from '@/components/ProtectedImage';
 import { useRouter } from '@/libs/i18nNavigation';
 import { parseMockupConfig } from '@/utils/mockupUtils';
 
@@ -190,8 +190,7 @@ export function PreviewInterface({
           {/* Flip Card Container */}
           <div className="relative" style={{ perspective: '1000px' }}>
             <div
-              className={`relative transition-transform duration-700 ${
-                isFlipped ? '' : ''
+              className={`relative transition-transform duration-700 ${isFlipped ? '' : ''
               }`}
               style={{
                 transformStyle: 'preserve-3d',
@@ -217,7 +216,7 @@ export function PreviewInterface({
                       </button>
                     )}
                   </div>
-                  <Image
+                  <ProtectedImage
                     src={imageData.image_url}
                     alt={imageData.text_prompt}
                     width={800}

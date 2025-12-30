@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 import Cropper from 'react-easy-crop';
 
+import { ProtectedImage } from '@/components/ProtectedImage';
 import { getProductDetails } from '@/features/products/productActions';
 import { useRouter } from '@/libs/i18nNavigation';
 import getCroppedImg from '@/utils/cropImage';
@@ -620,7 +621,7 @@ export function ChatInterface({
                       <p className="whitespace-pre-wrap text-sm">{message.content}</p>
                       {/* User uploaded image */}
                       {message.userImageUrl && (
-                        <img
+                        <ProtectedImage
                           src={message.userImageUrl}
                           alt="User upload"
                           className="mt-3 max-h-48 rounded-lg"
@@ -628,7 +629,7 @@ export function ChatInterface({
                       )}
                       {/* AI generated image */}
                       {message.imageUrl && (
-                        <img
+                        <ProtectedImage
                           src={message.imageUrl}
                           alt="Generated"
                           className="mt-3 rounded-lg"
@@ -651,7 +652,7 @@ export function ChatInterface({
                 {/* Uploaded Image Preview */}
                 {uploadedImageUrl && (
                   <div className="mb-3 flex items-center gap-2 rounded-lg bg-purple-50 p-2 dark:bg-purple-900/20">
-                    <img
+                    <ProtectedImage
                       src={uploadedImageUrl}
                       alt="Upload preview"
                       className="size-16 rounded object-cover"
@@ -762,7 +763,7 @@ export function ChatInterface({
                           key={index}
                           className="group relative aspect-square overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700"
                         >
-                          <img
+                          <ProtectedImage
                             src={image.image_url}
                             alt={`Generated ${index + 1}`}
                             className="size-full object-cover transition-transform group-hover:scale-110"
@@ -838,7 +839,7 @@ export function ChatInterface({
                 : (
                     <div className="space-y-4">
                       <div className="group relative aspect-square overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">
-                        <img
+                        <ProtectedImage
                           src={userUploadedImageUrl}
                           alt={t('uploaded_image')}
                           className="size-full object-cover transition-transform group-hover:scale-105"
@@ -928,7 +929,7 @@ export function ChatInterface({
                           }
                         }}
                       >
-                        <img
+                        <ProtectedImage
                           src={image.thumbnail_url || image.image_url}
                           alt={image.text_prompt}
                           className="size-full object-cover transition-transform duration-300 group-hover:scale-110"
@@ -981,7 +982,7 @@ export function ChatInterface({
 
               {/* Image */}
               <div className="mb-6">
-                <img
+                <ProtectedImage
                   src={selectedImageDetail.image_url}
                   alt={selectedImageDetail.text_prompt}
                   className="w-full rounded-xl"

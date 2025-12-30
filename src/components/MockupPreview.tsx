@@ -1,8 +1,8 @@
 'use client';
 
-/* eslint-disable @next/next/no-img-element */
-
 import type { MockupConfig, MockupType } from '@/utils/mockupUtils';
+
+import { ProtectedImage } from './ProtectedImage';
 
 type MockupPreviewProps = {
   imageUrl: string; // Kullanıcının görseli
@@ -55,7 +55,7 @@ export function MockupPreview({
   if (mockupType === 'none' || !mockupTemplate) {
     return (
       <div className={`relative overflow-hidden ${className}`}>
-        <img
+        <ProtectedImage
           src={imageUrl}
           alt="Preview"
           className="size-full object-contain"
@@ -70,7 +70,7 @@ export function MockupPreview({
     return (
       <div className={`relative overflow-hidden ${className}`}>
         {/* Çerçeve (arkada) */}
-        <img
+        <ProtectedImage
           src={mockupTemplate}
           alt="Frame"
           className="relative z-0 size-full object-contain"
@@ -86,7 +86,7 @@ export function MockupPreview({
             ...perspectiveStyle,
           }}
         >
-          <img
+          <ProtectedImage
             src={imageUrl}
             alt="Your artwork"
             className="size-full object-cover"
@@ -101,7 +101,7 @@ export function MockupPreview({
     return (
       <div className={`relative overflow-hidden ${className}`}>
         {/* Mockup arka planı */}
-        <img
+        <ProtectedImage
           src={mockupTemplate}
           alt="Background"
           className="size-full object-contain"
@@ -117,7 +117,7 @@ export function MockupPreview({
             ...perspectiveStyle,
           }}
         >
-          <img
+          <ProtectedImage
             src={imageUrl}
             alt="Your artwork"
             className="size-full object-cover"
@@ -132,7 +132,7 @@ export function MockupPreview({
     return (
       <div className={`relative overflow-hidden ${className}`}>
         {/* Mockup arka planı */}
-        <img
+        <ProtectedImage
           src={mockupTemplate}
           alt="Product mockup"
           className="relative z-10 size-full object-contain"
@@ -149,7 +149,7 @@ export function MockupPreview({
             transformOrigin: 'center center',
           }}
         >
-          <img
+          <ProtectedImage
             src={imageUrl}
             alt="Your artwork"
             className="size-full object-cover"
@@ -162,7 +162,7 @@ export function MockupPreview({
   // Fallback
   return (
     <div className={`relative overflow-hidden ${className}`}>
-      <img
+      <ProtectedImage
         src={imageUrl}
         alt="Preview"
         className="size-full object-contain"

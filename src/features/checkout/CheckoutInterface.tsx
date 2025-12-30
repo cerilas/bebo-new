@@ -2,12 +2,12 @@
 
 import { useUser } from '@clerk/nextjs';
 import { ArrowLeft, CreditCard, Loader2, Package, Shield } from 'lucide-react';
-import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Script from 'next/script';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 
+import { ProtectedImage } from '@/components/ProtectedImage';
 import { getPayTRToken } from '@/features/checkout/paytrActions';
 import { type GeneratedImageResponse, getGeneratedImage, getUserGeneratedImages } from '@/features/design/chatActions';
 import { getProductPricing, type ProductPriceData } from '@/features/design/productPriceActions';
@@ -546,7 +546,7 @@ export function CheckoutInterface({
               <p className="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
                 {t('your_design')}
               </p>
-              <Image
+              <ProtectedImage
                 src={imageData.image_url}
                 alt={imageData.text_prompt}
                 width={600}

@@ -1,10 +1,10 @@
 'use client';
 
 import { ArrowLeft, Calendar, Package, Sparkles, User } from 'lucide-react';
-import Image from 'next/image';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 
+import { ProtectedImage } from '@/components/ProtectedImage';
 import type { getOrderDetail } from '@/features/orders/ordersActions';
 
 type OrderDetail = Awaited<ReturnType<typeof getOrderDetail>>;
@@ -108,7 +108,7 @@ export default function OrderDetailClient({ orderDetail }: OrderDetailClientProp
               {orderDetail.imageUrl
                 ? (
                     <div className="overflow-hidden rounded-xl">
-                      <Image
+                      <ProtectedImage
                         src={orderDetail.imageUrl}
                         alt="Oluşturulan Tasarım"
                         width={600}

@@ -1,10 +1,10 @@
 'use client';
 
 import { ChevronLeft, ChevronRight, Package, ShoppingBag } from 'lucide-react';
-import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
+import { ProtectedImage } from '@/components/ProtectedImage';
 import type { getUserOrders } from '@/features/orders/ordersActions';
 
 type Order = Awaited<ReturnType<typeof getUserOrders>>[number];
@@ -85,7 +85,7 @@ export function OrdersList({ initialOrders }: OrdersListProps) {
               <div className="shrink-0">
                 {order.orderType === 'credit'
                   ? (
-                      <Image
+                      <ProtectedImage
                         src="/assets/images/birebiro-art-credit.jpg"
                         alt="Tasarım hakkı"
                         width={150}
@@ -95,7 +95,7 @@ export function OrdersList({ initialOrders }: OrdersListProps) {
                     )
                   : order.imageUrl
                     ? (
-                        <Image
+                        <ProtectedImage
                           src={order.imageUrl}
                           alt={order.productName || 'Ürün'}
                           width={150}

@@ -54,8 +54,9 @@ export default function middleware(
   if (isClerkRoute(request)) {
     return clerkMiddleware(async (auth, req) => {
       if (isProtectedRoute(req)) {
-        const locale
-          = req.nextUrl.pathname.match(/(\/.*)\/dashboard/)?.at(1) ?? '';
+        const pathSegments = req.nextUrl.pathname.split('/');
+        const localeCandidate = pathSegments[1];
+        const locale = AllLocales.includes(localeCandidate as any) ? `/${localeCandidate}` : '';
 
         const signInUrl = new URL(`${locale}/sign-in`, req.url);
 

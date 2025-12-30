@@ -58,10 +58,13 @@ export default function middleware(
         const localeCandidate = pathSegments[1];
         const locale = AllLocales.includes(localeCandidate as any) ? `/${localeCandidate}` : '';
 
-        // Use relative path for redirect_url to be more robust
-        const relativeRedirectUrl = req.nextUrl.pathname + req.nextUrl.search;
+        // Build a robust absolute URL for redirection
+        const currentUrl = req.url;
         const signInUrl = new URL(`${locale}/sign-in`, req.url);
-        signInUrl.searchParams.set('redirect_url', relativeRedirectUrl);
+
+        // Pass both parameters to ensure Clerk captures it regardless of its internal version/config
+        signInUrl.searchParams.set('redirect_url', currentUrl);
+        signInUrl.searchParams.set('after_sign_in_url', currentUrl);
 
         await auth.protect({
           unauthenticatedUrl: signInUrl.toString(),

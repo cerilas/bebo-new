@@ -22,7 +22,9 @@ const SignUpPage = (props: {
   params: { locale: string };
   searchParams: { [key: string]: string | string[] | undefined };
 }) => {
-  const redirectUrl = props.searchParams.redirect_url || props.searchParams.return_to;
+  const redirectUrl = props.searchParams.redirect_url
+    || props.searchParams.return_to
+    || props.searchParams.after_sign_in_url;
   const forceRedirectUrl
     = typeof redirectUrl === 'string' ? redirectUrl : undefined;
 

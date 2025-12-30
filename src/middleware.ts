@@ -3,6 +3,7 @@ import type {
   NextFetchEvent,
   NextRequest,
 } from 'next/server';
+import { NextResponse } from 'next/server';
 import createMiddleware from 'next-intl/middleware';
 
 import { AllLocales, AppConfig } from './utils/AppConfig';
@@ -59,12 +60,18 @@ export default function middleware(
         const locale = AllLocales.includes(localeCandidate as any) ? `/${localeCandidate}` : '';
 
         // Manually build localized sign-in URL with redirect_url
-        const destination = encodeURIComponent(req.nextUrl.pathname + req.nextUrl.search);
-        const signInUrl = new URL(`${locale}/sign-in?redirect_url=${destination}`, req.url);
+        const destination = req.nextUrl.pathname + req.nextUrl.search;
+        const signInUrl = new URL(`${locale}/sign-in?redirect_url=${encodeURIComponent(destination)}`, req.url);
 
         const { userId } = await auth();
         if (!userId) {
-          return Response.redirect(signInUrl);
+          const response = NextResponse.redirect(signInUrl);
+          response.cookies.set('clerk-redirect-url', destination, {
+            path: '/',
+            maxAge: 3600, // 1 hour
+            sameSite: 'lax',
+          });
+          return response;
         }
       }
 

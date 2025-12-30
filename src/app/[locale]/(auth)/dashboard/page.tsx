@@ -1,13 +1,24 @@
-import { useTranslations } from 'next-intl';
+import { cookies } from 'next/headers';
+import { getTranslations } from 'next-intl/server';
 
+import { RedirectInterceptor } from '@/components/RedirectInterceptor';
 import { MessageState } from '@/features/dashboard/MessageState';
 import { TitleBar } from '@/features/dashboard/TitleBar';
 
-const DashboardIndexPage = () => {
-  const t = useTranslations('DashboardIndex');
+const DashboardIndexPage = async (props: { params: { locale: string } }) => {
+  const cookieStore = cookies();
+  const redirectUrl = cookieStore.get('clerk-redirect-url')?.value;
+
+  const t = await getTranslations({
+    locale: props.params.locale,
+    namespace: 'DashboardIndex',
+  });
 
   return (
     <>
+      {redirectUrl && (
+        <RedirectInterceptor url={redirectUrl} />
+      )}
       <TitleBar
         title={t('title_bar')}
         description={t('title_bar_description')}

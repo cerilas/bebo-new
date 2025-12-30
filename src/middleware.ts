@@ -60,9 +60,11 @@ export default function middleware(
         const localeCandidate = pathSegments[1];
         const locale = AllLocales.includes(localeCandidate as any) ? `/${localeCandidate}` : '';
 
-        // Manually construct localized sign-in URL
+        // Use relative path for redirect_url to be more robust across proxies/domains
+        const relativeRedirectUrl = req.nextUrl.pathname + req.nextUrl.search;
+
         const signInUrl = new URL(`${locale}/sign-in`, req.url);
-        signInUrl.searchParams.set('redirect_url', req.url);
+        signInUrl.searchParams.set('redirect_url', relativeRedirectUrl);
 
         return Response.redirect(signInUrl);
       }

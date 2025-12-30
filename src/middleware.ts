@@ -61,8 +61,11 @@ export default function middleware(
 
         signInUrl.searchParams.set('redirect_url', req.url);
 
-        // PayTR callback route should be public
-        if (req.nextUrl.pathname.includes('/api/paytr/callback')) {
+        // PayTR callback and Clerk webhooks should be public
+        if (
+          req.nextUrl.pathname.includes('/api/paytr/callback')
+          || req.nextUrl.pathname.includes('/api/webhooks')
+        ) {
           return;
         }
 
@@ -80,5 +83,9 @@ export default function middleware(
 }
 
 export const config = {
-  matcher: ['/((?!.+\\.[\\w]+$|_next|monitoring|api/paytr/callback).*)', '/', '/(api(?!/paytr/callback)|trpc)(.*)'], // Also exclude tunnelRoute used in Sentry from the matcher
+  matcher: [
+    '/((?!.+\\.[\\w]+$|_next|monitoring|api/paytr/callback|api/webhooks).*)',
+    '/',
+    '/(api(?!/paytr/callback|/webhooks)|trpc)(.*)',
+  ],
 };

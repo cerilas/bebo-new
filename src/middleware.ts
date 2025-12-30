@@ -53,11 +53,18 @@ export default function middleware(
 ) {
   if (isClerkRoute(request)) {
     return clerkMiddleware(async (auth, req) => {
-      if (isProtectedRoute(req)) {
-        // If the user is unauthenticated, redirect to sign-in with return_to
-        return (await auth()).redirectToSignIn({
-          returnBackUrl: req.url,
-        });
+      const { userId } = await auth();
+
+      if (!userId && isProtectedRoute(req)) {
+        const pathSegments = req.nextUrl.pathname.split('/');
+        const localeCandidate = pathSegments[1];
+        const locale = AllLocales.includes(localeCandidate as any) ? `/${localeCandidate}` : '';
+
+        // Manually construct localized sign-in URL
+        const signInUrl = new URL(`${locale}/sign-in`, req.url);
+        signInUrl.searchParams.set('redirect_url', req.url);
+
+        return Response.redirect(signInUrl);
       }
 
       return intlMiddleware(req);

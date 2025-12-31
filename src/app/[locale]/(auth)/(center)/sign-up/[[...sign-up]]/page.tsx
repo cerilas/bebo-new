@@ -2,6 +2,7 @@ import { getTranslations } from 'next-intl/server';
 
 import { AuthWelcomeHeader } from '@/components/AuthWelcomeHeader';
 import { ClerkAuthCard } from '@/components/ClerkAuthCard';
+import { ClerkLegalLinkFixer } from '@/components/ClerkLegalLinkFixer';
 import { getI18nPath } from '@/utils/Helpers';
 
 export const dynamic = 'force-dynamic';
@@ -30,6 +31,7 @@ const SignUpPage = (props: {
 
   return (
     <div className="flex flex-col items-center px-4 py-10 sm:px-6">
+      <ClerkLegalLinkFixer />
       <AuthWelcomeHeader />
 
       <ClerkAuthCard

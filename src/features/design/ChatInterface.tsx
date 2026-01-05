@@ -864,7 +864,7 @@ export function ChatInterface({
                           containerClassName="size-full"
                           className="object-cover transition-transform group-hover:scale-105"
                         />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 transition-opacity group-hover:opacity-100">
+                        <div className="absolute inset-0 z-20 bg-gradient-to-t from-black/50 to-transparent opacity-0 transition-opacity group-hover:opacity-100">
                           <button
                             type="button"
                             onClick={() => {

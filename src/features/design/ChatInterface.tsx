@@ -786,6 +786,7 @@ export function ChatInterface({
                             src={image.image_url}
                             alt={`Generated ${index + 1}`}
                             fill
+                            containerClassName="size-full"
                             className="object-cover transition-transform group-hover:scale-110"
                           />
                           <div className="absolute inset-0 z-20 bg-gradient-to-t from-black/50 to-transparent opacity-0 transition-opacity group-hover:opacity-100">
@@ -860,6 +861,7 @@ export function ChatInterface({
                           src={userUploadedImageUrl}
                           alt={t('uploaded_image')}
                           fill
+                          containerClassName="size-full"
                           className="object-cover transition-transform group-hover:scale-105"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 transition-opacity group-hover:opacity-100">
@@ -951,6 +953,7 @@ export function ChatInterface({
                           src={image.thumbnail_url || image.image_url}
                           alt={image.text_prompt}
                           fill
+                          containerClassName="size-full"
                           className="object-cover transition-transform duration-300 group-hover:scale-110"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100">

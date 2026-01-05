@@ -624,7 +624,9 @@ export function ChatInterface({
                         <ProtectedImage
                           src={message.userImageUrl}
                           alt="User upload"
-                          className="mt-3 max-h-48 rounded-lg"
+                          width={512}
+                          height={512}
+                          className="mt-3 max-h-48 w-auto rounded-lg"
                         />
                       )}
                       {/* AI generated image */}
@@ -632,7 +634,9 @@ export function ChatInterface({
                         <ProtectedImage
                           src={message.imageUrl}
                           alt="Generated"
-                          className="mt-3 rounded-lg"
+                          width={512}
+                          height={512}
+                          className="mt-3 h-auto w-full rounded-lg"
                         />
                       )}
                     </div>
@@ -655,6 +659,8 @@ export function ChatInterface({
                     <ProtectedImage
                       src={uploadedImageUrl}
                       alt="Upload preview"
+                      width={64}
+                      height={64}
                       className="size-16 rounded object-cover"
                     />
                     <span className="flex-1 text-sm text-gray-600 dark:text-gray-300">
@@ -761,27 +767,38 @@ export function ChatInterface({
                       {generatedImages.map((image, index) => (
                         <div
                           key={index}
-                          className="group relative aspect-square overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700"
+                          role="button"
+                          tabIndex={0}
+                          className="group relative aspect-square cursor-pointer overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700"
+                          onClick={() => {
+                            setSelectedImageDetail(image);
+                            setIsModalOpen(true);
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              setSelectedImageDetail(image);
+                              setIsModalOpen(true);
+                            }
+                          }}
                         >
                           <ProtectedImage
                             src={image.image_url}
                             alt={`Generated ${index + 1}`}
-                            className="size-full object-cover transition-transform group-hover:scale-110"
+                            fill
+                            className="object-cover transition-transform group-hover:scale-110"
                           />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 transition-opacity group-hover:opacity-100">
+                          <div className="absolute inset-0 z-20 bg-gradient-to-t from-black/50 to-transparent opacity-0 transition-opacity group-hover:opacity-100">
                             <button
-                              onClick={() => {
-                                if (!productSlug || !sizeSlug || !frameSlug) {
-                                  alert(t('please_select_product'));
-                                  return;
-                                }
-                                router.push(
-                                  `/design/preview?generationId=${image.generation_id}&product=${productSlug}&size=${sizeSlug}&frame=${frameSlug}`,
-                                );
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedImageDetail(image);
+                                setIsModalOpen(true);
                               }}
                               className="absolute bottom-2 right-2 rounded-lg bg-white px-3 py-1 text-xs font-medium text-gray-800 transition-colors hover:bg-gray-100"
                             >
-                              {t('select')}
+                              {t('explore')}
                             </button>
                           </div>
                         </div>
@@ -842,7 +859,8 @@ export function ChatInterface({
                         <ProtectedImage
                           src={userUploadedImageUrl}
                           alt={t('uploaded_image')}
-                          className="size-full object-cover transition-transform group-hover:scale-105"
+                          fill
+                          className="object-cover transition-transform group-hover:scale-105"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 transition-opacity group-hover:opacity-100">
                           <button
@@ -932,7 +950,8 @@ export function ChatInterface({
                         <ProtectedImage
                           src={image.thumbnail_url || image.image_url}
                           alt={image.text_prompt}
-                          className="size-full object-cover transition-transform duration-300 group-hover:scale-110"
+                          fill
+                          className="object-cover transition-transform duration-300 group-hover:scale-110"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100">
                           <div className="absolute inset-x-0 bottom-0 p-3">
@@ -985,7 +1004,9 @@ export function ChatInterface({
                 <ProtectedImage
                   src={selectedImageDetail.image_url}
                   alt={selectedImageDetail.text_prompt}
-                  className="w-full rounded-xl"
+                  width={800}
+                  height={800}
+                  className="h-auto w-full rounded-xl"
                 />
               </div>
 

@@ -58,7 +58,8 @@ export function MockupPreview({
         <ProtectedImage
           src={imageUrl}
           alt="Preview"
-          className="size-full object-contain"
+          fill
+          className="object-contain"
           style={perspectiveStyle}
         />
       </div>
@@ -73,7 +74,8 @@ export function MockupPreview({
         <ProtectedImage
           src={mockupTemplate}
           alt="Frame"
-          className="relative z-0 size-full object-contain"
+          fill
+          className="relative z-0 object-contain"
         />
         {/* Kullanıcı görseli (önde) */}
         <div
@@ -89,7 +91,8 @@ export function MockupPreview({
           <ProtectedImage
             src={imageUrl}
             alt="Your artwork"
-            className="size-full object-cover"
+            fill
+            className="object-cover"
           />
         </div>
       </div>
@@ -104,7 +107,8 @@ export function MockupPreview({
         <ProtectedImage
           src={mockupTemplate}
           alt="Background"
-          className="size-full object-contain"
+          fill
+          className="object-contain"
         />
         {/* Kullanıcı görseli (üstte) */}
         <div
@@ -120,7 +124,8 @@ export function MockupPreview({
           <ProtectedImage
             src={imageUrl}
             alt="Your artwork"
-            className="size-full object-cover"
+            fill
+            className="object-cover"
           />
         </div>
       </div>
@@ -135,7 +140,8 @@ export function MockupPreview({
         <ProtectedImage
           src={mockupTemplate}
           alt="Product mockup"
-          className="relative z-10 size-full object-contain"
+          fill
+          className="relative z-10 object-contain"
         />
         {/* Kullanıcı görseli (perspektif ile) */}
         <div
@@ -152,7 +158,8 @@ export function MockupPreview({
           <ProtectedImage
             src={imageUrl}
             alt="Your artwork"
-            className="size-full object-cover"
+            fill
+            className="object-cover"
           />
         </div>
       </div>
@@ -165,7 +172,8 @@ export function MockupPreview({
       <ProtectedImage
         src={imageUrl}
         alt="Preview"
-        className="size-full object-contain"
+        fill
+        className="object-contain"
       />
     </div>
   );

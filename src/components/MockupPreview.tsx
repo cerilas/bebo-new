@@ -59,6 +59,7 @@ export function MockupPreview({
           src={imageUrl}
           alt="Preview"
           fill
+          containerClassName="size-full"
           className="object-contain"
           style={perspectiveStyle}
         />
@@ -75,6 +76,7 @@ export function MockupPreview({
           src={mockupTemplate}
           alt="Frame"
           fill
+          containerClassName="size-full"
           className="relative z-0 object-contain"
         />
         {/* Kullanıcı görseli (önde) */}
@@ -92,6 +94,7 @@ export function MockupPreview({
             src={imageUrl}
             alt="Your artwork"
             fill
+            containerClassName="size-full"
             className="object-cover"
           />
         </div>
@@ -108,6 +111,7 @@ export function MockupPreview({
           src={mockupTemplate}
           alt="Background"
           fill
+          containerClassName="size-full"
           className="object-contain"
         />
         {/* Kullanıcı görseli (üstte) */}
@@ -125,6 +129,7 @@ export function MockupPreview({
             src={imageUrl}
             alt="Your artwork"
             fill
+            containerClassName="size-full"
             className="object-cover"
           />
         </div>
@@ -141,6 +146,7 @@ export function MockupPreview({
           src={mockupTemplate}
           alt="Product mockup"
           fill
+          containerClassName="size-full"
           className="relative z-10 object-contain"
         />
         {/* Kullanıcı görseli (perspektif ile) */}
@@ -159,6 +165,7 @@ export function MockupPreview({
             src={imageUrl}
             alt="Your artwork"
             fill
+            containerClassName="size-full"
             className="object-cover"
           />
         </div>
@@ -173,6 +180,7 @@ export function MockupPreview({
         src={imageUrl}
         alt="Preview"
         fill
+        containerClassName="size-full"
         className="object-contain"
       />
     </div>

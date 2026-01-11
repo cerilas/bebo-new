@@ -3,6 +3,7 @@ import { headers } from 'next/headers';
 import { Webhook } from 'svix';
 
 import { db } from '@/libs/DB';
+import { SmsService } from '@/libs/SmsService';
 import { userSchema } from '@/models/Schema';
 
 export async function POST(req: Request) {
@@ -87,6 +88,18 @@ export async function POST(req: Request) {
     } catch (error) {
       console.error('Error syncing user with DB:', error);
       return new Response('Error updating database', { status: 500 });
+    }
+  }
+
+  if (eventType === 'sms.created') {
+    const { to_phone_number, message } = evt.data;
+
+    // Check if it's a verification code
+    const codeMatch = message.match(/Your verification code is (\d+)/);
+
+    if (codeMatch && codeMatch[1]) {
+      const smsMessage = `Dogrulama kodunuz: ${codeMatch[1]}`;
+      await SmsService.sendSms(to_phone_number, smsMessage);
     }
   }
 

@@ -7,6 +7,7 @@ import { eq } from 'drizzle-orm';
 
 import { db } from '@/libs/DB';
 import { Env } from '@/libs/Env';
+import { SmsService } from '@/libs/SmsService';
 import { generatedImageSchema, orderSchema, userSchema } from '@/models/Schema';
 import { getBaseUrl } from '@/utils/Helpers';
 
@@ -306,7 +307,14 @@ export async function validatePayTRCallback(payload: {
         }
       }
 
-      // TODO: Müşteriye email/SMS gönder
+      // Send SMS notification
+      try {
+        const smsMessage = `Sayin ${existingOrder.customerName}, siparisiniz alinmistir. Siparis numaraniz: ${existingOrder.merchantOid}. Tesekkur ederiz. Birebiro`;
+        await SmsService.sendSms(existingOrder.customerPhone, smsMessage);
+      } catch (smsError) {
+        console.error('Failed to send SMS for order:', smsError);
+      }
+
       // TODO: Admin'e bildirim gönder
     } else {
       await db

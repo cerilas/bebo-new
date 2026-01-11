@@ -6,6 +6,7 @@ import { eq } from 'drizzle-orm';
 
 import { db } from '@/libs/DB';
 import { Env } from '@/libs/Env';
+import { SmsService } from '@/libs/SmsService';
 import { orderSchema, userSchema } from '@/models/Schema';
 
 type PayTRCreditCallbackPayload = {
@@ -115,6 +116,30 @@ export async function validatePayTRCreditCallback(
           updatedAt: new Date(),
         })
         .where(eq(orderSchema.merchantOid, merchant_oid));
+
+      // Müşteriye SMS gönder
+      try {
+        // Kullanıcı bilgisini çek (Order'daki telefon dummy olabilir)
+        const userDetails = await db
+          .select({
+            firstName: userSchema.firstName,
+            lastName: userSchema.lastName,
+            phone: userSchema.phone,
+          })
+          .from(userSchema)
+          .where(eq(userSchema.id, userId))
+          .limit(1);
+
+        if (userDetails.length > 0 && userDetails[0]?.phone) {
+          const user = userDetails[0];
+          const customerName = user.firstName ? `${user.firstName} ${user.lastName || ''}` : 'Kullanıcı';
+          const smsMessage = `Sayin ${customerName}, hesabiniza ${creditAmount} adet tasarim hakki yuklenmistir. Iyi eglenceler. Birebiro`;
+
+          await SmsService.sendSms(user.phone, smsMessage);
+        }
+      } catch (smsError) {
+        console.error('Failed to send SMS for credit purchase:', smsError);
+      }
 
       return {
         success: true,

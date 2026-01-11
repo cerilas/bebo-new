@@ -100,7 +100,11 @@ export async function POST(req: Request) {
     });
 
     // Check if it's a verification code
-    const codeMatch = message.match(/Your verification code is (\d+)/);
+    // Supports both formats:
+    // 1. "Your verification code is 123456"
+    // 2. "123456 is your verification code"
+    const codeMatch = message.match(/Your verification code is (\d+)/)
+      || message.match(/(\d+)\s+is your verification code/);
 
     if (codeMatch && codeMatch[1]) {
       console.log('✅ Verification code matched:', codeMatch[1]);

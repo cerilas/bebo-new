@@ -62,6 +62,7 @@ export async function validatePayTRCreditCallback(
           userId: orderSchema.userId,
           paymentStatus: orderSchema.paymentStatus,
           paymentAmount: orderSchema.paymentAmount,
+          creditAmount: orderSchema.creditAmount,
         })
         .from(orderSchema)
         .where(eq(orderSchema.merchantOid, merchant_oid))
@@ -72,15 +73,18 @@ export async function validatePayTRCreditCallback(
       }
 
       const order = orderRecord[0]!;
-      const { userId } = order;
+      const { userId, creditAmount } = order;
+
+      // creditAmount null ise (eski kayıtlar için fallback)
+      if (!creditAmount) {
+        console.error('❌ creditAmount is null for order:', merchant_oid);
+        return { success: false, error: 'Credit amount not found in order' };
+      }
 
       // Sipariş zaten işlendiyse tekrar işleme
       if (order.paymentStatus === 'success') {
         return { success: true, error: 'Order already processed' };
       }
-
-      // Kredi miktarını hesapla (paymentAmount kuruş cinsinden, 150 kuruş = 1 kredi)
-      const creditAmount = Math.floor(order.paymentAmount / 150);
 
       // Kullanıcının kredilerini güncelle
       const userRecord = await db

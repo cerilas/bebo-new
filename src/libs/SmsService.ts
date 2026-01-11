@@ -32,7 +32,7 @@ export const SmsService = {
    * @param to Phone number
    * @param message Message content
    */
-  async sendSms(to: string, message: string): Promise<boolean> {
+  async sendSms(to: string, message: string): Promise<{ success: boolean; data?: any; error?: any }> {
     const username = Env.NETGSM_USERNAME;
     const password = Env.NETGSM_PASSWORD;
 
@@ -43,7 +43,7 @@ export const SmsService = {
 
     if (!formattedPhone) {
       console.warn('⚠️ Invalid phone number for SMS:', to);
-      return false;
+      return { success: false, error: 'Invalid phone number' };
     }
 
     try {
@@ -66,10 +66,11 @@ export const SmsService = {
 
       const result = await response.text();
       console.log('✅ Netgsm SMS response:', result);
-      return true;
+
+      return { success: true, data: result };
     } catch (error) {
       console.error('❌ Error sending SMS via Netgsm:', error);
-      return false;
+      return { success: false, error };
     }
   },
 };

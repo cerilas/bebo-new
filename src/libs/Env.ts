@@ -12,6 +12,8 @@ export const Env = createEnv({
     PAYTR_MERCHANT_ID: z.string().min(1),
     PAYTR_MERCHANT_KEY: z.string().min(1),
     PAYTR_MERCHANT_SALT: z.string().min(1),
+    NETGSM_USERNAME: z.string().min(1),
+    NETGSM_PASSWORD: z.string().min(1),
   },
   client: {
     NEXT_PUBLIC_APP_URL: z.string().optional(),
@@ -33,6 +35,8 @@ export const Env = createEnv({
     PAYTR_MERCHANT_ID: process.env.PAYTR_MERCHANT_ID,
     PAYTR_MERCHANT_KEY: process.env.PAYTR_MERCHANT_KEY,
     PAYTR_MERCHANT_SALT: process.env.PAYTR_MERCHANT_SALT,
+    NETGSM_USERNAME: process.env.NETGSM_USERNAME,
+    NETGSM_PASSWORD: process.env.NETGSM_PASSWORD,
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
     NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:
       process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,

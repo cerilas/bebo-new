@@ -1,3 +1,7 @@
+import { Buffer } from 'node:buffer';
+
+import { Env } from '@/libs/Env';
+
 export const SmsService = {
   /**
    * Formats a phone number for Netgsm API
@@ -29,28 +33,29 @@ export const SmsService = {
    * @param message Message content
    */
   async sendSms(to: string, message: string): Promise<boolean> {
-    const netgsmAuth = process.env.NETGSM_AUTHORIZATION;
+    const username = Env.NETGSM_USERNAME;
+    const password = Env.NETGSM_PASSWORD;
 
-    if (!netgsmAuth) {
-      console.warn('⚠️ NETGSM_AUTHORIZATION is not set. SMS will not be sent.');
-      return false;
-    }
+    // Construct Basic Auth Header
+    const authHeader = `Basic ${Buffer.from(`${username}:${password}`).toString('base64')}`;
 
     const formattedPhone = this.formatPhoneNumber(to);
 
     if (!formattedPhone) {
-      console.warn('⚠️ Invalid phone number for SMS.');
+      console.warn('⚠️ Invalid phone number for SMS:', to);
       return false;
     }
 
     try {
-      console.log(`📨 Sending SMS to ${formattedPhone}: ${message}`);
+      console.log(`📨 Sending SMS via Netgsm...`);
+      console.log(`To (Raw): ${to}`);
+      console.log(`To (Formatted): ${formattedPhone}`);
 
       const response = await fetch('https://api.netgsm.com.tr/sms/rest/v2/otp', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': netgsmAuth,
+          'Authorization': authHeader,
         },
         body: JSON.stringify({
           msgheader: 'birebiro',

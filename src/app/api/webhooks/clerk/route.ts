@@ -94,12 +94,24 @@ export async function POST(req: Request) {
   if (eventType === 'sms.created') {
     const { to_phone_number, message } = evt.data;
 
+    console.log('📨 Clerk SMS Webhook received:', {
+      to: to_phone_number,
+      message,
+    });
+
     // Check if it's a verification code
     const codeMatch = message.match(/Your verification code is (\d+)/);
 
     if (codeMatch && codeMatch[1]) {
+      console.log('✅ Verification code matched:', codeMatch[1]);
+
       const smsMessage = `Dogrulama kodunuz: ${codeMatch[1]}`;
-      await SmsService.sendSms(to_phone_number, smsMessage);
+      const result = await SmsService.sendSms(to_phone_number, smsMessage);
+
+      console.log('🚀 SMS Service Result:', result);
+    } else {
+      console.warn('⚠️ No verification code found in message with regex /Your verification code is (\\d+)/');
+      console.warn('Message was:', message);
     }
   }
 

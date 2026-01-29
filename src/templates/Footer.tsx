@@ -36,8 +36,8 @@ export const Footer = () => {
       title: t('product'),
       links: [
         { label: tNavbar('products'), href: '/products' },
-        { label: tNavbar('product'), action: () => scrollToSection('ozellikler') },
-        { label: tNavbar('docs'), action: () => scrollToSection('nasil-calisir') },
+        { label: tNavbar('product'), href: '/ozellikler' },
+        { label: tNavbar('docs'), href: '/nasil-calisir' },
         { label: tNavbar('blog'), action: () => scrollToSection('fiyatlandirma') },
       ],
     },

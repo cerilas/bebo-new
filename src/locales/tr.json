@@ -163,11 +163,11 @@
     "not_enough_permission": "Bu işlemi gerçekleştirmek için yetkiniz yok"
   },
   "SignIn": {
-    "meta_title": "Giriş - Birebiro",
+    "meta_title": "Kayıt Ol / Giriş Yap / Hoşgeldin Hediyesi Kazan - Birebiro",
     "meta_description": "Birebiro hesabınıza giriş yapın ve hayal ettiğiniz tasarımlara ulaşın."
   },
   "SignUp": {
-    "meta_title": "Kayıt Ol - Birebiro",
+    "meta_title": "Kayıt Ol / Giriş Yap / Hoşgeldin Hediyesi Kazan - Birebiro",
     "meta_description": "Birebiro'ya katılın ve hayal gücünüzle tasarlamaya başlayın. Ücretsiz hesap oluşturun."
   },
   "DashboardLayout": {
@@ -249,7 +249,7 @@
     "submit_button": "Tasarımı Oluştur"
   },
   "Products": {
-    "meta_title": "Ürün Seçimi - Birebiro",
+    "meta_title": "ÜRÜNLER - Birebiro",
     "meta_description": "Hayalinizdeki tasarım için ürün, boyut ve çerçeve seçin",
     "page_title": "Ürününüzü Seçin",
     "page_description": "Tasarımınızı hangi ürün üzerinde görmek istersiniz?",
@@ -298,6 +298,7 @@
     "creation_date": "Oluşturulma Tarihi",
     "your_prompt": "Bu Hislerle Oluşturdunuz",
     "art_credits": "Tasarım hakkı",
+    "art_credits_description": "Görsel oluşturmak için kullanabilirsiniz",
     "buy_credits": "Satın Al",
     "buy_credits_title": "Tasarım hakkı Satın Al",
     "credit_warning": "Bu işlem 1 Tasarım hakkı tüketecektir",
@@ -491,7 +492,7 @@
     "user_rating": "Kullanıcı Puanı"
   },
   "Contact": {
-    "meta_title": "İletişim - Birebiro",
+    "meta_title": "İLETİŞİM - Birebiro",
     "meta_description": "Bizimle iletişime geçin. Sorularınız için bize ulaşın.",
     "page_title": "İletişim",
     "page_subtitle": "Sorularınız mı var? Bizimle iletişime geçmekten çekinmeyin. Size yardımcı olmaktan mutluluk duyarız.",

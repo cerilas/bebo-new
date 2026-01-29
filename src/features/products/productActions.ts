@@ -1,6 +1,6 @@
 'use server';
 
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 
 import { db } from '@/libs/DB';
 import { productFrameSchema, productSchema, productSizeSchema } from '@/models/Schema';
@@ -38,13 +38,13 @@ export async function getProductDetails(productSlug: string, locale: string = 't
   const sizes = await db
     .select()
     .from(productSizeSchema)
-    .where(eq(productSizeSchema.productId, product.id))
+    .where(and(eq(productSizeSchema.productId, product.id), eq(productSizeSchema.isActive, true)))
     .orderBy(productSizeSchema.sortOrder);
 
   const frames = await db
     .select()
     .from(productFrameSchema)
-    .where(eq(productFrameSchema.productId, product.id))
+    .where(and(eq(productFrameSchema.productId, product.id), eq(productFrameSchema.isActive, true)))
     .orderBy(productFrameSchema.sortOrder);
 
   return {

@@ -256,6 +256,7 @@
     "creation_date": "Date de Création",
     "your_prompt": "Vous Avez Créé Ceci Avec Ces Sentiments",
     "art_credits": "Crédits d'Art",
+    "art_credits_description": "Vous pouvez les utiliser pour générer des images",
     "credit_warning": "Cette action consommera 1 Crédit d'Art",
     "insufficient_credits": "Crédits d'Art insuffisants ! Vous avez besoin d'au moins 1 Crédit d'Art pour générer des images. Veuillez acheter des crédits ou mettre à niveau votre abonnement.",
     "back_to_design": "Retour au Design",

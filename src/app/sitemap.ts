@@ -6,15 +6,17 @@ import { getBaseUrl } from '@/utils/Helpers';
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = getBaseUrl();
 
-  // 1. Static Pages
+  // 1. Static Pages - Ordered by priority for Google Sitelinks
   const staticPages = [
     '',
-    '/about',
     '/products',
-    '/contact',
-    '/pricing',
-    '/sign-in',
     '/sign-up',
+    '/nasil-calisir',
+    '/ozellikler',
+    '/contact',
+    '/sign-in',
+    '/about',
+    '/pricing',
     '/legal',
   ];
 
@@ -22,15 +24,29 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   for (const page of staticPages) {
     for (const locale of AllLocales) {
-      // Don't duplicate default locale if it's served at root (optional strategy,
-      // but usually libraries handle routing. consistently using /locale/path is safer for sitemaps)
       const url = `${baseUrl}/${locale}${page}`;
+
+      // Assign granular priorities based on page
+      let priority = 0.5;
+      if (page === '') {
+        priority = 1.0;
+      } else if (page === '/products') {
+        priority = 0.95;
+      } else if (page === '/sign-up') {
+        priority = 0.9;
+      } else if (page === '/nasil-calisir') {
+        priority = 0.85;
+      } else if (page === '/ozellikler') {
+        priority = 0.8;
+      } else if (page === '/contact') {
+        priority = 0.75;
+      }
 
       staticEntries.push({
         url,
         lastModified: new Date(),
         changeFrequency: 'weekly',
-        priority: page === '' ? 1.0 : 0.8,
+        priority,
       });
     }
   }

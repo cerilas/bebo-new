@@ -293,6 +293,7 @@
     "creation_date": "Creation Date",
     "your_prompt": "You Created This With These Feelings",
     "art_credits": "Art Credits",
+    "art_credits_description": "You can use these to generate images",
     "buy_credits": "Buy",
     "buy_credits_title": "Buy Art Credits",
     "credit_warning": "This action will consume 1 Art Credit",

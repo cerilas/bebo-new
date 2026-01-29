@@ -103,13 +103,52 @@ export default function RootLayout(props: {
     afterSignOutUrl = `/${props.params.locale}${afterSignOutUrl}`;
   }
 
-  // The `suppressHydrationWarning` in <html> is used to prevent hydration errors caused by `next-themes`.
-  // Solution provided by the package itself: https://github.com/pacocoursey/next-themes?tab=readme-ov-file#with-app
+  // Site Navigation Structured Data for SEO (Sitelinks)
+  const siteNavigationSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    'itemListElement': [
+      {
+        '@type': 'SiteNavigationElement',
+        'position': 1,
+        'name': props.params.locale === 'tr' ? 'ÜRÜNLER' : 'PRODUCTS',
+        'url': `${getBaseUrl()}/${props.params.locale}/products`,
+      },
+      {
+        '@type': 'SiteNavigationElement',
+        'position': 2,
+        'name': props.params.locale === 'tr' ? 'KAYIT OL / GİRİŞ YAP / HOŞGELDİN HEDİYESİ KAZAN' : 'SIGN UP / SIGN IN',
+        'url': `${getBaseUrl()}/${props.params.locale}/sign-up`,
+      },
+      {
+        '@type': 'SiteNavigationElement',
+        'position': 3,
+        'name': props.params.locale === 'tr' ? 'NASIL ÇALIŞIR' : 'HOW IT WORKS',
+        'url': `${getBaseUrl()}/${props.params.locale}/nasil-calisir`,
+      },
+      {
+        '@type': 'SiteNavigationElement',
+        'position': 4,
+        'name': props.params.locale === 'tr' ? 'ÖZELLİKLER' : 'FEATURES',
+        'url': `${getBaseUrl()}/${props.params.locale}/ozellikler`,
+      },
+      {
+        '@type': 'SiteNavigationElement',
+        'position': 5,
+        'name': props.params.locale === 'tr' ? 'İLETİŞİM' : 'CONTACT',
+        'url': `${getBaseUrl()}/${props.params.locale}/contact`,
+      },
+    ],
+  };
 
-  // The `suppressHydrationWarning` attribute in <body> is used to prevent hydration errors caused by Sentry Overlay,
-  // which dynamically adds a `style` attribute to the body tag.
   return (
     <html lang={props.params.locale} suppressHydrationWarning className="overflow-x-hidden">
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(siteNavigationSchema) }}
+        />
+      </head>
       <body className={`overflow-x-hidden bg-background text-foreground antialiased ${anton.variable}`} suppressHydrationWarning>
         {/* PRO: Dark mode support for Shadcn UI */}
         <ClerkProvider

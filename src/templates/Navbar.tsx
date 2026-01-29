@@ -3,7 +3,7 @@
 import { SignedIn, SignedOut, UserButton } from '@clerk/nextjs';
 import { Menu, X } from 'lucide-react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 
@@ -16,7 +16,6 @@ import { Logo } from './Logo';
 export const Navbar = () => {
   const t = useTranslations('Navbar');
   const pathname = usePathname();
-  const router = useRouter();
   const [isScrolled, setIsScrolled] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -38,35 +37,16 @@ export const Navbar = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const scrollToSection = (sectionId: string) => {
-    setIsMobileMenuOpen(false);
-    if (pathname !== '/' && !pathname.endsWith('/')) {
-      router.push(`/#${sectionId}`);
-      setTimeout(() => {
-        const element = document.getElementById(sectionId);
-        if (element) {
-          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-      }, 500);
-    } else {
-      const element = document.getElementById(sectionId);
-      if (element) {
-        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-    }
-  };
-
   const navLinks = [
     { id: 'products', label: t('products'), href: '/products' },
-    { id: 'how-it-works', label: t('docs'), onClick: () => scrollToSection('nasil-calisir') },
-    { id: 'features', label: t('product'), onClick: () => scrollToSection('ozellikler') },
+    { id: 'how-it-works', label: t('docs'), href: '/nasil-calisir' },
+    { id: 'features', label: t('product'), href: '/ozellikler' },
   ];
 
   // Transform navLinks for GooeyNav
   const gooeyNavItems = navLinks.map(link => ({
     label: link.label,
     href: link.href,
-    onClick: link.onClick,
   }));
 
   // Determine active index based on current pathname
@@ -205,33 +185,17 @@ export const Navbar = () => {
           >
             <div className="flex flex-col gap-2">
               {navLinks.map(link => (
-                link.href
-                  ? (
-                      <Link
-                        key={link.id}
-                        href={link.href}
-                        onClick={() => setIsMobileMenuOpen(false)}
-                        className={`rounded-lg px-4 py-3 transition-colors ${isLandingPage
-                          ? 'text-gray-400 hover:bg-white/5 hover:text-white'
-                          : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-white'
-                        }`}
-                      >
-                        {link.label}
-                      </Link>
-                    )
-                  : (
-                      <button
-                        key={link.id}
-                        type="button"
-                        onClick={link.onClick}
-                        className={`rounded-lg px-4 py-3 text-left transition-colors ${isLandingPage
-                          ? 'text-gray-400 hover:bg-white/5 hover:text-white'
-                          : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-white'
-                        }`}
-                      >
-                        {link.label}
-                      </button>
-                    )
+                <Link
+                  key={link.id}
+                  href={link.href}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className={`rounded-lg px-4 py-3 transition-colors ${isLandingPage
+                    ? 'text-gray-400 hover:bg-white/5 hover:text-white'
+                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-white'
+                  }`}
+                >
+                  {link.label}
+                </Link>
               ))}
               <div className="mt-2 flex items-center justify-between px-4">
                 <LocaleSwitcher variant={isLandingPage ? 'light' : 'dark'} />

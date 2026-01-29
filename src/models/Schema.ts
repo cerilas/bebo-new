@@ -116,6 +116,7 @@ export const productSizeSchema = pgTable('product_size', {
   nameFr: text('name_fr'),
   dimensions: varchar('dimensions', { length: 50 }).notNull(),
   priceAmount: integer('price_amount').notNull(), // in cents (kuruş)
+  isActive: boolean('is_active').default(true).notNull(),
   sortOrder: integer('sort_order').default(0).notNull(),
   updatedAt: timestamp('updated_at', { mode: 'date' })
     .defaultNow()
@@ -138,6 +139,7 @@ export const productFrameSchema = pgTable('product_frame', {
   // Mockup settings
   mockupTemplate: text('mockup_template'), // Mockup PNG image URL (transparent frame)
   mockupConfig: text('mockup_config').default('{}'), // JSON: { x, y, width, height, rotation }
+  isActive: boolean('is_active').default(true).notNull(),
   sortOrder: integer('sort_order').default(0).notNull(),
   updatedAt: timestamp('updated_at', { mode: 'date' })
     .defaultNow()

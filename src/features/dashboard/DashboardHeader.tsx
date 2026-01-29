@@ -45,7 +45,7 @@ export const DashboardHeader = (props: {
     <>
       <div className="flex items-center gap-x-2">
         <Link href="/">
-          <Logo variant={currentTheme === 'dark' ? 'dark' : 'light'} />
+          <Logo variant={currentTheme === 'dark' ? 'light' : 'dark'} />
         </Link>
 
         <svg

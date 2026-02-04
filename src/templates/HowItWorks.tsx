@@ -32,7 +32,7 @@ const HowItWorks = () => {
   ];
 
   return (
-    <section className="relative bg-[#0a0a0f] py-24 md:py-32">
+    <section className="relative bg-[#0a0a0f] py-16 md:py-20">
       {/* Background elements */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute left-0 top-1/4 size-[400px] rounded-full bg-purple-500/10 blur-[100px]" />
@@ -41,11 +41,11 @@ const HowItWorks = () => {
 
       <div className="relative mx-auto max-w-6xl px-6">
         {/* Header */}
-        <div className="mb-20 text-center">
-          <p className="mb-4 text-sm uppercase tracking-widest text-purple-400">
+        <div className="mb-12 text-center">
+          <p className="mb-2 text-sm uppercase tracking-widest text-purple-400">
             Basit & Hızlı
           </p>
-          <h2 className="mb-6 text-4xl font-bold tracking-tight text-white md:text-5xl lg:text-6xl">
+          <h2 className="mb-4 text-4xl font-bold tracking-tight text-white md:text-5xl lg:text-6xl">
             {t('section_title')}
           </h2>
           <p className="mx-auto max-w-2xl text-lg text-gray-400">
@@ -63,7 +63,7 @@ const HowItWorks = () => {
             return (
               <div key={step.number} className="group relative">
                 {/* Card */}
-                <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-8 backdrop-blur-sm transition-all duration-500 hover:border-white/20 hover:bg-white/10">
+                <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm transition-all duration-500 hover:border-white/20 hover:bg-white/10">
                   {/* Glow effect on hover */}
                   <div
                     className={`absolute -inset-px rounded-2xl bg-gradient-to-r ${step.gradient} opacity-0 blur transition-opacity duration-500 group-hover:opacity-20`}
@@ -71,20 +71,20 @@ const HowItWorks = () => {
 
                   {/* Content */}
                   <div className="relative">
-                    {/* Number */}
-                    <span className={`mb-6 inline-block bg-gradient-to-r ${step.gradient} bg-clip-text text-6xl font-bold text-transparent`}>
-                      {step.number}
-                    </span>
+                    <div className="mb-4 flex items-center justify-between">
+                      {/* Number */}
+                      <span className={`bg-gradient-to-r ${step.gradient} bg-clip-text text-5xl font-bold text-transparent`}>
+                        {step.number}
+                      </span>
 
-                    {/* Icon */}
-                    <div className="mb-6">
+                      {/* Icon */}
                       <div className={`inline-flex rounded-xl bg-gradient-to-r ${step.gradient} p-3`}>
                         <Icon className="size-7 text-white" />
                       </div>
                     </div>
 
                     {/* Text */}
-                    <h3 className="mb-3 text-xl font-semibold text-white">
+                    <h3 className="mb-2 text-xl font-semibold text-white">
                       {t(step.titleKey)}
                     </h3>
                     <p className="text-gray-400">

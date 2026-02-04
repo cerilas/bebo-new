@@ -4,17 +4,20 @@ import { SignedIn, SignedOut, UserButton } from '@clerk/nextjs';
 import { Menu, X } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 
 import GooeyNav from '@/components/GooeyNav';
 import { LocaleSwitcher } from '@/components/LocaleSwitcher';
 import { ThemeSwitcher } from '@/components/ThemeSwitcher';
+import { UserCredits } from '@/components/UserCredits';
+import { getI18nPath } from '@/utils/Helpers';
 
 import { Logo } from './Logo';
 
 export const Navbar = () => {
   const t = useTranslations('Navbar');
+  const locale = useLocale();
   const pathname = usePathname();
   const [isScrolled, setIsScrolled] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
@@ -130,37 +133,42 @@ export const Navbar = () => {
             </SignedOut>
 
             <SignedIn>
-              <UserButton
-                afterSignOutUrl="/"
-                appearance={{
-                  elements: {
-                    avatarBox: `size-9 ring-2 ${isLandingPage ? 'ring-white/20' : 'ring-gray-200 dark:ring-white/20'}`,
-                  },
-                }}
-              >
-                <UserButton.MenuItems>
-                  <UserButton.Link
-                    label="Geçmiş Siparişlerim"
-                    labelIcon={(
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        strokeWidth={1.5}
-                        stroke="currentColor"
-                        className="size-4"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993 1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 0 1-1.12-1.243l1.264-12A1.125 1.125 0 0 1 5.513 7.5h12.974c.576 0 1.059.435 1.119 1.007ZM8.625 10.5a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm7.5 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z"
-                        />
-                      </svg>
-                    )}
-                    href="/dashboard/orders"
-                  />
-                </UserButton.MenuItems>
-              </UserButton>
+              <div className="flex items-center gap-3">
+                <UserCredits isLandingPage={isLandingPage} />
+                <UserButton
+                  afterSignOutUrl="/"
+                  userProfileMode="navigation"
+                  userProfileUrl={getI18nPath('/dashboard/user-profile', locale)}
+                  appearance={{
+                    elements: {
+                      avatarBox: `size-9 ring-2 ${isLandingPage ? 'ring-white/20' : 'ring-gray-200 dark:ring-white/20'}`,
+                    },
+                  }}
+                >
+                  <UserButton.MenuItems>
+                    <UserButton.Link
+                      label="Geçmiş Siparişlerim"
+                      labelIcon={(
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          strokeWidth={1.5}
+                          stroke="currentColor"
+                          className="size-4"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993 1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 0 1-1.12-1.243l1.264-12A1.125 1.125 0 0 1 5.513 7.5h12.974c.576 0 1.059.435 1.119 1.007ZM8.625 10.5a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm7.5 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z"
+                          />
+                        </svg>
+                      )}
+                      href="/dashboard/orders"
+                    />
+                  </UserButton.MenuItems>
+                </UserButton>
+              </div>
             </SignedIn>
 
             {/* Mobile menu button */}
@@ -211,5 +219,5 @@ export const Navbar = () => {
 
 // Spacer component to prevent content from being hidden behind fixed navbar
 export const NavbarSpacer = () => (
-  <div className="h-16 md:h-20" />
+  <div className="h-20" />
 );

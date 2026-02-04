@@ -29,76 +29,53 @@ const isProtectedRoute = createRouteMatcher([
   '/:locale/api(.*)',
 ]);
 
-const isClerkRoute = createRouteMatcher([
-  '/sign-in(.*)',
-  '/:locale/sign-in(.*)',
-  '/sign-up(.*)',
-  '/:locale/sign-up(.*)',
-  '/design(.*)',
-  '/:locale/design(.*)',
-  '/checkout(.*)',
-  '/:locale/checkout(.*)',
-  '/purchase-credits(.*)',
-  '/:locale/purchase-credits(.*)',
-  '/dashboard(.*)',
-  '/:locale/dashboard(.*)',
-  '/onboarding(.*)',
-  '/:locale/onboarding(.*)',
-  '/api(.*)',
-  '/:locale/api(.*)',
-]);
-
 export default function middleware(
   request: NextRequest,
   event: NextFetchEvent,
 ) {
-  if (isClerkRoute(request)) {
-    return clerkMiddleware(async (auth, req) => {
-      const { userId } = await auth();
-      const isSignRoute = req.nextUrl.pathname.includes('/sign-in') || req.nextUrl.pathname.includes('/sign-up');
+  return clerkMiddleware(async (auth, req) => {
+    const { userId } = await auth();
+    const isSignRoute = req.nextUrl.pathname.includes('/sign-in') || req.nextUrl.pathname.includes('/sign-up');
 
-      if (isProtectedRoute(req) && !userId) {
-        const pathSegments = req.nextUrl.pathname.split('/');
-        const localeCandidate = pathSegments[1];
-        const locale = AllLocales.includes(localeCandidate as any) ? `/${localeCandidate}` : '';
+    if (isProtectedRoute(req) && !userId) {
+      const pathSegments = req.nextUrl.pathname.split('/');
+      const localeCandidate = pathSegments[1];
+      const locale = AllLocales.includes(localeCandidate as any) ? `/${localeCandidate}` : '';
 
-        const destination = req.nextUrl.pathname + req.nextUrl.search;
-        const signInUrl = new URL(`${locale}/sign-in?redirect_url=${encodeURIComponent(destination)}`, req.url);
+      const destination = req.nextUrl.pathname + req.nextUrl.search;
+      const signInUrl = new URL(`${locale}/sign-in?redirect_url=${encodeURIComponent(destination)}`, req.url);
 
-        const response = NextResponse.redirect(signInUrl);
-        response.cookies.set('clerk-redirect-url', destination, {
+      const response = NextResponse.redirect(signInUrl);
+      response.cookies.set('clerk-redirect-url', destination, {
+        path: '/',
+        maxAge: 3600,
+        sameSite: 'lax',
+      });
+      return response;
+    }
+
+    // Sync cookie if manually visiting sign-in/up routes
+    if (isSignRoute) {
+      const response = intlMiddleware(req);
+      const redirectUrl = req.nextUrl.searchParams.get('redirect_url')
+        || req.nextUrl.searchParams.get('return_to')
+        || req.nextUrl.searchParams.get('after_sign_in_url');
+
+      if (redirectUrl) {
+        response.cookies.set('clerk-redirect-url', redirectUrl, {
           path: '/',
           maxAge: 3600,
           sameSite: 'lax',
         });
-        return response;
+      } else {
+        // If no redirect param, we might want to clear it to avoid stale redirects from home page
+        response.cookies.delete('clerk-redirect-url');
       }
+      return response;
+    }
 
-      // Sync cookie if manually visiting sign-in/up routes
-      if (isSignRoute) {
-        const response = intlMiddleware(req);
-        const redirectUrl = req.nextUrl.searchParams.get('redirect_url')
-          || req.nextUrl.searchParams.get('return_to')
-          || req.nextUrl.searchParams.get('after_sign_in_url');
-
-        if (redirectUrl) {
-          response.cookies.set('clerk-redirect-url', redirectUrl, {
-            path: '/',
-            maxAge: 3600,
-            sameSite: 'lax',
-          });
-        } else {
-          // If no redirect param, we might want to clear it to avoid stale redirects from home page
-          response.cookies.delete('clerk-redirect-url');
-        }
-        return response;
-      }
-
-      return intlMiddleware(req);
-    })(request, event);
-  }
-
-  return intlMiddleware(request);
+    return intlMiddleware(req);
+  })(request, event);
 }
 
 export const config = {

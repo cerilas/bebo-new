@@ -309,7 +309,8 @@
     "adding_artistic_touch": "Adding artistic touches...",
     "almost_ready": "Almost ready! Adding final touches...",
     "finalizing": "Finalizing your masterpiece, just a few more seconds...",
-    "generation_timeout": "Image generation is taking longer than expected. Please check the \"Previously Created\" section."
+    "generation_timeout": "Image generation is taking longer than expected. Please check the \"Previously Created\" section.",
+    "error_title": "Action Failed"
   },
   "Checkout": {
     "page_title": "Checkout",
@@ -338,7 +339,8 @@
     "payment_form": "Payment Form",
     "secure_payment": "Secure Payment",
     "secure_payment_info": "Your payment is protected with SSL certificate",
-    "back_to_preview": "Back to Preview"
+    "back_to_preview": "Back to Preview",
+    "error_title": "Transaction Failed"
   },
   "CheckoutSuccess": {
     "page_title": "Payment Successful",
@@ -389,7 +391,9 @@
     "go_dashboard": "Go to Dashboard",
     "failed_title": "Payment Failed",
     "failed_message": "Your payment could not be completed. Please try again or contact customer support.",
-    "try_again": "Try Again"
+    "try_again": "Try Again",
+    "max_limit_error": "You will reach the maximum credit limit ({max}). Your current credits: {current}. You can buy at most {available} more credits.",
+    "error_title": "Transaction Failed"
   },
   "Legal": {
     "meta_title": "Legal Documents",

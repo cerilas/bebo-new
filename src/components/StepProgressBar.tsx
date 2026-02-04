@@ -18,7 +18,7 @@ export const StepProgressBar = ({ currentStep }: StepProgressBarProps) => {
 
   return (
     <div className="w-full">
-      <div className="mx-auto max-w-4xl p-4 md:py-6">
+      <div className="mx-auto max-w-4xl px-4 pb-1 pt-2 md:py-6">
         <nav aria-label="Progress">
           <ol className="flex items-center justify-center gap-2 md:gap-4">
             {steps.map((step, index) => {

@@ -1,6 +1,6 @@
 'use client';
 
-import { ChevronRight, Frame, Maximize2 } from 'lucide-react';
+import { ArrowLeft, ChevronRight, Frame, Maximize2 } from 'lucide-react';
 import NextImage from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -156,14 +156,14 @@ export const ProductSelection = ({ products, locale, imageUrl }: Props) => {
   const selectedFrame = frames.find(f => f.slug === config.frame);
 
   return (
-    <div className="min-h-screen bg-background px-3 py-8">
+    <div className="min-h-[60vh] bg-background px-3 py-4 md:py-8">
       <div className="mx-auto max-w-screen-xl">
         {/* Header */}
-        <div className="mb-8 text-center">
-          <h1 className="mb-2 text-3xl font-bold md:text-4xl">
+        <div className="mb-4 text-center md:mb-8">
+          <h1 className="mb-1 text-2xl font-bold md:mb-2 md:text-4xl">
             {t('page_title')}
           </h1>
-          <p className="text-muted-foreground">
+          <p className="hidden text-muted-foreground md:block">
             {t('page_description')}
           </p>
         </div>
@@ -242,15 +242,15 @@ export const ProductSelection = ({ products, locale, imageUrl }: Props) => {
                         images={carouselImages}
                         productName={product.name}
                         variant="square"
-                        className="aspect-square w-full"
+                        className="aspect-[4/3] w-full md:aspect-square"
                       />
                     )}
 
                 {/* Product Info (when not selected) */}
                 {!isSelected && (
-                  <div className="p-6">
-                    <h3 className="mb-2 text-xl font-semibold">{product.name}</h3>
-                    <p className="mb-4 text-sm text-muted-foreground">
+                  <div className="p-4 md:p-6">
+                    <h3 className="mb-1 text-lg font-semibold md:mb-2 md:text-xl">{product.name}</h3>
+                    <p className="mb-2 hidden text-sm text-muted-foreground md:mb-4 md:block">
                       {product.description}
                     </p>
 
@@ -289,14 +289,16 @@ export const ProductSelection = ({ products, locale, imageUrl }: Props) => {
                     <div className="mb-6 flex items-center justify-between">
                       <h3 className="text-2xl font-bold">{currentProduct.name}</h3>
                       <Button
-                        variant="ghost"
+                        variant="outline"
                         size="sm"
+                        className="border-primary/30 bg-primary/5 text-primary transition-all hover:bg-primary/10 hover:text-primary-foreground"
                         onClick={(e) => {
                           e.stopPropagation();
                           setSelectedProduct(null);
                           setConfig({ frame: null, size: null });
                         }}
                       >
+                        <ArrowLeft className="mr-2 size-4" />
                         {t('back_to_products')}
                       </Button>
                     </div>

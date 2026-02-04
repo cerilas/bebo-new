@@ -327,7 +327,8 @@
     "crop_image": "Görseli Kırp (1920x1080)",
     "zoom": "Yakınlaştır",
     "cancel": "İptal",
-    "save_and_upload": "Kaydet ve Yükle"
+    "save_and_upload": "Kaydet ve Yükle",
+    "error_title": "İşlem Başarısız"
   },
   "Checkout": {
     "page_title": "Ödeme",
@@ -356,7 +357,8 @@
     "payment_form": "Ödeme Formu",
     "secure_payment": "Güvenli Ödeme",
     "secure_payment_info": "Ödeme işleminiz SSL sertifikası ile korunmaktadır",
-    "back_to_preview": "Önizlemeye Dön"
+    "back_to_preview": "Önizlemeye Dön",
+    "error_title": "İşlem Başarısız"
   },
   "CheckoutSuccess": {
     "page_title": "Ödeme Başarılı",
@@ -445,7 +447,9 @@
     "go_dashboard": "Gösterge Paneli",
     "failed_title": "Ödeme Başarısız",
     "failed_message": "Ödeme işleminiz tamamlanamadı. Lütfen tekrar deneyin veya müşteri hizmetlerimizle iletişime geçin.",
-    "try_again": "Tekrar Dene"
+    "try_again": "Tekrar Dene",
+    "max_limit_error": "Maksimum kredi limitine ({max}) ulaşacaksınız. Mevcut krediniz: {current}. En fazla {available} kredi daha alabilirsiniz.",
+    "error_title": "İşlem Başarısız"
   },
   "Legal": {
     "meta_title": "Yasal Metinler",

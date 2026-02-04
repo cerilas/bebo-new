@@ -1,7 +1,7 @@
 'use client';
 
 import { useUser } from '@clerk/nextjs';
-import { ArrowLeft, CreditCard, Loader2, Package, Shield } from 'lucide-react';
+import { AlertCircle, ArrowLeft, CreditCard, Loader2, Package, Shield, X } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Script from 'next/script';
 import { useTranslations } from 'next-intl';
@@ -45,6 +45,16 @@ export function CheckoutInterface({
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [paytrToken, setPaytrToken] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  // Hata mesajını otomatik temizle
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => setError(null), 5000);
+      return () => clearTimeout(timer);
+    }
+    return undefined;
+  }, [error]);
 
   // Form state
   const [customerName, setCustomerName] = useState('');
@@ -169,14 +179,15 @@ export function CheckoutInterface({
 
   // Ödeme işlemini başlat
   const handleCompletePayment = async () => {
+    setError(null);
     if (!customerName || !customerEmail || !customerPhone || !customerAddress) {
-      alert(t('fill_all_fields'));
+      setError(t('fill_all_fields'));
       return;
     }
 
     if (!priceData || !imageData) {
       console.error('Missing data:', { priceData, imageData });
-      alert('Ürün bilgileri yüklenemedi');
+      setError('Ürün bilgileri yüklenemedi');
       return;
     }
 
@@ -187,7 +198,7 @@ export function CheckoutInterface({
         sizeId: priceData.sizeId,
         frameId: priceData.frameId,
       });
-      alert('Ürün bilgileri eksik. Lütfen sayfayı yenileyin.');
+      setError('Ürün bilgileri eksik. Lütfen sayfayı yenileyin.');
       return;
     }
 
@@ -243,12 +254,12 @@ export function CheckoutInterface({
       if (result.success && result.token) {
         setPaytrToken(result.token);
       } else {
-        alert(result.error || 'Ödeme işlemi başlatılamadı');
+        setError(result.error || 'Ödeme işlemi başlatılamadı');
         setIsProcessing(false);
       }
     } catch (error) {
       console.error('Payment error:', error);
-      alert('Bir hata oluştu');
+      setError('Bir hata oluştu. Lütfen tekrar deneyin.');
       setIsProcessing(false);
     }
   };
@@ -283,6 +294,28 @@ export function CheckoutInterface({
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
+      {/* Error Notification */}
+      {error && (
+        <div className="fixed inset-x-4 top-24 z-[100] flex justify-center sm:inset-x-0">
+          <div className="flex items-center gap-3 rounded-2xl border border-red-200 bg-white/90 p-4 shadow-2xl backdrop-blur-md animate-in fade-in slide-in-from-top-4 dark:border-red-900/30 dark:bg-gray-900/90">
+            <div className="flex size-10 items-center justify-center rounded-xl bg-red-100 dark:bg-red-900/30">
+              <AlertCircle className="size-5 text-red-600 dark:text-red-400" />
+            </div>
+            <div className="max-w-[300px] sm:max-w-md">
+              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{t('error_title')}</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400">{error}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setError(null)}
+              className="ml-2 rounded-lg p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800"
+            >
+              <X className="size-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="mb-8">
         <button

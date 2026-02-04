@@ -1,7 +1,7 @@
 'use client';
 
 import { useUser } from '@clerk/nextjs';
-import { Check, Image as ImageIcon, Loader2, Send, ShoppingCart, Sparkles, Upload, X } from 'lucide-react';
+import { AlertCircle, Check, Image as ImageIcon, Loader2, Send, ShoppingCart, Sparkles, Upload, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 import Cropper from 'react-easy-crop';
@@ -69,6 +69,17 @@ export function ChatInterface({
   const [zoom, setZoom] = useState(1);
   const [isCropModalOpen, setIsCropModalOpen] = useState(false);
   const [cropAspectRatio, setCropAspectRatio] = useState<number>(1920 / 1080); // Default aspect ratio
+  const [error, setError] = useState<string | null>(null);
+
+  // Hata mesajını otomatik temizle
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => setError(null), 5000);
+      return () => clearTimeout(timer);
+    }
+    return undefined;
+  }, [error]);
+
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -361,13 +372,13 @@ export function ChatInterface({
 
     // Check file type
     if (!file.type.startsWith('image/')) {
-      alert('Lütfen bir görsel dosyası seçin');
+      setError('Lütfen bir görsel dosyası seçin');
       return;
     }
 
     // Check file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      alert('Görsel boyutu 5MB\'dan küçük olmalıdır');
+      setError('Görsel boyutu 5MB\'dan küçük olmalıdır');
       return;
     }
 
@@ -512,6 +523,27 @@ export function ChatInterface({
 
   return (
     <>
+      {/* Error Notification */}
+      {error && (
+        <div className="fixed inset-x-4 top-24 z-[100] flex justify-center sm:inset-x-0">
+          <div className="flex items-center gap-3 rounded-2xl border border-red-200 bg-white/90 p-4 shadow-2xl backdrop-blur-md animate-in fade-in slide-in-from-top-4 dark:border-red-900/30 dark:bg-gray-900/90">
+            <div className="flex size-10 items-center justify-center rounded-xl bg-red-100 dark:bg-red-900/30">
+              <AlertCircle className="size-5 text-red-600 dark:text-red-400" />
+            </div>
+            <div className="max-w-[300px] sm:max-w-md">
+              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{t('error_title')}</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400">{error}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setError(null)}
+              className="ml-2 rounded-lg p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800"
+            >
+              <X className="size-4" />
+            </button>
+          </div>
+        </div>
+      )}
       <div className="mx-auto max-w-7xl px-4 pb-4 pt-8">
         {/* Header with Product Info & Mode Toggle */}
         <div className="mb-6 rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
@@ -997,7 +1029,7 @@ export function ChatInterface({
               <button
                 type="button"
                 onClick={() => setIsModalOpen(false)}
-                className="absolute right-4 top-4 rounded-full bg-gray-100 p-2 text-gray-500 transition-colors hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-400 dark:hover:bg-gray-600"
+                className="absolute right-4 top-4 z-50 rounded-full bg-gray-100 p-2 text-gray-500 shadow-md transition-colors hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-400 dark:hover:bg-gray-600"
               >
                 <X className="size-5" />
               </button>

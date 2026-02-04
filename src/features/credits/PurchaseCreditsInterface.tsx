@@ -1,7 +1,7 @@
 'use client';
 
 import { useUser } from '@clerk/nextjs';
-import { Info, Sparkles } from 'lucide-react';
+import { AlertCircle, Info, Sparkles, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Script from 'next/script';
 import { useLocale, useTranslations } from 'next-intl';
@@ -10,6 +10,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Footer } from '@/templates/Footer';
 import { Navbar } from '@/templates/Navbar';
 
+import { getUserArtCredits } from '../design/creditsActions';
 import { createCreditPurchase, type CreditSettings, getCreditSettings } from './purchaseCreditActions';
 
 export function PurchaseCreditsInterface() {
@@ -27,21 +28,37 @@ export function PurchaseCreditsInterface() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [paytrToken, setPaytrToken] = useState<string | null>(null);
   const [merchantOid, setMerchantOid] = useState<string | null>(null);
+  const [currentCredits, setCurrentCredits] = useState<number>(0);
+  const [error, setError] = useState<string | null>(null);
 
-  // Kredi ayarlarını yükle
+  // Hata mesajını otomatik temizle
   useEffect(() => {
-    async function loadSettings() {
+    if (error) {
+      const timer = setTimeout(() => setError(null), 5000);
+      return () => clearTimeout(timer);
+    }
+    return undefined;
+  }, [error]);
+
+  // Mevcut kredi miktarını ve ayarları yükle
+  useEffect(() => {
+    async function loadData() {
       setIsLoadingSettings(true);
       try {
-        const settings = await getCreditSettings();
+        const [settings, credits] = await Promise.all([
+          getCreditSettings(),
+          getUserArtCredits(),
+        ]);
         setCreditSettings(settings);
+        setCurrentCredits(credits || 0);
       } catch (error) {
-        console.error('Failed to load credit settings:', error);
+        console.error('Failed to load data:', error);
         // Default ayarlar
         setCreditSettings({
           pricePerCredit: 100,
           minPurchase: 1,
           maxPurchase: 1000,
+          maxUserCredits: null,
           isActive: true,
         });
       } finally {
@@ -49,18 +66,21 @@ export function PurchaseCreditsInterface() {
       }
     }
 
-    loadSettings();
+    loadData();
   }, []);
 
   const pricePerCredit = creditSettings?.pricePerCredit || 100;
   const minPurchase = creditSettings?.minPurchase || 1;
   const maxPurchase = creditSettings?.maxPurchase || 1000;
+  const maxUserCredits = creditSettings?.maxUserCredits;
   const quickAmounts = [5, 10, 25, 50];
 
   // Toplam fiyat hesaplama (kuruştan TL'ye çevir)
   const totalPrice = isCustom
     ? ((Number.parseInt(customAmount, 10) || 0) * pricePerCredit) / 100
     : (selectedAmount * pricePerCredit) / 100;
+
+  const currentAmount = isCustom ? Number.parseInt(customAmount, 10) || 0 : selectedAmount;
 
   const handleQuickSelect = (amount: number) => {
     setSelectedAmount(amount);
@@ -74,15 +94,25 @@ export function PurchaseCreditsInterface() {
   };
 
   const handlePurchase = async () => {
+    setError(null);
     if (!user?.id) {
-      alert('Lütfen giriş yapın');
+      setError('Lütfen giriş yapın');
       return;
+    }
+
+    // Limit kontrolü
+    if (typeof maxUserCredits === 'number' && maxUserCredits > 0) {
+      const nextTotal = currentCredits + currentAmount;
+      if (nextTotal > maxUserCredits) {
+        setError(`${t('max_limit_error', { max: maxUserCredits, current: currentCredits, available: Math.max(0, maxUserCredits - currentCredits) })}`);
+        return;
+      }
     }
 
     // Email kontrolü
     const userEmail = user.primaryEmailAddress?.emailAddress;
     if (!userEmail) {
-      alert('Email adresi bulunamadı. Lütfen hesap ayarlarınızı kontrol edin.');
+      setError('Email adresi bulunamadı. Lütfen hesap ayarlarınızı kontrol edin.');
       return;
     }
 
@@ -103,13 +133,13 @@ export function PurchaseCreditsInterface() {
         setPaytrToken(result.token);
         setMerchantOid(result.merchantOid || null);
       } else {
-        alert(result.error || 'Ödeme işlemi başlatılamadı');
+        setError(result.error || 'Ödeme işlemi başlatılamadı');
         setIsProcessing(false);
       }
     } catch (error) {
       console.error('Payment error:', error);
 
-      alert('Bir hata oluştu');
+      setError('Bir hata oluştu. Lütfen tekrar deneyin.');
       setIsProcessing(false);
     }
   };
@@ -169,6 +199,28 @@ export function PurchaseCreditsInterface() {
 
       {/* Main Content */}
       <div className="mx-auto max-w-4xl px-4 py-8">
+        {/* Error Notification */}
+        {error && (
+          <div className="fixed inset-x-4 top-24 z-[100] flex justify-center sm:inset-x-0">
+            <div className="flex items-center gap-3 rounded-2xl border border-red-200 bg-white/90 p-4 shadow-2xl backdrop-blur-md animate-in fade-in slide-in-from-top-4 dark:border-red-900/30 dark:bg-gray-900/90">
+              <div className="flex size-10 items-center justify-center rounded-xl bg-red-100 dark:bg-red-900/30">
+                <AlertCircle className="size-5 text-red-600 dark:text-red-400" />
+              </div>
+              <div className="max-w-[300px] sm:max-w-md">
+                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{t('error_title')}</p>
+                <p className="text-xs text-gray-600 dark:text-gray-400">{error}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setError(null)}
+                className="ml-2 rounded-lg p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Header */}
         <div className="mb-8 text-center">
           <h1 className="mb-2 text-3xl font-bold text-gray-900 dark:text-gray-100">
@@ -179,13 +231,31 @@ export function PurchaseCreditsInterface() {
 
         {/* Exchange Rate Card */}
         <div className="mb-8 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 p-6 text-white shadow-lg">
-          <div className="text-center">
-            <p className="mb-2 text-sm font-medium opacity-90">
-              {t('current_rate')}
-            </p>
-            <p className="text-4xl font-bold">
-              {t('credit_price', { price: (pricePerCredit / 100).toFixed(2) })}
-            </p>
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 sm:divide-x sm:divide-white/20">
+            <div className="text-center">
+              <p className="mb-1 text-xs font-medium opacity-80">
+                {t('current_rate')}
+              </p>
+              <p className="text-2xl font-bold">
+                {t('credit_price', { price: (pricePerCredit / 100).toFixed(2) })}
+              </p>
+            </div>
+            <div className="text-center sm:pl-4">
+              <p className="mb-1 text-xs font-medium opacity-80">
+                Mevcut Bakiyeniz
+              </p>
+              <p className="text-2xl font-bold">
+                {currentCredits}
+                {' '}
+                /
+                {maxUserCredits || '∞'}
+              </p>
+              {maxUserCredits && currentCredits >= maxUserCredits && (
+                <p className="mt-1 text-[10px] font-bold text-yellow-300">
+                  Limit doldu!
+                </p>
+              )}
+            </div>
           </div>
         </div>
 

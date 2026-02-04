@@ -222,6 +222,7 @@ export const artCreditSettingsSchema = pgTable('art_credit_settings', {
   isActive: boolean('is_active').default(true).notNull(),
   minPurchase: integer('min_purchase').default(1).notNull(), // Minimum satın alma adedi
   maxPurchase: integer('max_purchase').default(1000).notNull(), // Maximum satın alma adedi
+  maxUserCredits: integer('max_user_credits'), // Bir kullanıcının sahip olabileceği maksimum toplam kredi (null = sınırsız)
   updatedAt: timestamp('updated_at', { mode: 'date' })
     .defaultNow()
     .$onUpdate(() => new Date()),

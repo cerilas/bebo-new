@@ -11,10 +11,13 @@ import { artCreditSettingsSchema, orderSchema } from '@/models/Schema';
 import { AppConfig } from '@/utils/AppConfig';
 import { getBaseUrl } from '@/utils/Helpers';
 
+import { getUserArtCredits } from '../design/creditsActions';
+
 export type CreditSettings = {
   pricePerCredit: number; // Kuruş cinsinden
   minPurchase: number;
   maxPurchase: number;
+  maxUserCredits: number | null;
   isActive: boolean;
 };
 
@@ -37,6 +40,7 @@ export async function getCreditSettings(): Promise<CreditSettings | null> {
         pricePerCredit: artCreditSettingsSchema.pricePerCredit,
         minPurchase: artCreditSettingsSchema.minPurchase,
         maxPurchase: artCreditSettingsSchema.maxPurchase,
+        maxUserCredits: artCreditSettingsSchema.maxUserCredits,
         isActive: artCreditSettingsSchema.isActive,
       })
       .from(artCreditSettingsSchema)
@@ -49,6 +53,7 @@ export async function getCreditSettings(): Promise<CreditSettings | null> {
         pricePerCredit: 100, // 1 TL
         minPurchase: 1,
         maxPurchase: 1000,
+        maxUserCredits: null,
         isActive: true,
       };
     }
@@ -61,6 +66,7 @@ export async function getCreditSettings(): Promise<CreditSettings | null> {
       pricePerCredit: 100,
       minPurchase: 1,
       maxPurchase: 1000,
+      maxUserCredits: null,
       isActive: true,
     };
   }
@@ -117,6 +123,21 @@ export async function createCreditPurchase(
         success: false,
         error: `Kredi miktarı ${settings.minPurchase} ile ${settings.maxPurchase} arasında olmalıdır`,
       };
+    }
+
+    // Maksimum kredi limiti kontrolü
+    if (settings.maxUserCredits !== null && settings.maxUserCredits > 0) {
+      const currentCredits = await getUserArtCredits();
+      const nextTotal = currentCredits + creditAmount;
+
+      if (nextTotal > settings.maxUserCredits) {
+        // Eğer kullanıcı zaten limit üzerindeyse ve yeni kredi almaya çalışıyorsa hata ver
+        // User is allowed to use their existing credits, but not buy new ones if they are over limit
+        return {
+          success: false,
+          error: `Maksimum kredi limitine (${settings.maxUserCredits}) ulaştınız. Mevcut krediniz: ${currentCredits}`,
+        };
+      }
     }
 
     // Toplam tutarı hesapla (kuruş cinsinden)

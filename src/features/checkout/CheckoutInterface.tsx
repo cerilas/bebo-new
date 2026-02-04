@@ -1,13 +1,14 @@
 'use client';
 
 import { useUser } from '@clerk/nextjs';
-import { AlertCircle, ArrowLeft, CreditCard, Loader2, Package, Shield, X } from 'lucide-react';
+import { AlertCircle, ArrowLeft, ChevronDown, CreditCard, Loader2, Package, Shield, X } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Script from 'next/script';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 
 import { ProtectedImage } from '@/components/ProtectedImage';
+import { type City, type District, getCities, getDistricts } from '@/features/checkout/geliverActions';
 import { getPayTRToken } from '@/features/checkout/paytrActions';
 import { type GeneratedImageResponse, getGeneratedImage, getUserGeneratedImages } from '@/features/design/chatActions';
 import { getProductPricing, type ProductPriceData } from '@/features/design/productPriceActions';
@@ -68,6 +69,37 @@ export function CheckoutInterface({
   const [taxNumber, setTaxNumber] = useState('');
   const [taxOffice, setTaxOffice] = useState('');
   const [companyAddress, setCompanyAddress] = useState('');
+
+  // Geliver Address State
+  const [cities, setCities] = useState<City[]>([]);
+  const [districts, setDistricts] = useState<District[]>([]);
+
+  // Load cities on mount
+  useEffect(() => {
+    async function loadCities() {
+      const result = await getCities();
+      if (result.success && result.data) {
+        setCities(result.data);
+      }
+    }
+    loadCities();
+  }, []);
+
+  // Load districts when city changes
+  useEffect(() => {
+    async function loadDistricts() {
+      if (!customerCity) {
+        setDistricts([]);
+        setCustomerDistrict(''); // Clear district if city is cleared
+        return;
+      }
+      const result = await getDistricts(customerCity);
+      if (result.success && result.data) {
+        setDistricts(result.data);
+      }
+    }
+    loadDistricts();
+  }, [customerCity]);
 
   // Görsel ve fiyat verilerini yükle
   useEffect(() => {
@@ -228,6 +260,13 @@ export function CheckoutInterface({
         imageUrl: imageData.image_url,
       });
 
+      // Resolve names for PayTR
+      const selectedCity = cities.find(c => c.cityCode === customerCity);
+      const selectedDistrict = districts.find(d => d.districtID.toString() === customerDistrict);
+
+      const cityName = selectedCity?.name || customerCity;
+      const districtName = selectedDistrict?.name || customerDistrict;
+
       // PayTR token al
       const result = await getPayTRToken({
         generationId,
@@ -240,8 +279,10 @@ export function CheckoutInterface({
         customerEmail,
         customerPhone,
         customerAddress,
-        customerCity,
-        customerDistrict,
+        customerCity: cityName,
+        cityCode: customerCity, // Send code
+        customerDistrict: districtName,
+        districtId: customerDistrict ? Number.parseInt(customerDistrict) : undefined, // Send ID
         isCorporateInvoice: wantsCorporateInvoice,
         companyName: wantsCorporateInvoice ? companyName : undefined,
         taxNumber: wantsCorporateInvoice ? taxNumber : undefined,
@@ -394,28 +435,51 @@ export function CheckoutInterface({
                       <label htmlFor="customer-city" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
                         İl
                       </label>
-                      <input
-                        id="customer-city"
-                        type="text"
-                        value={customerCity}
-                        onChange={e => setCustomerCity(e.target.value)}
-                        placeholder="Örn: İstanbul"
-                        className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-                      />
+                      <div className="relative">
+                        <select
+                          id="customer-city"
+                          value={customerCity} // This will now hold the cityCode (plate number)
+                          onChange={(e) => {
+                            const selectedCode = e.target.value;
+                            setCustomerCity(selectedCode);
+                            // Reset district when city changes
+                            setCustomerDistrict('');
+                            // Find city name for display if needed, but we store code as value
+                          }}
+                          className="w-full appearance-none rounded-lg border border-gray-300 px-4 py-2 pr-10 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                        >
+                          <option value="">İl Seçiniz</option>
+                          {cities.map(city => (
+                            <option key={city.cityCode} value={city.cityCode}>
+                              {city.name}
+                            </option>
+                          ))}
+                        </select>
+                        <ChevronDown className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-gray-500" />
+                      </div>
                     </div>
 
                     <div>
                       <label htmlFor="customer-district" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
                         İlçe
                       </label>
-                      <input
-                        id="customer-district"
-                        type="text"
-                        value={customerDistrict}
-                        onChange={e => setCustomerDistrict(e.target.value)}
-                        placeholder="Örn: Kadıköy"
-                        className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-                      />
+                      <div className="relative">
+                        <select
+                          id="customer-district"
+                          value={customerDistrict} // This will now hold the districtId
+                          onChange={e => setCustomerDistrict(e.target.value)}
+                          disabled={!customerCity}
+                          className="w-full appearance-none rounded-lg border border-gray-300 px-4 py-2 pr-10 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                        >
+                          <option value="">İlçe Seçiniz</option>
+                          {districts.map(district => (
+                            <option key={district.districtID} value={district.districtID.toString()}>
+                              {district.name}
+                            </option>
+                          ))}
+                        </select>
+                        <ChevronDown className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-gray-500" />
+                      </div>
                     </div>
                   </div>
 

@@ -23,7 +23,9 @@ export type PayTRTokenRequest = {
   customerPhone: string;
   customerAddress: string;
   customerCity?: string; // İl
+  cityCode?: string; // Geliver İl Kodu
   customerDistrict?: string; // İlçe
+  districtId?: number; // Geliver İlçe ID
   isCorporateInvoice?: boolean; // Kurumsal fatura flag
   companyName?: string; // Ünvan
   taxNumber?: string; // Vergi kimlik no
@@ -131,7 +133,9 @@ export async function getPayTRToken(
       customerPhone: request.customerPhone,
       customerAddress: request.customerAddress,
       customerCity: request.customerCity,
+      cityCode: request.cityCode,
       customerDistrict: request.customerDistrict,
+      districtId: request.districtId,
       isCorporateInvoice: request.isCorporateInvoice || false,
       companyName: request.companyName,
       taxNumber: request.taxNumber,

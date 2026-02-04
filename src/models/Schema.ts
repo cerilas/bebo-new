@@ -198,7 +198,9 @@ export const orderSchema = pgTable('order', {
   customerPhone: varchar('customer_phone', { length: 20 }).notNull(),
   customerAddress: text('customer_address').notNull(),
   customerCity: varchar('customer_city', { length: 100 }), // İl
+  cityCode: varchar('city_code', { length: 10 }), // Geliver İl Kodu
   customerDistrict: varchar('customer_district', { length: 100 }), // İlçe
+  districtId: integer('district_id'), // Geliver İlçe ID
   isCorporateInvoice: boolean('is_corporate_invoice').default(false).notNull(), // Kurumsal fatura isteniyor mu?
   companyName: text('company_name'), // Ünvan (şirket adı)
   taxNumber: varchar('tax_number', { length: 11 }), // Vergi kimlik numarası

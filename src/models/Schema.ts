@@ -340,6 +340,20 @@ export const siteSettingsSchema = pgTable('site_settings', {
   createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
 });
 
+// Product Size-Frame Availability (Boyut-Çerçeve Stok İlişkisi)
+export const productSizeFrameSchema = pgTable('product_size_frame', {
+  id: serial('id').primaryKey(),
+  productId: integer('product_id').notNull().references(() => productSchema.id, { onDelete: 'cascade' }),
+  sizeId: integer('size_id').notNull().references(() => productSizeSchema.id, { onDelete: 'cascade' }),
+  frameId: integer('frame_id').notNull().references(() => productFrameSchema.id, { onDelete: 'cascade' }),
+  isAvailable: boolean('is_available').default(true).notNull(),
+  createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { mode: 'date' })
+    .defaultNow()
+    .$onUpdate(() => new Date())
+    .notNull(),
+});
+
 // Payment Logs Schema - for logging all PayTR callback data for debugging
 export const paymentLogsSchema = pgTable('payment_logs', {
   id: serial('id').primaryKey(),

@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 
 import { MockupPreview } from '@/components/MockupPreview';
 import { ProtectedImage } from '@/components/ProtectedImage';
+import { Button } from '@/components/ui/button';
 import { useRouter } from '@/libs/i18nNavigation';
 import { parseMockupConfig } from '@/utils/mockupUtils';
 
@@ -174,14 +175,15 @@ export function PreviewInterface({
     <div className="mx-auto max-w-7xl px-4 pb-8 pt-24">
       {/* Header with Back Button */}
       <div className="mb-8">
-        <button
-          type="button"
+        <Button
+          variant="outline"
+          size="sm"
+          className="border-primary/30 bg-primary/5 text-primary transition-all hover:bg-primary/10 hover:text-primary-foreground"
           onClick={() => router.back()}
-          className="flex items-center gap-2 text-gray-600 transition-colors hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
         >
-          <ArrowLeft className="size-5" />
-          <span>{t('back_to_design')}</span>
-        </button>
+          <ArrowLeft className="mr-2 size-4" />
+          {t('back_to_design')}
+        </Button>
       </div>
 
       <div className="grid gap-8 lg:grid-cols-2">

@@ -42,8 +42,8 @@ export const Navbar = () => {
 
   const navLinks = [
     { id: 'products', label: t('products'), href: '/products' },
-    { id: 'how-it-works', label: t('docs'), href: '/nasil-calisir' },
-    { id: 'features', label: t('product'), href: '/ozellikler' },
+    { id: 'how-it-works', label: t('docs'), href: isLandingPage ? '#nasil-calisir' : '/#nasil-calisir' },
+    { id: 'features', label: t('product'), href: isLandingPage ? '#ozellikler' : '/#ozellikler' },
   ];
 
   // Transform navLinks for GooeyNav

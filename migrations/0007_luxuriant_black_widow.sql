@@ -95,34 +95,34 @@ CREATE TABLE IF NOT EXISTS "site_settings" (
 );
 --> statement-breakpoint
 ALTER TABLE "users" ALTER COLUMN "art_credits" SET DEFAULT 1;--> statement-breakpoint
-ALTER TABLE "art_credit_settings" ADD COLUMN "max_user_credits" integer;--> statement-breakpoint
-ALTER TABLE "generated_image" ADD COLUMN "thumbnail_url" text;--> statement-breakpoint
-ALTER TABLE "order" ADD COLUMN "order_type" varchar(20) DEFAULT 'product' NOT NULL;--> statement-breakpoint
-ALTER TABLE "order" ADD COLUMN "credit_amount" integer;--> statement-breakpoint
-ALTER TABLE "order" ADD COLUMN "customer_city" varchar(100);--> statement-breakpoint
-ALTER TABLE "order" ADD COLUMN "city_code" varchar(10);--> statement-breakpoint
-ALTER TABLE "order" ADD COLUMN "customer_district" varchar(100);--> statement-breakpoint
-ALTER TABLE "order" ADD COLUMN "district_id" integer;--> statement-breakpoint
-ALTER TABLE "order" ADD COLUMN "is_corporate_invoice" boolean DEFAULT false NOT NULL;--> statement-breakpoint
-ALTER TABLE "order" ADD COLUMN "company_name" text;--> statement-breakpoint
-ALTER TABLE "order" ADD COLUMN "tax_number" varchar(11);--> statement-breakpoint
-ALTER TABLE "order" ADD COLUMN "tax_office" varchar(100);--> statement-breakpoint
-ALTER TABLE "order" ADD COLUMN "company_address" text;--> statement-breakpoint
-ALTER TABLE "product_frame" ADD COLUMN "color_code" varchar(7);--> statement-breakpoint
-ALTER TABLE "product_frame" ADD COLUMN "frame_image" text;--> statement-breakpoint
-ALTER TABLE "product_frame" ADD COLUMN "frame_image_large" text;--> statement-breakpoint
-ALTER TABLE "product_frame" ADD COLUMN "mockup_template" text;--> statement-breakpoint
-ALTER TABLE "product_frame" ADD COLUMN "mockup_config" text DEFAULT '{}';--> statement-breakpoint
-ALTER TABLE "product_frame" ADD COLUMN "is_active" boolean DEFAULT true NOT NULL;--> statement-breakpoint
-ALTER TABLE "product" ADD COLUMN "image_square_url" text;--> statement-breakpoint
-ALTER TABLE "product" ADD COLUMN "image_square_url_2" text;--> statement-breakpoint
-ALTER TABLE "product" ADD COLUMN "image_square_url_3" text;--> statement-breakpoint
-ALTER TABLE "product" ADD COLUMN "image_wide_url" text;--> statement-breakpoint
-ALTER TABLE "product" ADD COLUMN "image_dimensions" varchar(50) DEFAULT '1920x1080' NOT NULL;--> statement-breakpoint
-ALTER TABLE "product_size" ADD COLUMN "is_active" boolean DEFAULT true NOT NULL;--> statement-breakpoint
-ALTER TABLE "users" ADD COLUMN "email" text;--> statement-breakpoint
-ALTER TABLE "users" ADD COLUMN "first_name" text;--> statement-breakpoint
-ALTER TABLE "users" ADD COLUMN "last_name" text;--> statement-breakpoint
-ALTER TABLE "users" ADD COLUMN "phone" varchar(20);--> statement-breakpoint
-ALTER TABLE "users" ADD COLUMN "image_url" text;--> statement-breakpoint
+ALTER TABLE "art_credit_settings" ADD COLUMN IF NOT EXISTS "max_user_credits" integer;--> statement-breakpoint
+ALTER TABLE "generated_image" ADD COLUMN IF NOT EXISTS "thumbnail_url" text;--> statement-breakpoint
+ALTER TABLE "order" ADD COLUMN IF NOT EXISTS "order_type" varchar(20) DEFAULT 'product' NOT NULL;--> statement-breakpoint
+ALTER TABLE "order" ADD COLUMN IF NOT EXISTS "credit_amount" integer;--> statement-breakpoint
+ALTER TABLE "order" ADD COLUMN IF NOT EXISTS "customer_city" varchar(100);--> statement-breakpoint
+ALTER TABLE "order" ADD COLUMN IF NOT EXISTS "city_code" varchar(10);--> statement-breakpoint
+ALTER TABLE "order" ADD COLUMN IF NOT EXISTS "customer_district" varchar(100);--> statement-breakpoint
+ALTER TABLE "order" ADD COLUMN IF NOT EXISTS "district_id" integer;--> statement-breakpoint
+ALTER TABLE "order" ADD COLUMN IF NOT EXISTS "is_corporate_invoice" boolean DEFAULT false NOT NULL;--> statement-breakpoint
+ALTER TABLE "order" ADD COLUMN IF NOT EXISTS "company_name" text;--> statement-breakpoint
+ALTER TABLE "order" ADD COLUMN IF NOT EXISTS "tax_number" varchar(11);--> statement-breakpoint
+ALTER TABLE "order" ADD COLUMN IF NOT EXISTS "tax_office" varchar(100);--> statement-breakpoint
+ALTER TABLE "order" ADD COLUMN IF NOT EXISTS "company_address" text;--> statement-breakpoint
+ALTER TABLE "product_frame" ADD COLUMN IF NOT EXISTS "color_code" varchar(7);--> statement-breakpoint
+ALTER TABLE "product_frame" ADD COLUMN IF NOT EXISTS "frame_image" text;--> statement-breakpoint
+ALTER TABLE "product_frame" ADD COLUMN IF NOT EXISTS "frame_image_large" text;--> statement-breakpoint
+ALTER TABLE "product_frame" ADD COLUMN IF NOT EXISTS "mockup_template" text;--> statement-breakpoint
+ALTER TABLE "product_frame" ADD COLUMN IF NOT EXISTS "mockup_config" text DEFAULT '{}';--> statement-breakpoint
+ALTER TABLE "product_frame" ADD COLUMN IF NOT EXISTS "is_active" boolean DEFAULT true NOT NULL;--> statement-breakpoint
+ALTER TABLE "product" ADD COLUMN IF NOT EXISTS "image_square_url" text;--> statement-breakpoint
+ALTER TABLE "product" ADD COLUMN IF NOT EXISTS "image_square_url_2" text;--> statement-breakpoint
+ALTER TABLE "product" ADD COLUMN IF NOT EXISTS "image_square_url_3" text;--> statement-breakpoint
+ALTER TABLE "product" ADD COLUMN IF NOT EXISTS "image_wide_url" text;--> statement-breakpoint
+ALTER TABLE "product" ADD COLUMN IF NOT EXISTS "image_dimensions" varchar(50) DEFAULT '1920x1080' NOT NULL;--> statement-breakpoint
+ALTER TABLE "product_size" ADD COLUMN IF NOT EXISTS "is_active" boolean DEFAULT true NOT NULL;--> statement-breakpoint
+ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "email" text;--> statement-breakpoint
+ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "first_name" text;--> statement-breakpoint
+ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "last_name" text;--> statement-breakpoint
+ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "phone" varchar(20);--> statement-breakpoint
+ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "image_url" text;--> statement-breakpoint
 CREATE UNIQUE INDEX IF NOT EXISTS "idx_newsletter_email" ON "newsletter_subscribers" USING btree ("email");

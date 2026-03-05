@@ -32,7 +32,7 @@ const HowItWorks = () => {
   ];
 
   return (
-    <section className="relative bg-[#0a0a0f] py-16 md:py-20">
+    <section id="nasil-calisir" className="relative bg-[#0a0a0f] py-16 md:py-20">
       {/* Background elements */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute left-0 top-1/4 size-[400px] rounded-full bg-purple-500/10 blur-[100px]" />

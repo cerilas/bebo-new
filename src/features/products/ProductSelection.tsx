@@ -4,7 +4,7 @@ import { ArrowLeft, ChevronRight, Frame, Maximize2 } from 'lucide-react';
 import NextImage from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { ProductCarousel } from '@/components/ProductCarousel';
 import { ProductImage } from '@/components/ProductImage';
@@ -12,6 +12,8 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/utils/Helpers';
 
 import { getProductDetails } from './productActions';
+import type { SizeFrameAvailability } from './sizeFrameActions';
+import { getSizeFrameAvailability } from './sizeFrameActions';
 
 type Product = {
   id: number;
@@ -64,6 +66,7 @@ export const ProductSelection = ({ products, locale, imageUrl }: Props) => {
   const [frameLabel, setFrameLabel] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [navigating, setNavigating] = useState(false);
+  const [availabilityData, setAvailabilityData] = useState<SizeFrameAvailability[]>([]);
   const [config, setConfig] = useState<ProductConfig>({
     frame: null,
     size: null,
@@ -100,6 +103,55 @@ export const ProductSelection = ({ products, locale, imageUrl }: Props) => {
       });
     }
   }, [selectedProduct, locale]);
+
+  // Ürün seçildiğinde stok verisini tek seferde çek
+  useEffect(() => {
+    if (selectedProduct) {
+      const product = products.find(p => p.slug === selectedProduct);
+      if (product?.id) {
+        getSizeFrameAvailability(product.id).then((data) => {
+          setAvailabilityData(data);
+        }).catch(() => {
+          setAvailabilityData([]);
+        });
+      }
+    } else {
+      setAvailabilityData([]);
+    }
+  }, [selectedProduct, products]);
+
+  // Belirli bir boyut için çerçevenin stokta olup olmadığını kontrol et
+  const isFrameAvailable = useCallback(
+    (frameId: number, sizeSlug: string | null): boolean => {
+      if (!sizeSlug) {
+        return true;
+      }
+      const size = sizes.find(s => s.slug === sizeSlug);
+      if (!size) {
+        return true;
+      }
+      // Tabloda kayıt yoksa varsayılan olarak stokta
+      const record = availabilityData.find(
+        item => item.sizeId === size.id && item.frameId === frameId,
+      );
+      if (!record) {
+        return true;
+      }
+      return record.isAvailable;
+    },
+    [availabilityData, sizes],
+  );
+
+  // Stokta yok etiketi (çok dilli)
+  const outOfStockLabel = useMemo(() => {
+    if (locale === 'en') {
+      return 'Out of stock';
+    }
+    if (locale === 'fr') {
+      return 'Rupture de stock';
+    }
+    return 'Stokta yok';
+  }, [locale]);
 
   const handleProductClick = (productSlug: string) => {
     setSelectedProduct(productSlug);
@@ -324,7 +376,30 @@ export const ProductSelection = ({ products, locale, imageUrl }: Props) => {
                                     type="button"
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      setConfig(prev => ({ ...prev, size: size.slug }));
+                                      setConfig((prev) => {
+                                        const newConfig = { ...prev, size: size.slug };
+                                        // Mevcut çerçeve yeni boyutta stokta mı kontrol et
+                                        if (prev.frame) {
+                                          const currentFrame = frames.find(f => f.slug === prev.frame);
+                                          if (currentFrame) {
+                                            const record = availabilityData.find(
+                                              item => item.sizeId === size.id && item.frameId === currentFrame.id,
+                                            );
+                                            const isStillAvailable = !record || record.isAvailable;
+                                            if (!isStillAvailable) {
+                                              // Stokta olan ilk çerçeveye geç
+                                              const firstAvailable = frames.find((f) => {
+                                                const r = availabilityData.find(
+                                                  item => item.sizeId === size.id && item.frameId === f.id,
+                                                );
+                                                return !r || r.isAvailable;
+                                              });
+                                              newConfig.frame = firstAvailable?.slug ?? null;
+                                            }
+                                          }
+                                        }
+                                        return newConfig;
+                                      });
                                     }}
                                     className={cn(
                                       'rounded-lg border-2 p-4 text-left transition-all',
@@ -357,62 +432,78 @@ export const ProductSelection = ({ products, locale, imageUrl }: Props) => {
                                 <h4 className="text-lg font-semibold">{frameLabel || t('select_frame')}</h4>
                               </div>
                               <div className="grid gap-3">
-                                {frames.map(frame => (
-                                  <button
-                                    key={frame.id}
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setConfig(prev => ({ ...prev, frame: frame.slug }));
-                                    }}
-                                    className={cn(
-                                      'rounded-lg border-2 p-4 text-left transition-all',
-                                      config.frame === frame.slug
-                                        ? 'border-primary bg-primary/5'
-                                        : 'border-border hover:border-primary/50',
-                                    )}
-                                  >
-                                    <div className="flex items-center gap-4">
-                                      {/* Frame Preview */}
-                                      <div className="relative size-16 shrink-0 overflow-hidden rounded">
-                                        {frame.frameImage
-                                          ? (
-                                              <NextImage
-                                                src={frame.frameImage}
-                                                alt={frame.name}
-                                                className="size-full object-cover"
-                                                fill
-                                                sizes="64px"
-                                              />
-                                            )
-                                          : (
-                                              <div className={cn(
-                                                'flex size-full items-center justify-center',
-                                                frame.slug === 'no-frame' && 'bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900',
-                                                frame.slug === 'black' && 'bg-black p-1',
-                                                frame.slug === 'white' && 'bg-white p-1 ring-2 ring-gray-200',
-                                                frame.slug === 'wood' && 'bg-gradient-to-br from-amber-700 to-amber-900 p-1',
-                                              )}
-                                              >
-                                                <div className={cn(
-                                                  'size-full rounded-sm bg-gradient-to-br from-purple-400 to-pink-400',
-                                                  frame.slug !== 'no-frame' && 'ring-1 ring-white/20',
-                                                )}
+                                {frames.map((frame) => {
+                                  const available = isFrameAvailable(frame.id, config.size);
+
+                                  return (
+                                    <button
+                                      key={frame.id}
+                                      type="button"
+                                      disabled={!available}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (available) {
+                                          setConfig(prev => ({ ...prev, frame: frame.slug }));
+                                        }
+                                      }}
+                                      className={cn(
+                                        'relative rounded-lg border-2 p-4 text-left transition-all',
+                                        !available
+                                          ? 'cursor-not-allowed border-border opacity-[0.35]'
+                                          : config.frame === frame.slug
+                                            ? 'border-primary bg-primary/5'
+                                            : 'border-border hover:border-primary/50',
+                                      )}
+                                    >
+                                      <div className="flex items-center gap-4">
+                                        {/* Frame Preview */}
+                                        <div className="relative size-16 shrink-0 overflow-hidden rounded">
+                                          {frame.frameImage
+                                            ? (
+                                                <NextImage
+                                                  src={frame.frameImage}
+                                                  alt={frame.name}
+                                                  className="size-full object-cover"
+                                                  fill
+                                                  sizes="64px"
                                                 />
+                                              )
+                                            : (
+                                                <div className={cn(
+                                                  'flex size-full items-center justify-center',
+                                                  frame.slug === 'no-frame' && 'bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900',
+                                                  frame.slug === 'black' && 'bg-black p-1',
+                                                  frame.slug === 'white' && 'bg-white p-1 ring-2 ring-gray-200',
+                                                  frame.slug === 'wood' && 'bg-gradient-to-br from-amber-700 to-amber-900 p-1',
+                                                )}
+                                                >
+                                                  <div className={cn(
+                                                    'size-full rounded-sm bg-gradient-to-br from-purple-400 to-pink-400',
+                                                    frame.slug !== 'no-frame' && 'ring-1 ring-white/20',
+                                                  )}
+                                                  />
+                                                </div>
+                                              )}
+                                        </div>
+
+                                        {/* Frame Info */}
+                                        <div className="flex flex-1 items-center justify-between">
+                                          <div>
+                                            <div className="font-semibold">{frame.name}</div>
+                                            {!available && (
+                                              <div className="text-xs text-muted-foreground">
+                                                {outOfStockLabel}
                                               </div>
                                             )}
-                                      </div>
-
-                                      {/* Frame Info */}
-                                      <div className="flex flex-1 items-center justify-between">
-                                        <div className="font-semibold">{frame.name}</div>
-                                        <div className="font-bold text-primary">
-                                          {frame.price > 0 ? `+${frame.price}₺` : t('free')}
+                                          </div>
+                                          <div className="font-bold text-primary">
+                                            {frame.price > 0 ? `+${frame.price}₺` : t('free')}
+                                          </div>
                                         </div>
                                       </div>
-                                    </div>
-                                  </button>
-                                ))}
+                                    </button>
+                                  );
+                                })}
                               </div>
                             </div>
                           </div>

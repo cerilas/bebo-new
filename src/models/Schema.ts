@@ -136,9 +136,12 @@ export const productFrameSchema = pgTable('product_frame', {
   colorCode: varchar('color_code', { length: 7 }), // Hex color code (e.g., #000000)
   frameImage: text('frame_image'), // Frame preview image URL
   frameImageLarge: text('frame_image_large'), // Large frame banner image URL
-  // Mockup settings
+  // Mockup settings (landscape/horizontal - default)
   mockupTemplate: text('mockup_template'), // Mockup PNG image URL (transparent frame)
   mockupConfig: text('mockup_config').default('{}'), // JSON: { x, y, width, height, rotation }
+  // Mockup settings (portrait/vertical)
+  mockupTemplateVertical: text('mockup_template_vertical'), // Vertical mockup PNG image URL
+  mockupConfigVertical: text('mockup_config_vertical').default('{}'), // JSON: vertical config
   isActive: boolean('is_active').default(true).notNull(),
   sortOrder: integer('sort_order').default(0).notNull(),
   updatedAt: timestamp('updated_at', { mode: 'date' })
@@ -206,6 +209,7 @@ export const orderSchema = pgTable('order', {
   taxNumber: varchar('tax_number', { length: 11 }), // Vergi kimlik numarası
   taxOffice: varchar('tax_office', { length: 100 }), // Vergi dairesi
   companyAddress: text('company_address'), // Şirket adresi
+  orientation: varchar('orientation', { length: 20 }).default('landscape').notNull(), // landscape | portrait
   shippingStatus: varchar('shipping_status', { length: 20 }).default('pending').notNull(), // pending, preparing, shipped, delivered
   trackingNumber: varchar('tracking_number', { length: 100 }),
   notes: text('notes'), // Admin notları

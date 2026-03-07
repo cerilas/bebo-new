@@ -219,5 +219,5 @@ export const Navbar = () => {
 
 // Spacer component to prevent content from being hidden behind fixed navbar
 export const NavbarSpacer = () => (
-  <div className="h-20" />
+  <div className="h-16 md:h-20" />
 );

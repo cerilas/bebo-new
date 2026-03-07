@@ -15,9 +15,12 @@ export type ProductPriceData = {
   frameName: string;
   framePrice: number; // in cents
   totalPrice: number; // in cents
-  // Mockup data
+  // Mockup data (landscape - default)
   mockupTemplate: string | null;
   mockupConfig: string | null;
+  // Mockup data (portrait/vertical)
+  mockupTemplateVertical: string | null;
+  mockupConfigVertical: string | null;
 };
 
 export async function getProductPricing(
@@ -91,6 +94,8 @@ export async function getProductPricing(
       // Mockup data
       mockupTemplate: frameData.mockupTemplate,
       mockupConfig: frameData.mockupConfig,
+      mockupTemplateVertical: frameData.mockupTemplateVertical,
+      mockupConfigVertical: frameData.mockupConfigVertical,
     };
 
     console.log('getProductPricing result:', result);

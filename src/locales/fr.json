@@ -116,7 +116,17 @@
     "terms_of_service": "Conditions d'utilisation",
     "privacy_policy": "Politique de confidentialité",
     "legal_documents": "Documents Légaux",
-    "designed_by": "Designé by <author></author>."
+    "designed_by": "Designé by <author></author>.",
+    "company_title": "Entreprise",
+    "support_title": "Support",
+    "email_label": "E-mail",
+    "brand_description": "Transformez vos images en qualité professionnelle en quelques secondes grâce à l'édition photo IA.",
+    "secure_payment": "Paiement Sécurisé:",
+    "rights_reserved": "Tous droits réservés.",
+    "pricing": "Tarifs",
+    "faq": "FAQ",
+    "features": "Fonctionnalités",
+    "how_it_works": "Comment ça marche"
   },
   "ProtectFallback": {
     "not_enough_permission": "Vous n'avez pas les permissions pour effectuer cette action"

@@ -26,10 +26,11 @@ export default async function CheckoutPage(props: {
     product?: string;
     size?: string;
     frame?: string;
+    orientation?: string;
   }>;
 }) {
   const { locale } = await props.params;
-  const { generationId, imageUrl, product, size, frame } = await props.searchParams;
+  const { generationId, imageUrl, product, size, frame, orientation } = await props.searchParams;
 
   return (
     <CheckoutInterface
@@ -39,6 +40,7 @@ export default async function CheckoutPage(props: {
       productSlug={product}
       sizeSlug={size}
       frameSlug={frame}
+      orientation={orientation as 'landscape' | 'portrait' | undefined}
     />
   );
 }

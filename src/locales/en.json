@@ -152,7 +152,11 @@
     "email_label": "Email",
     "brand_description": "Transform your images into professional quality in seconds with AI-powered photo editing.",
     "secure_payment": "Secure Payment:",
-    "rights_reserved": "All rights reserved."
+    "rights_reserved": "All rights reserved.",
+    "pricing": "Pricing",
+    "faq": "FAQ",
+    "features": "Features",
+    "how_it_works": "How It Works"
   },
   "ProtectFallback": {
     "not_enough_permission": "You do not have the permissions to perform this action"
@@ -328,6 +332,9 @@
     "product": "Product",
     "size": "Size",
     "frame": "Frame",
+    "orientation": "Orientation",
+    "landscape": "Landscape",
+    "portrait": "Portrait",
     "your_design": "Your Design",
     "subtotal": "Subtotal",
     "shipping": "Shipping",

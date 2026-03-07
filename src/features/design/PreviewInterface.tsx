@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowLeft, Check, Frame as FrameIcon, Image as ImageIcon, Package, RotateCcw, Ruler, Sparkles } from 'lucide-react';
+import { ArrowLeft, Check, Frame as FrameIcon, Image as ImageIcon, Package, RectangleHorizontal, RectangleVertical, RotateCcw, Ruler, Sparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 
@@ -8,6 +8,7 @@ import { MockupPreview } from '@/components/MockupPreview';
 import { ProtectedImage } from '@/components/ProtectedImage';
 import { Button } from '@/components/ui/button';
 import { useRouter } from '@/libs/i18nNavigation';
+import { cn } from '@/utils/Helpers';
 import { parseMockupConfig } from '@/utils/mockupUtils';
 
 import { type GeneratedImageResponse, getGeneratedImage, getUserGeneratedImages } from './chatActions';
@@ -37,9 +38,19 @@ export function PreviewInterface({
   const [priceData, setPriceData] = useState<ProductPriceData | null>(null);
   const [isPriceLoading, setIsPriceLoading] = useState(true);
   const [isFlipped, setIsFlipped] = useState(false);
+  const [orientation, setOrientation] = useState<'landscape' | 'portrait'>('landscape');
 
   // Mockup varsa flip özelliğini aktif et
   const hasMockup = Boolean(priceData?.mockupTemplate);
+  const hasVerticalMockup = Boolean(priceData?.mockupTemplateVertical);
+
+  // Aktif mockup template ve config (orientation'a göre)
+  const activeMockupTemplate = orientation === 'portrait' && priceData?.mockupTemplateVertical
+    ? priceData.mockupTemplateVertical
+    : priceData?.mockupTemplate;
+  const activeMockupConfig = orientation === 'portrait' && priceData?.mockupConfigVertical
+    ? priceData.mockupConfigVertical
+    : priceData?.mockupConfig ?? null;
 
   useEffect(() => {
     async function loadImageData() {
@@ -146,6 +157,10 @@ export function PreviewInterface({
       params.set('imageUrl', imageUrl);
     }
 
+    if (orientation !== 'landscape') {
+      params.set('orientation', orientation);
+    }
+
     router.push(`/checkout?${params.toString()}`);
   };
 
@@ -218,6 +233,38 @@ export function PreviewInterface({
                       </button>
                     )}
                   </div>
+
+                  {/* Orientation Toggle - only when vertical mockup exists */}
+                  {hasMockup && hasVerticalMockup && (
+                    <div className="mb-3 flex items-center justify-center gap-1 rounded-lg bg-gray-100 p-1 dark:bg-gray-700">
+                      <button
+                        type="button"
+                        onClick={() => setOrientation('landscape')}
+                        className={cn(
+                          'flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-all',
+                          orientation === 'landscape'
+                            ? 'bg-white text-gray-900 shadow-sm dark:bg-gray-600 dark:text-white'
+                            : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200',
+                        )}
+                      >
+                        <RectangleHorizontal className="size-3.5" />
+                        Yatay
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setOrientation('portrait')}
+                        className={cn(
+                          'flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-all',
+                          orientation === 'portrait'
+                            ? 'bg-white text-gray-900 shadow-sm dark:bg-gray-600 dark:text-white'
+                            : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200',
+                        )}
+                      >
+                        <RectangleVertical className="size-3.5" />
+                        Dikey
+                      </button>
+                    </div>
+                  )}
                   <ProtectedImage
                     src={imageData.image_url}
                     alt={imageData.text_prompt}
@@ -230,7 +277,7 @@ export function PreviewInterface({
               </div>
 
               {/* Back - Mockup Preview */}
-              {hasMockup && priceData?.mockupTemplate && (
+              {hasMockup && activeMockupTemplate && (
                 <div
                   className="absolute inset-0"
                   style={{
@@ -243,6 +290,7 @@ export function PreviewInterface({
                       <span className="flex items-center gap-2 text-sm font-medium text-gray-500 dark:text-gray-400">
                         <ImageIcon className="size-4 text-purple-500" />
                         Ürün Önizlemesi
+                        {orientation === 'portrait' ? ' (Dikey)' : ' (Yatay)'}
                       </span>
                       <button
                         type="button"
@@ -255,10 +303,13 @@ export function PreviewInterface({
                     </div>
                     <MockupPreview
                       imageUrl={imageData.image_url}
-                      mockupTemplate={priceData.mockupTemplate}
-                      mockupType={parseMockupConfig(priceData.mockupConfig).type || 'frame'}
-                      mockupConfig={parseMockupConfig(priceData.mockupConfig)}
-                      className="aspect-square w-full rounded-xl"
+                      mockupTemplate={activeMockupTemplate}
+                      mockupType={parseMockupConfig(activeMockupConfig).type || 'frame'}
+                      mockupConfig={parseMockupConfig(activeMockupConfig)}
+                      className={cn(
+                        'w-full rounded-xl',
+                        orientation === 'portrait' ? 'aspect-[3/4]' : 'aspect-square',
+                      )}
                     />
                   </div>
                 </div>

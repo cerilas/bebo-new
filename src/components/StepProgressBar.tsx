@@ -18,7 +18,7 @@ export const StepProgressBar = ({ currentStep }: StepProgressBarProps) => {
 
   return (
     <div className="w-full">
-      <div className="mx-auto max-w-4xl px-4 pb-1 pt-2 md:py-6">
+      <div className="mx-auto max-w-4xl px-4 py-1.5 md:py-4">
         <nav aria-label="Progress">
           <ol className="flex items-center justify-center gap-2 md:gap-4">
             {steps.map((step, index) => {
@@ -28,11 +28,11 @@ export const StepProgressBar = ({ currentStep }: StepProgressBarProps) => {
 
               return (
                 <li key={step.number} className="flex items-center">
-                  <div className={`relative flex items-center gap-2 md:gap-3 ${isCurrent ? 'flex-1' : ''}`}>
+                  <div className={`relative flex items-center gap-1.5 md:gap-3 ${isCurrent ? 'flex-1' : ''}`}>
                     {/* Step Circle */}
                     <div
                       className={`
-                        flex size-8 shrink-0 items-center justify-center rounded-full border-2 text-sm font-bold transition-all duration-300 md:size-10 md:text-base
+                        flex size-7 shrink-0 items-center justify-center rounded-full border-2 text-xs font-bold transition-all duration-300 md:size-10 md:text-base
                         ${isCompleted
                   ? 'border-green-500 bg-green-500 text-white shadow-sm'
                   : isCurrent
@@ -41,7 +41,7 @@ export const StepProgressBar = ({ currentStep }: StepProgressBarProps) => {
                 }
                       `}
                     >
-                      {isCompleted ? <Check className="size-4 md:size-5" /> : step.number}
+                      {isCompleted ? <Check className="size-3.5 md:size-5" /> : step.number}
                     </div>
 
                     {/* Step Label (Always visible on desktop, visible if current on mobile) */}

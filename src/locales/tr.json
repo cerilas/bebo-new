@@ -157,7 +157,11 @@
     "email_label": "E-posta",
     "brand_description": "Yapay zeka destekli fotoğraf düzenleme ile görsellerinizi saniyeler içinde profesyonel kaliteye dönüştürün.",
     "secure_payment": "Güvenli Ödeme:",
-    "rights_reserved": "Tüm hakları saklıdır."
+    "rights_reserved": "Tüm hakları saklıdır.",
+    "pricing": "Fiyatlandırma",
+    "faq": "Sık Sorulan Sorular",
+    "features": "Özellikler",
+    "how_it_works": "Nasıl Çalışır"
   },
   "ProtectFallback": {
     "not_enough_permission": "Bu işlemi gerçekleştirmek için yetkiniz yok"
@@ -346,6 +350,9 @@
     "product": "Ürün",
     "size": "Boyut",
     "frame": "Çerçeve",
+    "orientation": "Yön",
+    "landscape": "Yatay",
+    "portrait": "Dikey",
     "your_design": "Tasarımınız",
     "subtotal": "Ara Toplam",
     "shipping": "Kargo",

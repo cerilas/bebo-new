@@ -20,6 +20,7 @@ type CheckoutInterfaceProps = {
   productSlug?: string;
   sizeSlug?: string;
   frameSlug?: string;
+  orientation?: 'landscape' | 'portrait';
 };
 
 export function CheckoutInterface({
@@ -28,6 +29,7 @@ export function CheckoutInterface({
   productSlug: propProductSlug,
   sizeSlug: propSizeSlug,
   frameSlug: propFrameSlug,
+  orientation: propOrientation,
 }: CheckoutInterfaceProps) {
   const t = useTranslations('Checkout');
   const router = useRouter();
@@ -39,6 +41,7 @@ export function CheckoutInterface({
   const productSlug = propProductSlug || searchParams.get('product') || '';
   const sizeSlug = propSizeSlug || searchParams.get('size') || '';
   const frameSlug = propFrameSlug || searchParams.get('frame') || '';
+  const orientation = propOrientation || (searchParams.get('orientation') as 'landscape' | 'portrait') || 'landscape';
 
   // State
   const [imageData, setImageData] = useState<GeneratedImageResponse | null>(null);
@@ -288,6 +291,7 @@ export function CheckoutInterface({
         taxNumber: wantsCorporateInvoice ? taxNumber : undefined,
         taxOffice: wantsCorporateInvoice ? taxOffice : undefined,
         companyAddress: wantsCorporateInvoice ? companyAddress : undefined,
+        orientation,
         userBasket,
         userIp,
       });
@@ -671,6 +675,12 @@ export function CheckoutInterface({
                 <span className="text-gray-600 dark:text-gray-400">{t('frame')}</span>
                 <span className="font-medium text-gray-900 dark:text-white">
                   {priceData.frameName}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600 dark:text-gray-400">{t('orientation')}</span>
+                <span className="font-medium text-gray-900 dark:text-white">
+                  {orientation === 'portrait' ? t('portrait') : t('landscape')}
                 </span>
               </div>
             </div>

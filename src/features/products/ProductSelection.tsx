@@ -7,7 +7,6 @@ import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { ProductCarousel } from '@/components/ProductCarousel';
-import { ProductImage } from '@/components/ProductImage';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/utils/Helpers';
 
@@ -205,14 +204,13 @@ export const ProductSelection = ({ products, locale, imageUrl }: Props) => {
 
   const isConfigComplete = config.frame !== null && config.size !== null;
   const currentProduct = products.find(p => p.slug === selectedProduct);
-  const selectedFrame = frames.find(f => f.slug === config.frame);
 
   return (
-    <div className="min-h-[60vh] bg-background px-3 py-4 md:py-8">
+    <div className="bg-background px-3 pb-24 pt-2 md:px-4 md:pb-28 md:pt-6">
       <div className="mx-auto max-w-screen-xl">
         {/* Header */}
-        <div className="mb-4 text-center md:mb-8">
-          <h1 className="mb-1 text-2xl font-bold md:mb-2 md:text-4xl">
+        <div className="mb-3 text-center md:mb-6">
+          <h1 className="text-xl font-bold md:mb-2 md:text-4xl">
             {t('page_title')}
           </h1>
           <p className="hidden text-muted-foreground md:block">
@@ -222,12 +220,12 @@ export const ProductSelection = ({ products, locale, imageUrl }: Props) => {
 
         {/* Product Grid */}
         <div className={cn(
-          'grid gap-6 transition-all duration-500',
+          'grid gap-4 transition-all duration-500 md:gap-6',
           selectedProduct
             ? 'grid-cols-1'
             : (
                 products.length === 1
-                  ? 'grid-cols-1 max-w-2xl mx-auto'
+                  ? 'mx-auto max-w-lg grid-cols-1'
                   : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
               ),
         )}
@@ -267,8 +265,8 @@ export const ProductSelection = ({ products, locale, imageUrl }: Props) => {
                 className={cn(
                   'group relative cursor-pointer overflow-hidden rounded-2xl border bg-card shadow-sm transition-all duration-500',
                   isSelected
-                    ? 'col-span-full'
-                    : 'hover:shadow-lg hover:scale-[1.02]',
+                    ? 'col-span-full cursor-default'
+                    : 'hover:scale-[1.02] hover:shadow-lg',
                 )}
                 onKeyDown={(e) => {
                   if ((e.key === 'Enter' || e.key === ' ') && !selectedProduct) {
@@ -279,67 +277,73 @@ export const ProductSelection = ({ products, locale, imageUrl }: Props) => {
                 tabIndex={0}
                 onClick={() => !selectedProduct && handleProductClick(product.slug)}
               >
-                {/* Product Image / Carousel */}
-                {isSelected
-                  ? (
-                      <ProductImage
-                        imageUrl={selectedFrame?.frameImageLarge ? selectedFrame.frameImageLarge : product.imageWideUrl}
-                        productName={product.name}
-                        variant="wide"
-                        className="h-48 md:h-64 lg:h-80 xl:h-96"
-                      />
-                    )
-                  : (
+                {/* Product Card - Horizontal compact layout */}
+                {!isSelected && (
+                  <div className={cn(
+                    'flex gap-4 p-3',
+                    products.length > 1 && 'md:flex-col md:p-0',
+                  )}
+                  >
+                    {/* Image - small on mobile, larger on desktop */}
+                    <div className="shrink-0">
                       <ProductCarousel
                         images={carouselImages}
                         productName={product.name}
                         variant="square"
-                        className="aspect-[4/3] w-full md:aspect-square"
+                        className={cn(
+                          'size-36 rounded-xl md:size-60',
+                          products.length > 1 && 'md:aspect-[4/3] md:size-auto md:w-full md:rounded-b-none md:rounded-t-2xl',
+                        )}
                       />
+                    </div>
+
+                    {/* Info */}
+                    <div className={cn(
+                      'flex flex-1 flex-col justify-center',
+                      products.length > 1 && 'md:p-4',
                     )}
+                    >
+                      <h3 className="mb-0.5 text-base font-semibold md:mb-1 md:text-lg">{product.name}</h3>
+                      <p className="mb-1 hidden text-sm text-muted-foreground md:mb-3 md:line-clamp-2 md:block">
+                        {product.description}
+                      </p>
 
-                {/* Product Info (when not selected) */}
-                {!isSelected && (
-                  <div className="p-4 md:p-6">
-                    <h3 className="mb-1 text-lg font-semibold md:mb-2 md:text-xl">{product.name}</h3>
-                    <p className="mb-2 hidden text-sm text-muted-foreground md:mb-4 md:block">
-                      {product.description}
-                    </p>
-
-                    {/* Color Options Display - Show available colors */}
-                    {productFramesList.length > 0 && productFramesList.some(f => f.colorCode) && (
-                      <div className="mb-3 flex items-center gap-2">
-                        <div className="flex gap-1.5">
-                          {productFramesList
-                            .filter(frame => frame.colorCode)
-                            .map(frame => (
-                              <div
-                                key={frame.id}
-                                className="size-5 rounded-full border border-gray-300 dark:border-gray-600"
-                                style={{ backgroundColor: frame.colorCode || '#gray' }}
-                                title={frame.name}
-                              />
-                            ))}
+                      {/* Color Options Display */}
+                      {productFramesList.length > 0 && productFramesList.some(f => f.colorCode) && (
+                        <div className="mb-1.5 flex items-center gap-2 md:mb-3">
+                          <div className="flex gap-1.5">
+                            {productFramesList
+                              .filter(frame => frame.colorCode)
+                              .map(frame => (
+                                <div
+                                  key={frame.id}
+                                  className="size-4 rounded-full border border-gray-300 dark:border-gray-600 md:size-5"
+                                  style={{ backgroundColor: frame.colorCode || '#gray' }}
+                                  title={frame.name}
+                                />
+                              ))}
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      )}
 
-                    <div className="flex items-center justify-between">
-                      <span className="text-lg font-bold text-primary">
-                        {t('starting_from')}
-                        {' '}
-                        {startingPrice !== null ? `${startingPrice}₺` : '...'}
-                      </span>
-                      <ChevronRight className="size-5 text-muted-foreground transition-transform group-hover:translate-x-1" />
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-bold text-primary md:text-lg">
+                          {t('starting_from')}
+                          {' '}
+                          {startingPrice !== null ? `${startingPrice}₺` : '...'}
+                        </span>
+                        <ChevronRight className="size-5 text-muted-foreground transition-transform group-hover:translate-x-1" />
+                      </div>
                     </div>
                   </div>
                 )}
 
-                {/* Expanded Configuration */}
+                {/* Expanded Configuration - normal page flow */}
                 {isSelected && currentProduct && (
-                  <div className="p-6 md:p-8">
-                    <div className="mb-6 flex items-center justify-between">
-                      <h3 className="text-2xl font-bold">{currentProduct.name}</h3>
+                  <div className="p-4 md:p-8">
+                    {/* Product header */}
+                    <div className="mb-4 flex items-center justify-between md:mb-6">
+                      <h3 className="text-xl font-bold md:text-2xl">{currentProduct.name}</h3>
                       <Button
                         variant="outline"
                         size="sm"
@@ -362,14 +366,14 @@ export const ProductSelection = ({ products, locale, imageUrl }: Props) => {
                           </div>
                         )
                       : (
-                          <div className="grid gap-8 md:grid-cols-2">
+                          <div className="grid gap-6 md:grid-cols-2 md:gap-8">
                             {/* Size Selection */}
                             <div>
-                              <div className="mb-4 flex items-center gap-2">
-                                <Maximize2 className="size-5 text-primary" />
-                                <h4 className="text-lg font-semibold">{sizeLabel || t('select_size')}</h4>
+                              <div className="mb-3 flex items-center gap-2">
+                                <Maximize2 className="size-4 text-primary md:size-5" />
+                                <h4 className="text-base font-semibold md:text-lg">{sizeLabel || t('select_size')}</h4>
                               </div>
-                              <div className="grid gap-3">
+                              <div className="grid gap-2 md:gap-3">
                                 {sizes.map(size => (
                                   <button
                                     key={size.id}
@@ -402,7 +406,7 @@ export const ProductSelection = ({ products, locale, imageUrl }: Props) => {
                                       });
                                     }}
                                     className={cn(
-                                      'rounded-lg border-2 p-4 text-left transition-all',
+                                      'rounded-lg border-2 p-3 text-left transition-all md:p-4',
                                       config.size === size.slug
                                         ? 'border-primary bg-primary/5'
                                         : 'border-border hover:border-primary/50',
@@ -410,8 +414,8 @@ export const ProductSelection = ({ products, locale, imageUrl }: Props) => {
                                   >
                                     <div className="flex items-center justify-between">
                                       <div>
-                                        <div className="font-semibold">{size.name}</div>
-                                        <div className="text-sm text-muted-foreground">
+                                        <div className="text-sm font-semibold md:text-base">{size.name}</div>
+                                        <div className="text-xs text-muted-foreground md:text-sm">
                                           {size.dimensions}
                                         </div>
                                       </div>
@@ -427,131 +431,117 @@ export const ProductSelection = ({ products, locale, imageUrl }: Props) => {
 
                             {/* Frame Selection */}
                             <div>
-                              <div className="mb-4 flex items-center gap-2">
-                                <Frame className="size-5 text-primary" />
-                                <h4 className="text-lg font-semibold">{frameLabel || t('select_frame')}</h4>
+                              <div className="mb-3 flex items-center gap-2">
+                                <Frame className="size-4 text-primary md:size-5" />
+                                <h4 className="text-base font-semibold md:text-lg">{frameLabel || t('select_frame')}</h4>
                               </div>
-                              <div className="grid gap-3">
+                              <div className="grid gap-2 md:gap-3">
                                 {frames.map((frame) => {
                                   const available = isFrameAvailable(frame.id, config.size);
+                                  const isSelectedFrame = config.frame === frame.slug;
+                                  const previewImage = frame.frameImageLarge || currentProduct?.imageWideUrl;
 
                                   return (
-                                    <button
+                                    <div
                                       key={frame.id}
-                                      type="button"
-                                      disabled={!available}
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        if (available) {
-                                          setConfig(prev => ({ ...prev, frame: frame.slug }));
-                                        }
-                                      }}
                                       className={cn(
-                                        'relative rounded-lg border-2 p-4 text-left transition-all',
+                                        'overflow-hidden rounded-lg border-2 transition-all duration-300',
                                         !available
                                           ? 'cursor-not-allowed border-border opacity-[0.35]'
-                                          : config.frame === frame.slug
+                                          : isSelectedFrame
                                             ? 'border-primary bg-primary/5'
                                             : 'border-border hover:border-primary/50',
                                       )}
                                     >
-                                      <div className="flex items-center gap-4">
-                                        {/* Frame Preview */}
-                                        <div className="relative size-16 shrink-0 overflow-hidden rounded">
-                                          {frame.frameImage
-                                            ? (
-                                                <NextImage
-                                                  src={frame.frameImage}
-                                                  alt={frame.name}
-                                                  className="size-full object-cover"
-                                                  fill
-                                                  sizes="64px"
-                                                />
-                                              )
-                                            : (
-                                                <div className={cn(
-                                                  'flex size-full items-center justify-center',
-                                                  frame.slug === 'no-frame' && 'bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900',
-                                                  frame.slug === 'black' && 'bg-black p-1',
-                                                  frame.slug === 'white' && 'bg-white p-1 ring-2 ring-gray-200',
-                                                  frame.slug === 'wood' && 'bg-gradient-to-br from-amber-700 to-amber-900 p-1',
-                                                )}
-                                                >
-                                                  <div className={cn(
-                                                    'size-full rounded-sm bg-gradient-to-br from-purple-400 to-pink-400',
-                                                    frame.slug !== 'no-frame' && 'ring-1 ring-white/20',
-                                                  )}
+                                      <button
+                                        type="button"
+                                        disabled={!available}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          if (available) {
+                                            setConfig(prev => ({ ...prev, frame: frame.slug }));
+                                          }
+                                        }}
+                                        className="w-full p-3 text-left md:p-4"
+                                      >
+                                        <div className="flex items-center gap-3 md:gap-4">
+                                          {/* Frame Preview */}
+                                          <div className="relative size-12 shrink-0 overflow-hidden rounded md:size-16">
+                                            {frame.frameImage
+                                              ? (
+                                                  <NextImage
+                                                    src={frame.frameImage}
+                                                    alt={frame.name}
+                                                    className="size-full object-cover"
+                                                    fill
+                                                    sizes="64px"
                                                   />
+                                                )
+                                              : (
+                                                  <div className={cn(
+                                                    'flex size-full items-center justify-center',
+                                                    frame.slug === 'no-frame' && 'bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900',
+                                                    frame.slug === 'black' && 'bg-black p-1',
+                                                    frame.slug === 'white' && 'bg-white p-1 ring-2 ring-gray-200',
+                                                    frame.slug === 'wood' && 'bg-gradient-to-br from-amber-700 to-amber-900 p-1',
+                                                  )}
+                                                  >
+                                                    <div className={cn(
+                                                      'size-full rounded-sm bg-gradient-to-br from-purple-400 to-pink-400',
+                                                      frame.slug !== 'no-frame' && 'ring-1 ring-white/20',
+                                                    )}
+                                                    />
+                                                  </div>
+                                                )}
+                                          </div>
+
+                                          {/* Frame Info */}
+                                          <div className="flex flex-1 items-center justify-between">
+                                            <div>
+                                              <div className="text-sm font-semibold md:text-base">{frame.name}</div>
+                                              {!available && (
+                                                <div className="text-xs text-muted-foreground">
+                                                  {outOfStockLabel}
                                                 </div>
                                               )}
+                                            </div>
+                                            <div className="font-bold text-primary">
+                                              {frame.price > 0 ? `+${frame.price}₺` : t('free')}
+                                            </div>
+                                          </div>
                                         </div>
+                                      </button>
 
-                                        {/* Frame Info */}
-                                        <div className="flex flex-1 items-center justify-between">
-                                          <div>
-                                            <div className="font-semibold">{frame.name}</div>
-                                            {!available && (
-                                              <div className="text-xs text-muted-foreground">
-                                                {outOfStockLabel}
-                                              </div>
-                                            )}
-                                          </div>
-                                          <div className="font-bold text-primary">
-                                            {frame.price > 0 ? `+${frame.price}₺` : t('free')}
-                                          </div>
+                                      {/* Expanded Frame Preview Image */}
+                                      <div
+                                        className={cn(
+                                          'grid transition-all duration-300 ease-in-out',
+                                          isSelectedFrame && previewImage
+                                            ? 'grid-rows-[1fr] opacity-100'
+                                            : 'grid-rows-[0fr] opacity-0',
+                                        )}
+                                      >
+                                        <div className="overflow-hidden">
+                                          {previewImage && (
+                                            <div className="relative mx-3 mb-3 aspect-[16/9] overflow-hidden rounded-lg md:mx-4 md:mb-4">
+                                              <NextImage
+                                                src={previewImage}
+                                                alt={`${frame.name} - ${currentProduct?.name}`}
+                                                fill
+                                                className="object-cover"
+                                                sizes="(max-width: 768px) 100vw, 50vw"
+                                              />
+                                            </div>
+                                          )}
                                         </div>
                                       </div>
-                                    </button>
+                                    </div>
                                   );
                                 })}
                               </div>
                             </div>
                           </div>
                         )}
-
-                    {/* Total & Continue Button */}
-                    {isConfigComplete && (
-                      <div className="mt-8 rounded-xl border bg-muted/50 p-6">
-                        <div className="mb-4 flex items-center justify-between text-lg">
-                          <span className="font-semibold">{t('total')}</span>
-                          <span className="text-2xl font-bold text-primary">
-                            {calculateTotal()}
-                            ₺
-                          </span>
-                        </div>
-                        <Button
-                          size="lg"
-                          className="w-full"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleContinue();
-                          }}
-                          disabled={navigating}
-                        >
-                          {navigating
-                            ? (
-                                <>
-                                  <span className="mr-2 size-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                                  {t('loading') || 'Yükleniyor...'}
-                                </>
-                              )
-                            : (
-                                <>
-                                  {t('continue')}
-                                  <ChevronRight className="ml-2 size-5" />
-                                </>
-                              )}
-                        </Button>
-                      </div>
-                    )}
-
-                    {!isConfigComplete && !loading && (
-                      <div className="mt-8 rounded-xl border border-dashed p-6 text-center">
-                        <p className="text-sm text-muted-foreground">
-                          {t('please_select_options')}
-                        </p>
-                      </div>
-                    )}
                   </div>
                 )}
               </div>
@@ -561,9 +551,9 @@ export const ProductSelection = ({ products, locale, imageUrl }: Props) => {
           {/* Placeholder for future products */}
           {!selectedProduct && products.length > 1 && products.length < 3 && (
             <>
-              <div className="flex items-center justify-center rounded-2xl border border-dashed bg-muted/30 p-12 opacity-50">
+              <div className="flex items-center justify-center rounded-2xl border border-dashed bg-muted/30 p-8 opacity-50">
                 <div className="text-center">
-                  <div className="mb-2 text-sm font-semibold text-muted-foreground">
+                  <div className="mb-1 text-sm font-semibold text-muted-foreground">
                     {t('coming_soon')}
                   </div>
                   <div className="text-xs text-muted-foreground">
@@ -572,9 +562,9 @@ export const ProductSelection = ({ products, locale, imageUrl }: Props) => {
                 </div>
               </div>
               {products.length < 2 && (
-                <div className="flex items-center justify-center rounded-2xl border border-dashed bg-muted/30 p-12 opacity-50">
+                <div className="flex items-center justify-center rounded-2xl border border-dashed bg-muted/30 p-8 opacity-50">
                   <div className="text-center">
-                    <div className="mb-2 text-sm font-semibold text-muted-foreground">
+                    <div className="mb-1 text-sm font-semibold text-muted-foreground">
                       {t('coming_soon')}
                     </div>
                     <div className="text-xs text-muted-foreground">
@@ -587,6 +577,51 @@ export const ProductSelection = ({ products, locale, imageUrl }: Props) => {
           )}
         </div>
       </div>
+
+      {/* Fixed floating bottom bar - always visible when product selected */}
+      {selectedProduct && (
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t bg-card/95 px-4 py-3 shadow-[0_-4px_20px_rgba(0,0,0,0.1)] backdrop-blur-sm md:px-8 md:py-4">
+          <div className="mx-auto flex max-w-screen-xl items-center gap-4">
+            {isConfigComplete
+              ? (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-muted-foreground md:text-base">{t('total')}</span>
+                      <span className="text-xl font-bold text-primary md:text-2xl">
+                        {calculateTotal()}
+                        ₺
+                      </span>
+                    </div>
+                    <Button
+                      size="lg"
+                      className="flex-1"
+                      onClick={handleContinue}
+                      disabled={navigating}
+                    >
+                      {navigating
+                        ? (
+                            <>
+                              <span className="mr-2 size-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                              {t('loading') || 'Yükleniyor...'}
+                            </>
+                          )
+                        : (
+                            <>
+                              {t('continue')}
+                              <ChevronRight className="ml-2 size-5" />
+                            </>
+                          )}
+                    </Button>
+                  </>
+                )
+              : (
+                  <p className="flex-1 text-center text-sm text-muted-foreground">
+                    {t('please_select_options')}
+                  </p>
+                )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

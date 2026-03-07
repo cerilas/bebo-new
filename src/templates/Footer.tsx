@@ -2,7 +2,7 @@
 
 import { Github, Instagram, Linkedin, Twitter, Youtube } from 'lucide-react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 
@@ -14,20 +14,31 @@ export const Footer = () => {
   const t = useTranslations('Footer');
   const tNavbar = useTranslations('Navbar');
   const params = useParams();
+  const pathname = usePathname();
   const locale = (params?.locale as string) || 'tr';
   const [settings, setSettings] = useState<SiteSettings>({});
+
+  // Ana sayfada mıyız kontrol et
+  const isLandingPage = pathname === '/' || pathname === `/${locale}`;
 
   useEffect(() => {
     getSiteSettings().then(setSettings);
   }, []);
 
-  const scrollToSection = (sectionId: string) => {
-    const element = document.getElementById(sectionId);
-    if (element) {
-      element.scrollIntoView({
-        behavior: 'smooth',
-        block: 'start',
-      });
+  // Ana sayfadaki section'a scroll yap veya ana sayfaya yönlendir
+  const handleAnchorClick = (sectionId: string) => {
+    if (isLandingPage) {
+      // Ana sayfadaysak direkt scroll
+      const element = document.getElementById(sectionId);
+      if (element) {
+        element.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start',
+        });
+      }
+    } else {
+      // Başka sayfadaysak ana sayfaya anchor ile yönlendir
+      window.location.href = `/${locale}#${sectionId}`;
     }
   };
 
@@ -35,24 +46,24 @@ export const Footer = () => {
     {
       title: t('product'),
       links: [
-        { label: tNavbar('products'), href: '/products' },
-        { label: tNavbar('product'), href: '/ozellikler' },
-        { label: tNavbar('docs'), href: '/nasil-calisir' },
-        { label: tNavbar('blog'), action: () => scrollToSection('fiyatlandirma') },
+        { label: tNavbar('products'), href: `/${locale}/products` },
+        { label: tNavbar('product'), sectionId: 'ozellikler' },
+        { label: tNavbar('docs'), sectionId: 'nasil-calisir' },
+        { label: t('pricing'), sectionId: 'fiyatlandirma' },
       ],
     },
     {
       title: t('company_title'),
       links: [
-        { label: tNavbar('about'), href: '/about' },
-        { label: tNavbar('company'), href: '/contact' },
+        { label: tNavbar('about'), href: `/${locale}/about` },
+        { label: tNavbar('company'), href: `/${locale}/contact` },
         { label: t('legal_documents'), href: `/${locale}/legal` },
       ],
     },
     {
       title: t('support_title'),
       links: [
-        { label: tNavbar('community'), action: () => scrollToSection('sss') },
+        { label: t('faq'), sectionId: 'sss' },
         { label: t('email_label'), href: `mailto:${settings.contact_email || 'info@birebiro.com'}` },
       ],
     },
@@ -126,15 +137,17 @@ export const Footer = () => {
                             {link.label}
                           </Link>
                         )
-                      : (
-                          <button
-                            type="button"
-                            onClick={link.action}
-                            className="text-gray-400 transition-colors hover:text-white"
-                          >
-                            {link.label}
-                          </button>
-                        )}
+                      : link.sectionId
+                        ? (
+                            <button
+                              type="button"
+                              onClick={() => handleAnchorClick(link.sectionId!)}
+                              className="text-gray-400 transition-colors hover:text-white"
+                            >
+                              {link.label}
+                            </button>
+                          )
+                        : null}
                   </li>
                 ))}
               </ul>

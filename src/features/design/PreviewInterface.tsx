@@ -1,9 +1,10 @@
 'use client';
 
-import { ArrowLeft, Check, Frame as FrameIcon, Image as ImageIcon, Package, RectangleHorizontal, RectangleVertical, RotateCcw, Ruler, Sparkles } from 'lucide-react';
+import { ArrowLeft, Check, Frame as FrameIcon, Image as ImageIcon, Move, Package, RectangleHorizontal, RectangleVertical, RotateCcw, Ruler, Sparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 
+import { type ImageTransform, MockupEditor } from '@/components/MockupEditor';
 import { MockupPreview } from '@/components/MockupPreview';
 import { ProtectedImage } from '@/components/ProtectedImage';
 import { Button } from '@/components/ui/button';
@@ -39,6 +40,9 @@ export function PreviewInterface({
   const [isPriceLoading, setIsPriceLoading] = useState(true);
   const [isFlipped, setIsFlipped] = useState(false);
   const [orientation, setOrientation] = useState<'landscape' | 'portrait'>('landscape');
+  const [isEditing, setIsEditing] = useState(false);
+  const [imageTransform, setImageTransform] = useState<ImageTransform>({ x: 0, y: 0, scale: 1 });
+  const [isLayoutAdjusted, setIsLayoutAdjusted] = useState(false);
 
   // Mockup varsa flip özelliğini aktif et
   const hasMockup = Boolean(priceData?.mockupTemplate);
@@ -161,6 +165,11 @@ export function PreviewInterface({
       params.set('orientation', orientation);
     }
 
+    // Image transform bilgisini ekle (crop/position)
+    if (imageTransform.x !== 0 || imageTransform.y !== 0 || imageTransform.scale !== 1) {
+      params.set('imageTransform', JSON.stringify(imageTransform));
+    }
+
     router.push(`/checkout?${params.toString()}`);
   };
 
@@ -204,115 +213,168 @@ export function PreviewInterface({
       <div className="grid gap-8 lg:grid-cols-2">
         {/* Left Side - Image Preview with Flip Animation */}
         <div className="space-y-6">
-          {/* Flip Card Container */}
-          <div className="relative" style={{ perspective: '1000px' }}>
-            <div
-              className={`relative transition-transform duration-700 ${isFlipped ? '' : ''
-              }`}
-              style={{
-                transformStyle: 'preserve-3d',
-                transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
-              }}
-            >
-              {/* Front - Original Image */}
-              <div style={{ backfaceVisibility: 'hidden' }}>
+          {/* Editor Mode - No Flip */}
+          {isEditing && hasMockup && activeMockupTemplate
+            ? (
                 <div className="overflow-hidden rounded-2xl border-2 border-gray-200 bg-white p-4 shadow-xl dark:border-gray-700 dark:bg-gray-800">
-                  <div className="mb-2 flex items-center justify-between">
-                    <span className="flex items-center gap-2 text-sm font-medium text-gray-500 dark:text-gray-400">
-                      <Sparkles className="size-4 text-purple-500" />
-                      Orijinal Görsel
-                    </span>
-                    {hasMockup && (
-                      <button
-                        type="button"
-                        onClick={() => setIsFlipped(true)}
-                        className="flex items-center gap-2 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 px-3 py-1.5 text-xs font-medium text-white shadow-lg transition-all hover:scale-105 hover:shadow-xl"
-                      >
-                        <RotateCcw className="size-3" />
-                        Önizlemesini Gör
-                      </button>
-                    )}
+                  <div className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-500 dark:text-gray-400">
+                    <Move className="size-4 text-purple-500" />
+                    Görseli Konumlandır
+                    {orientation === 'portrait' ? ' (Dikey)' : ' (Yatay)'}
                   </div>
-
-                  {/* Orientation Toggle - only when vertical mockup exists */}
-                  {hasMockup && hasVerticalMockup && (
-                    <div className="mb-3 flex items-center justify-center gap-1 rounded-lg bg-gray-100 p-1 dark:bg-gray-700">
-                      <button
-                        type="button"
-                        onClick={() => setOrientation('landscape')}
-                        className={cn(
-                          'flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-all',
-                          orientation === 'landscape'
-                            ? 'bg-white text-gray-900 shadow-sm dark:bg-gray-600 dark:text-white'
-                            : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200',
-                        )}
-                      >
-                        <RectangleHorizontal className="size-3.5" />
-                        Yatay
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setOrientation('portrait')}
-                        className={cn(
-                          'flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-all',
-                          orientation === 'portrait'
-                            ? 'bg-white text-gray-900 shadow-sm dark:bg-gray-600 dark:text-white'
-                            : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200',
-                        )}
-                      >
-                        <RectangleVertical className="size-3.5" />
-                        Dikey
-                      </button>
-                    </div>
-                  )}
-                  <ProtectedImage
-                    src={imageData.image_url}
-                    alt={imageData.text_prompt}
-                    width={800}
-                    height={800}
-                    className="w-full rounded-xl"
-                    unoptimized
+                  <MockupEditor
+                    imageUrl={imageData.image_url}
+                    mockupTemplate={activeMockupTemplate}
+                    mockupType={parseMockupConfig(activeMockupConfig).type || 'frame'}
+                    mockupConfig={parseMockupConfig(activeMockupConfig)}
+                    orientation={orientation}
+                    onSave={(transform) => {
+                      setImageTransform(transform);
+                      setIsEditing(false);
+                      setIsLayoutAdjusted(true);
+                    }}
+                    onCancel={() => setIsEditing(false)}
                   />
                 </div>
-              </div>
+              )
+            : (
+                /* Flip Card Container */
+                <div className="relative" style={{ perspective: '1000px' }}>
+                  <div
+                    className={`relative transition-transform duration-700 ${isFlipped ? '' : ''
+                    }`}
+                    style={{
+                      transformStyle: 'preserve-3d',
+                      transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
+                    }}
+                  >
+                    {/* Front - Original Image */}
+                    <div style={{ backfaceVisibility: 'hidden' }}>
+                      <div className="overflow-hidden rounded-2xl border-2 border-gray-200 bg-white p-4 shadow-xl dark:border-gray-700 dark:bg-gray-800">
+                        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                          <span className="flex items-center gap-2 text-sm font-medium text-gray-500 dark:text-gray-400">
+                            <Sparkles className="size-4 text-purple-500" />
+                            Orijinal Görsel
+                          </span>
+                          {hasMockup && (
+                            <div className="flex items-center gap-2">
+                              {/* Orientation Toggle - only when vertical mockup exists */}
+                              {hasVerticalMockup && (
+                                <div className="flex items-center gap-1 rounded-lg bg-gray-100 p-1 dark:bg-gray-700">
+                                  <button
+                                    type="button"
+                                    onClick={() => setOrientation('landscape')}
+                                    className={cn(
+                                      'flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-all',
+                                      orientation === 'landscape'
+                                        ? 'bg-white text-gray-900 shadow-sm dark:bg-gray-600 dark:text-white'
+                                        : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200',
+                                    )}
+                                  >
+                                    <RectangleHorizontal className="size-3" />
+                                    Yatay
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setOrientation('portrait')}
+                                    className={cn(
+                                      'flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-all',
+                                      orientation === 'portrait'
+                                        ? 'bg-white text-gray-900 shadow-sm dark:bg-gray-600 dark:text-white'
+                                        : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200',
+                                    )}
+                                  >
+                                    <RectangleVertical className="size-3" />
+                                    Dikey
+                                  </button>
+                                </div>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => setIsFlipped(true)}
+                                className="flex items-center gap-2 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 px-4 py-2 text-sm font-semibold text-white shadow-lg transition-all hover:scale-105 hover:from-purple-700 hover:to-pink-700 hover:shadow-xl"
+                              >
+                                <Move className="size-4" />
+                                Yerleşimi Ayarla
+                              </button>
+                            </div>
+                          )}
+                        </div>
 
-              {/* Back - Mockup Preview */}
-              {hasMockup && activeMockupTemplate && (
-                <div
-                  className="absolute inset-0"
-                  style={{
-                    backfaceVisibility: 'hidden',
-                    transform: 'rotateY(180deg)',
-                  }}
-                >
-                  <div className="overflow-hidden rounded-2xl border-2 border-gray-200 bg-white p-4 shadow-xl dark:border-gray-700 dark:bg-gray-800">
-                    <div className="mb-2 flex items-center justify-between">
-                      <span className="flex items-center gap-2 text-sm font-medium text-gray-500 dark:text-gray-400">
-                        <ImageIcon className="size-4 text-purple-500" />
-                        Ürün Önizlemesi
-                        {orientation === 'portrait' ? ' (Dikey)' : ' (Yatay)'}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setIsFlipped(false)}
-                        className="flex items-center gap-2 rounded-full bg-gray-100 px-3 py-1.5 text-xs font-medium text-gray-700 transition-all hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
-                      >
-                        <RotateCcw className="size-3" />
-                        Orijinale Dön
-                      </button>
+                        <ProtectedImage
+                          src={imageData.image_url}
+                          alt={imageData.text_prompt}
+                          width={800}
+                          height={800}
+                          className="w-full rounded-xl"
+                          unoptimized
+                        />
+                      </div>
                     </div>
-                    <MockupPreview
-                      imageUrl={imageData.image_url}
-                      mockupTemplate={activeMockupTemplate}
-                      mockupType={parseMockupConfig(activeMockupConfig).type || 'frame'}
-                      mockupConfig={parseMockupConfig(activeMockupConfig)}
-                      className="w-full rounded-xl"
-                    />
+
+                    {/* Back - Mockup Preview */}
+                    {hasMockup && activeMockupTemplate && (
+                      <div
+                        className="absolute inset-0"
+                        style={{
+                          backfaceVisibility: 'hidden',
+                          transform: 'rotateY(180deg)',
+                        }}
+                      >
+                        <div className="overflow-hidden rounded-2xl border-2 border-gray-200 bg-white p-4 shadow-xl dark:border-gray-700 dark:bg-gray-800">
+                          <div className="mb-2 flex items-center justify-between">
+                            <span className="flex items-center gap-2 text-sm font-medium text-gray-500 dark:text-gray-400">
+                              <ImageIcon className="size-4 text-purple-500" />
+                              Ürün Önizlemesi
+                              {orientation === 'portrait' ? ' (Dikey)' : ' (Yatay)'}
+                            </span>
+                            <div className="flex items-center gap-2">
+                              {/* Edit Position Button */}
+                              <button
+                                type="button"
+                                onClick={() => setIsEditing(true)}
+                                className="flex items-center gap-2 rounded-full bg-purple-100 px-3 py-1.5 text-xs font-medium text-purple-700 transition-all hover:bg-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:hover:bg-purple-900/50"
+                              >
+                                <Move className="size-3" />
+                                Konumlandır
+                              </button>
+                              {/* Reset Transform Button */}
+                              {(imageTransform.x !== 0 || imageTransform.y !== 0 || imageTransform.scale !== 1) && (
+                                <button
+                                  type="button"
+                                  onClick={() => setImageTransform({ x: 0, y: 0, scale: 1 })}
+                                  className="flex items-center gap-2 rounded-full bg-orange-100 px-3 py-1.5 text-xs font-medium text-orange-700 transition-all hover:bg-orange-200 dark:bg-orange-900/30 dark:text-orange-400 dark:hover:bg-orange-900/50"
+                                >
+                                  <RotateCcw className="size-3" />
+                                  Sıfırla
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => setIsFlipped(false)}
+                                className="flex items-center gap-2 rounded-full bg-gray-100 px-3 py-1.5 text-xs font-medium text-gray-700 transition-all hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+                              >
+                                <RotateCcw className="size-3" />
+                                Orijinale Dön
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Preview Only */}
+                          <MockupPreview
+                            imageUrl={imageData.image_url}
+                            mockupTemplate={activeMockupTemplate}
+                            mockupType={parseMockupConfig(activeMockupConfig).type || 'frame'}
+                            mockupConfig={parseMockupConfig(activeMockupConfig)}
+                            imageTransform={imageTransform}
+                            className="w-full rounded-xl"
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
-            </div>
-          </div>
 
           {/* User's Prompt */}
           <div className="rounded-xl border border-gray-200 bg-gradient-to-br from-purple-50 to-pink-50 p-6 dark:border-gray-700 dark:from-purple-900/20 dark:to-pink-900/20">
@@ -399,14 +461,28 @@ export function PreviewInterface({
             </div>
 
             {/* Continue Button */}
-            <button
-              type="button"
-              onClick={handleContinueToCheckout}
-              className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 px-8 py-4 text-lg font-semibold text-white shadow-lg transition-all hover:from-purple-700 hover:to-pink-700 hover:shadow-xl"
-            >
-              <Check className="size-6" />
-              {t('continue_to_checkout')}
-            </button>
+            <div className="group relative mt-6">
+              <button
+                type="button"
+                onClick={handleContinueToCheckout}
+                disabled={hasMockup && !isLayoutAdjusted}
+                className={cn(
+                  'flex w-full items-center justify-center gap-2 rounded-xl px-8 py-4 text-lg font-semibold text-white shadow-lg transition-all',
+                  hasMockup && !isLayoutAdjusted
+                    ? 'cursor-not-allowed bg-gray-400 opacity-60'
+                    : 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 hover:shadow-xl',
+                )}
+              >
+                <Check className="size-6" />
+                {t('continue_to_checkout')}
+              </button>
+              {hasMockup && !isLayoutAdjusted && (
+                <div className="pointer-events-none absolute -top-10 left-1/2 -translate-x-1/2 rounded-lg bg-gray-800 px-3 py-2 text-sm text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 dark:bg-gray-700">
+                  Önce yerleşimi ayarlayın
+                  <div className="absolute -bottom-1 left-1/2 size-2 -translate-x-1/2 rotate-45 bg-gray-800 dark:bg-gray-700" />
+                </div>
+              )}
+            </div>
 
             {/* Info Text */}
             <p className="mt-4 text-center text-sm text-gray-500 dark:text-gray-400">

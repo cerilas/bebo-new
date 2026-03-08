@@ -7,11 +7,13 @@ import Script from 'next/script';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 
+import { MockupPreview } from '@/components/MockupPreview';
 import { ProtectedImage } from '@/components/ProtectedImage';
 import { type City, type District, getCities, getDistricts } from '@/features/checkout/geliverActions';
 import { getPayTRToken } from '@/features/checkout/paytrActions';
 import { type GeneratedImageResponse, getGeneratedImage, getUserGeneratedImages } from '@/features/design/chatActions';
 import { getProductPricing, type ProductPriceData } from '@/features/design/productPriceActions';
+import { parseMockupConfig } from '@/utils/mockupUtils';
 
 type CheckoutInterfaceProps = {
   locale: string;
@@ -21,6 +23,7 @@ type CheckoutInterfaceProps = {
   sizeSlug?: string;
   frameSlug?: string;
   orientation?: 'landscape' | 'portrait';
+  imageTransform?: { x: number; y: number; scale: number };
 };
 
 export function CheckoutInterface({
@@ -30,6 +33,7 @@ export function CheckoutInterface({
   sizeSlug: propSizeSlug,
   frameSlug: propFrameSlug,
   orientation: propOrientation,
+  imageTransform: propImageTransform,
 }: CheckoutInterfaceProps) {
   const t = useTranslations('Checkout');
   const router = useRouter();
@@ -292,6 +296,7 @@ export function CheckoutInterface({
         taxOffice: wantsCorporateInvoice ? taxOffice : undefined,
         companyAddress: wantsCorporateInvoice ? companyAddress : undefined,
         orientation,
+        imageTransform: propImageTransform, // Görsel konumlandırma/crop bilgisi
         userBasket,
         userIp,
       });
@@ -647,14 +652,39 @@ export function CheckoutInterface({
               <p className="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
                 {t('your_design')}
               </p>
-              <ProtectedImage
-                src={imageData.image_url}
-                alt={imageData.text_prompt}
-                width={600}
-                height={600}
-                className="w-full rounded-lg"
-                unoptimized
-              />
+              {priceData.mockupTemplate
+                ? (
+                    <MockupPreview
+                      imageUrl={imageData.image_url}
+                      mockupTemplate={
+                        orientation === 'portrait' && priceData.mockupTemplateVertical
+                          ? priceData.mockupTemplateVertical
+                          : priceData.mockupTemplate
+                      }
+                      mockupType={parseMockupConfig(
+                        orientation === 'portrait' && priceData.mockupConfigVertical
+                          ? priceData.mockupConfigVertical
+                          : priceData.mockupConfig,
+                      ).type || 'frame'}
+                      mockupConfig={parseMockupConfig(
+                        orientation === 'portrait' && priceData.mockupConfigVertical
+                          ? priceData.mockupConfigVertical
+                          : priceData.mockupConfig,
+                      )}
+                      imageTransform={propImageTransform}
+                      className="w-full overflow-hidden rounded-lg"
+                    />
+                  )
+                : (
+                    <ProtectedImage
+                      src={imageData.image_url}
+                      alt={imageData.text_prompt}
+                      width={600}
+                      height={600}
+                      className="w-full rounded-lg"
+                      unoptimized
+                    />
+                  )}
             </div>
 
             {/* Ürün Detayları */}

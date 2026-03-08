@@ -32,6 +32,7 @@ export type PayTRTokenRequest = {
   taxOffice?: string; // Vergi dairesi
   companyAddress?: string; // Şirket adresi
   orientation?: 'landscape' | 'portrait'; // Yatay veya dikey baskı yönü
+  imageTransform?: { x: number; y: number; scale: number }; // Görsel konumlandırma/crop bilgisi
   userBasket: string; // Base64 encoded JSON
   userIp: string;
 };
@@ -143,6 +144,7 @@ export async function getPayTRToken(
       taxOffice: request.taxOffice,
       companyAddress: request.companyAddress,
       orientation: request.orientation || 'landscape',
+      imageTransform: request.imageTransform ? JSON.stringify(request.imageTransform) : null,
     });
 
     // PayTR'a token isteği gönder

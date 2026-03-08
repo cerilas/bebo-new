@@ -27,10 +27,21 @@ export default async function CheckoutPage(props: {
     size?: string;
     frame?: string;
     orientation?: string;
+    imageTransform?: string;
   }>;
 }) {
   const { locale } = await props.params;
-  const { generationId, imageUrl, product, size, frame, orientation } = await props.searchParams;
+  const { generationId, imageUrl, product, size, frame, orientation, imageTransform } = await props.searchParams;
+
+  // imageTransform'u parse et
+  let parsedImageTransform: { x: number; y: number; scale: number } | undefined;
+  if (imageTransform) {
+    try {
+      parsedImageTransform = JSON.parse(imageTransform);
+    } catch {
+      // Parse hatasında undefined kalır
+    }
+  }
 
   return (
     <CheckoutInterface
@@ -41,6 +52,7 @@ export default async function CheckoutPage(props: {
       sizeSlug={size}
       frameSlug={frame}
       orientation={orientation as 'landscape' | 'portrait' | undefined}
+      imageTransform={parsedImageTransform}
     />
   );
 }

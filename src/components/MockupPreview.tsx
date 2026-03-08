@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import type { MockupConfig, MockupType } from '@/utils/mockupUtils';
 
+import type { ImageTransform } from './MockupEditor';
 import { ProtectedImage } from './ProtectedImage';
 
 type MockupPreviewProps = {
@@ -12,6 +13,7 @@ type MockupPreviewProps = {
   mockupTemplate?: string; // Mockup arka plan görseli
   mockupType: MockupType;
   mockupConfig: MockupConfig;
+  imageTransform?: ImageTransform; // User's image position/scale adjustments
   className?: string;
 };
 
@@ -32,6 +34,7 @@ export function MockupPreview({
   mockupTemplate,
   mockupType,
   mockupConfig,
+  imageTransform,
   className = '',
 }: MockupPreviewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -47,6 +50,11 @@ export function MockupPreview({
     skewX = 0,
     skewY = 0,
   } = mockupConfig;
+
+  // Image transform from user adjustments
+  const transformX = imageTransform?.x ?? 0;
+  const transformY = imageTransform?.y ?? 0;
+  const transformScale = imageTransform?.scale ?? 1;
 
   // Mockup görselinin doğal boyutlarını al
   useEffect(() => {
@@ -97,8 +105,12 @@ export function MockupPreview({
   // Aspect ratio hesapla
   const aspectRatio = mockupDimensions.width / mockupDimensions.height;
 
+  // JPG dosyaları şeffaflık desteklemez, bu yüzden frame tipi yerine overlay kullan
+  const isJpgTemplate = mockupTemplate?.toLowerCase().endsWith('.jpg') || mockupTemplate?.toLowerCase().endsWith('.jpeg');
+  const effectiveMockupType = (mockupType === 'frame' && isJpgTemplate) ? 'overlay' : mockupType;
+
   // Mockup tipi: frame - görsel arkada, çerçeve önde
-  if (mockupType === 'frame') {
+  if (effectiveMockupType === 'frame') {
     return (
       <div
         ref={containerRef}
@@ -107,7 +119,7 @@ export function MockupPreview({
       >
         {/* Kullanıcı görseli (arkada) - mockup görselinin boyutlarına göre konumlandırılır */}
         <div
-          className="absolute"
+          className="absolute overflow-hidden"
           style={{
             left: `${x}%`,
             top: `${y}%`,
@@ -116,13 +128,23 @@ export function MockupPreview({
             ...perspectiveStyle,
           }}
         >
-          <ProtectedImage
-            src={imageUrl}
-            alt="Your artwork"
-            fill
-            containerClassName="size-full"
-            className="object-cover"
-          />
+          <div
+            className="absolute"
+            style={{
+              width: `${transformScale * 100}%`,
+              height: `${transformScale * 100}%`,
+              left: `${50 + transformX - (transformScale * 50)}%`,
+              top: `${50 + transformY - (transformScale * 50)}%`,
+            }}
+          >
+            <ProtectedImage
+              src={imageUrl}
+              alt="Your artwork"
+              fill
+              containerClassName="size-full"
+              className="object-cover"
+            />
+          </div>
         </div>
         {/* Çerçeve (önde) */}
         <Image
@@ -137,7 +159,7 @@ export function MockupPreview({
   }
 
   // Mockup tipi: overlay - görsel üstte, mockup arkada (canvas tarzı)
-  if (mockupType === 'overlay') {
+  if (effectiveMockupType === 'overlay') {
     return (
       <div
         ref={containerRef}
@@ -154,7 +176,7 @@ export function MockupPreview({
         />
         {/* Kullanıcı görseli (üstte) */}
         <div
-          className="absolute z-10"
+          className="absolute z-10 overflow-hidden"
           style={{
             left: `${x}%`,
             top: `${y}%`,
@@ -163,20 +185,30 @@ export function MockupPreview({
             ...perspectiveStyle,
           }}
         >
-          <ProtectedImage
-            src={imageUrl}
-            alt="Your artwork"
-            fill
-            containerClassName="size-full"
-            className="object-cover"
-          />
+          <div
+            className="absolute"
+            style={{
+              width: `${transformScale * 100}%`,
+              height: `${transformScale * 100}%`,
+              left: `${50 + transformX - (transformScale * 50)}%`,
+              top: `${50 + transformY - (transformScale * 50)}%`,
+            }}
+          >
+            <ProtectedImage
+              src={imageUrl}
+              alt="Your artwork"
+              fill
+              containerClassName="size-full"
+              className="object-cover"
+            />
+          </div>
         </div>
       </div>
     );
   }
 
   // Mockup tipi: perspective - yastık, t-shirt gibi ürünler
-  if (mockupType === 'perspective') {
+  if (effectiveMockupType === 'perspective') {
     return (
       <div
         ref={containerRef}
@@ -195,13 +227,23 @@ export function MockupPreview({
             transformOrigin: 'center center',
           }}
         >
-          <ProtectedImage
-            src={imageUrl}
-            alt="Your artwork"
-            fill
-            containerClassName="size-full"
-            className="object-cover"
-          />
+          <div
+            className="absolute"
+            style={{
+              width: `${transformScale * 100}%`,
+              height: `${transformScale * 100}%`,
+              left: `${50 + transformX - (transformScale * 50)}%`,
+              top: `${50 + transformY - (transformScale * 50)}%`,
+            }}
+          >
+            <ProtectedImage
+              src={imageUrl}
+              alt="Your artwork"
+              fill
+              containerClassName="size-full"
+              className="object-cover"
+            />
+          </div>
         </div>
         {/* Mockup arka planı (önde) */}
         <Image

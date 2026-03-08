@@ -57,6 +57,13 @@
       "when": 1770209555834,
       "tag": "0007_luxuriant_black_widow",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1773007550916,
+      "tag": "0008_loose_alex_wilder",
+      "breakpoints": true
     }
   ]
 }

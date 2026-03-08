@@ -210,6 +210,7 @@ export const orderSchema = pgTable('order', {
   taxOffice: varchar('tax_office', { length: 100 }), // Vergi dairesi
   companyAddress: text('company_address'), // Şirket adresi
   orientation: varchar('orientation', { length: 20 }).default('landscape').notNull(), // landscape | portrait
+  imageTransform: text('image_transform'), // JSON string: { x: number, y: number, scale: number }
   shippingStatus: varchar('shipping_status', { length: 20 }).default('pending').notNull(), // pending, preparing, shipped, delivered
   trackingNumber: varchar('tracking_number', { length: 100 }),
   notes: text('notes'), // Admin notları

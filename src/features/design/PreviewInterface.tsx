@@ -306,10 +306,7 @@ export function PreviewInterface({
                       mockupTemplate={activeMockupTemplate}
                       mockupType={parseMockupConfig(activeMockupConfig).type || 'frame'}
                       mockupConfig={parseMockupConfig(activeMockupConfig)}
-                      className={cn(
-                        'w-full rounded-xl',
-                        orientation === 'portrait' ? 'aspect-[3/4]' : 'aspect-square',
-                      )}
+                      className="w-full rounded-xl"
                     />
                   </div>
                 </div>

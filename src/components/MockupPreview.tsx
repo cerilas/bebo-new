@@ -1,5 +1,8 @@
 'use client';
 
+import Image from 'next/image';
+import { useEffect, useRef, useState } from 'react';
+
 import type { MockupConfig, MockupType } from '@/utils/mockupUtils';
 
 import { ProtectedImage } from './ProtectedImage';
@@ -16,6 +19,7 @@ type MockupPreviewProps = {
  * MockupPreview Component
  *
  * Kullanıcının görselini seçilen mockup şablonuna yerleştirir.
+ * Konumlandırma, mockup görselinin gerçek boyutları üzerinden yapılır.
  *
  * Mockup Tipleri:
  * - frame: Çerçeve PNG'si üstte, görsel arkada
@@ -30,6 +34,9 @@ export function MockupPreview({
   mockupConfig,
   className = '',
 }: MockupPreviewProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [mockupDimensions, setMockupDimensions] = useState<{ width: number; height: number } | null>(null);
+
   const {
     x = 10,
     y = 10,
@@ -40,6 +47,17 @@ export function MockupPreview({
     skewX = 0,
     skewY = 0,
   } = mockupConfig;
+
+  // Mockup görselinin doğal boyutlarını al
+  useEffect(() => {
+    if (mockupTemplate) {
+      const img = new window.Image();
+      img.onload = () => {
+        setMockupDimensions({ width: img.naturalWidth, height: img.naturalHeight });
+      };
+      img.src = mockupTemplate;
+    }
+  }, [mockupTemplate]);
 
   // Perspektif transform stili
   const perspectiveStyle = perspective > 0 || skewX !== 0 || skewY !== 0
@@ -67,21 +85,29 @@ export function MockupPreview({
     );
   }
 
-  // Mockup tipi: frame - görsel üstte, çerçeve arkada
+  // Mockup boyutları yüklenene kadar loading göster
+  if (!mockupDimensions) {
+    return (
+      <div className={`relative flex items-center justify-center overflow-hidden bg-gray-100 dark:bg-gray-800 ${className}`}>
+        <div className="size-8 animate-spin rounded-full border-2 border-purple-200 border-t-purple-600" />
+      </div>
+    );
+  }
+
+  // Aspect ratio hesapla
+  const aspectRatio = mockupDimensions.width / mockupDimensions.height;
+
+  // Mockup tipi: frame - görsel arkada, çerçeve önde
   if (mockupType === 'frame') {
     return (
-      <div className={`relative overflow-hidden ${className}`}>
-        {/* Çerçeve (arkada) */}
-        <ProtectedImage
-          src={mockupTemplate}
-          alt="Frame"
-          fill
-          containerClassName="size-full"
-          className="relative z-0 object-contain"
-        />
-        {/* Kullanıcı görseli (önde) */}
+      <div
+        ref={containerRef}
+        className={`relative w-full overflow-hidden ${className}`}
+        style={{ aspectRatio: aspectRatio.toString() }}
+      >
+        {/* Kullanıcı görseli (arkada) - mockup görselinin boyutlarına göre konumlandırılır */}
         <div
-          className="absolute z-10"
+          className="absolute"
           style={{
             left: `${x}%`,
             top: `${y}%`,
@@ -98,6 +124,14 @@ export function MockupPreview({
             className="object-cover"
           />
         </div>
+        {/* Çerçeve (önde) */}
+        <Image
+          src={mockupTemplate}
+          alt="Frame"
+          fill
+          className="pointer-events-none relative z-10 select-none object-fill"
+          unoptimized
+        />
       </div>
     );
   }
@@ -105,14 +139,18 @@ export function MockupPreview({
   // Mockup tipi: overlay - görsel üstte, mockup arkada (canvas tarzı)
   if (mockupType === 'overlay') {
     return (
-      <div className={`relative overflow-hidden ${className}`}>
+      <div
+        ref={containerRef}
+        className={`relative w-full overflow-hidden ${className}`}
+        style={{ aspectRatio: aspectRatio.toString() }}
+      >
         {/* Mockup arka planı */}
-        <ProtectedImage
+        <Image
           src={mockupTemplate}
           alt="Background"
           fill
-          containerClassName="size-full"
-          className="object-contain"
+          className="pointer-events-none select-none object-fill"
+          unoptimized
         />
         {/* Kullanıcı görseli (üstte) */}
         <div
@@ -140,16 +178,12 @@ export function MockupPreview({
   // Mockup tipi: perspective - yastık, t-shirt gibi ürünler
   if (mockupType === 'perspective') {
     return (
-      <div className={`relative overflow-hidden ${className}`}>
-        {/* Mockup arka planı */}
-        <ProtectedImage
-          src={mockupTemplate}
-          alt="Product mockup"
-          fill
-          containerClassName="size-full"
-          className="relative z-10 object-contain"
-        />
-        {/* Kullanıcı görseli (perspektif ile) */}
+      <div
+        ref={containerRef}
+        className={`relative w-full overflow-hidden ${className}`}
+        style={{ aspectRatio: aspectRatio.toString() }}
+      >
+        {/* Kullanıcı görseli (perspektif ile, arkada) */}
         <div
           className="absolute overflow-hidden"
           style={{
@@ -169,13 +203,24 @@ export function MockupPreview({
             className="object-cover"
           />
         </div>
+        {/* Mockup arka planı (önde) */}
+        <Image
+          src={mockupTemplate}
+          alt="Product mockup"
+          fill
+          className="pointer-events-none relative z-10 select-none object-fill"
+          unoptimized
+        />
       </div>
     );
   }
 
   // Fallback
   return (
-    <div className={`relative overflow-hidden ${className}`}>
+    <div
+      className={`relative w-full overflow-hidden ${className}`}
+      style={{ aspectRatio: aspectRatio.toString() }}
+    >
       <ProtectedImage
         src={imageUrl}
         alt="Preview"

@@ -57,7 +57,14 @@ export const Footer = () => {
       links: [
         { label: tNavbar('about'), href: `/${locale}/about` },
         { label: tNavbar('company'), href: `/${locale}/contact` },
-        { label: t('legal_documents'), href: `/${locale}/legal` },
+      ],
+    },
+    {
+      title: t('legal_documents'),
+      links: [
+        { label: t('privacy_policy'), href: `/${locale}/legal/privacy-policy` },
+        { label: t('consent_form'), href: `/${locale}/legal/consent-form` },
+        { label: t('other_legal_documents'), href: `/${locale}/legal` },
       ],
     },
     {
@@ -94,7 +101,7 @@ export const Footer = () => {
 
       <div className="relative z-10 mx-auto max-w-7xl px-6 py-16">
         {/* Main Footer Content */}
-        <div className="grid gap-12 md:grid-cols-2 lg:grid-cols-5">
+        <div className="grid gap-12 md:grid-cols-2 lg:grid-cols-6">
           {/* Brand Column */}
           <div className="lg:col-span-2">
             <Link href="/" className="mb-6 inline-block">
@@ -181,6 +188,22 @@ export const Footer = () => {
                 />
               ))}
             </div>
+          </div>
+        </div>
+
+        {/* Trust Badge */}
+        <div className="mt-8 flex justify-center border-t border-white/10 pt-8">
+          <div className="flex w-full flex-col items-center gap-2 text-center">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/images/3dslogo.svg"
+              alt="Güvenli ödeme, SSL ve 3D Secure"
+              loading="lazy"
+              className="h-auto w-full max-w-[157px] object-contain opacity-95 sm:max-w-[206px] md:max-w-[255px] lg:max-w-[294px]"
+            />
+            <p className="max-w-[420px] text-[11px] leading-5 text-gray-500 sm:text-xs">
+              Ödemeleriniz SSL korumalı altyapı ve 3D Secure doğrulaması ile güvenle işlenir.
+            </p>
           </div>
         </div>
       </div>

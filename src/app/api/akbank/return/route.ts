@@ -6,6 +6,7 @@ import { verifyResponseHash } from '@/features/payments/akbankUtils';
 import { db } from '@/libs/DB';
 import { Env } from '@/libs/Env';
 import { generatedImageSchema, orderSchema, paymentLogsSchema, userSchema } from '@/models/Schema';
+import { getBaseUrl } from '@/utils/Helpers';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -44,11 +45,13 @@ const toKurus = (amount?: string): number | undefined => {
  *   display order details.
  */
 const toRedirectUrl = (
-  request: NextRequest,
+  _request: NextRequest,
   trustedPath: string,
   merchantOid?: string,
 ): URL => {
-  const url = new URL(trustedPath, request.nextUrl.origin);
+  // Use getBaseUrl() so Railway's internal proxy (localhost:8080) doesn't leak
+  // into the redirect. getBaseUrl() reads RAILWAY_PUBLIC_DOMAIN at runtime.
+  const url = new URL(trustedPath, getBaseUrl());
   if (merchantOid) {
     url.searchParams.set('merchant_oid', merchantOid);
   }

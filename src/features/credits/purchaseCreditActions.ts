@@ -220,8 +220,9 @@ export async function createCreditPurchase(
       mobileDeviceType: '',
     };
 
+    const hashInputStr = buildPayHostingHashInput(plainFields);
     const hash = hashToString(
-      buildPayHostingHashInput(plainFields),
+      hashInputStr,
       Env.AKBANK_SECRET_KEY,
     );
 
@@ -230,7 +231,11 @@ export async function createCreditPurchase(
     const customerName = userEmail.split('@')[0] || 'Birebiro Kullanıcısı';
 
     // ── DEBUG LOGGING ──
+    const sk = Env.AKBANK_SECRET_KEY;
     console.log('═══ AKBANK FULL REQUEST DEBUG ═══');
+    console.log(`  SECRET_KEY: len=${sk.length} first8=${sk.slice(0, 8)} last8=${sk.slice(-8)}`);
+    console.log(`  HASH_INPUT: len=${hashInputStr.length}`);
+    console.log(`  HASH_INPUT: ${hashInputStr}`);
     for (const [k, v] of Object.entries(fields)) {
       console.log(`  ${k}: ${JSON.stringify(v).slice(0, 200)}`);
     }
@@ -249,6 +254,10 @@ export async function createCreditPurchase(
       paymentAmount: amount,
       rawPayload: JSON.stringify({
         _type: 'outgoing_request',
+        secretKeyLen: Env.AKBANK_SECRET_KEY.length,
+        secretKeyFirst8: Env.AKBANK_SECRET_KEY.slice(0, 8),
+        secretKeyLast8: Env.AKBANK_SECRET_KEY.slice(-8),
+        hashInput: hashInputStr,
         allFields: fields,
       }),
       ipAddress: null,

@@ -4,7 +4,6 @@ import { Buffer } from 'node:buffer';
 
 import { auth, currentUser } from '@clerk/nextjs/server';
 import { eq } from 'drizzle-orm';
-import { headers } from 'next/headers';
 
 import {
   type AkbankPayHostingRequestFields,
@@ -36,31 +35,6 @@ type AkbankCreditFormResponse = {
   fields?: AkbankPayHostingRequestFields;
   merchantOid?: string;
   error?: string;
-};
-
-const resolveRequestBaseUrl = (): string => {
-  // NEXT_PUBLIC_APP_URL is the most reliable source in production (Railway, Vercel, etc.)
-  // because internal proxies often set host: localhost:PORT internally.
-  if (process.env.NEXT_PUBLIC_APP_URL) {
-    return process.env.NEXT_PUBLIC_APP_URL;
-  }
-
-  const headerStore = headers();
-  // x-forwarded-host is set by the edge/CDN and contains the real public hostname
-  const forwardedHost = headerStore.get('x-forwarded-host');
-  if (forwardedHost) {
-    const protocol = headerStore.get('x-forwarded-proto') ?? 'https';
-    return `${protocol}://${forwardedHost}`;
-  }
-
-  // Last resort: use host header (unreliable behind proxies like Railway)
-  const host = headerStore.get('host');
-  if (host && !host.includes('localhost')) {
-    const protocol = headerStore.get('x-forwarded-proto') ?? 'https';
-    return `${protocol}://${host}`;
-  }
-
-  return getBaseUrl();
 };
 
 export async function getCreditSettings(): Promise<CreditSettings | null> {
@@ -177,7 +151,7 @@ export async function createCreditPurchase(
       .padStart(4, '0');
     const merchantOid = `CRD${Date.now()}${randomPart}${userIdHash}`;
 
-    const appUrl = resolveRequestBaseUrl();
+    const appUrl = getBaseUrl();
     const localePath = locale !== AppConfig.defaultLocale ? `/${locale}` : '';
 
     // okUrl / failUrl: Akbank POSTs the response body here.

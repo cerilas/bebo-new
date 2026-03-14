@@ -2,7 +2,6 @@
 
 import { auth } from '@clerk/nextjs/server';
 import { eq } from 'drizzle-orm';
-import { headers } from 'next/headers';
 
 import {
   type AkbankPayHostingRequestFields,
@@ -52,32 +51,6 @@ export type AkbankFormResponse = {
   error?: string;
 };
 
-/** Resolves the public base URL of the current request (works behind proxies). */
-const resolveRequestBaseUrl = (): string => {
-  // NEXT_PUBLIC_APP_URL is the most reliable source in production (Railway, Vercel, etc.)
-  // because internal proxies often set host: localhost:PORT internally.
-  if (process.env.NEXT_PUBLIC_APP_URL) {
-    return process.env.NEXT_PUBLIC_APP_URL;
-  }
-
-  const headerStore = headers();
-  // x-forwarded-host is set by the edge/CDN and contains the real public hostname
-  const forwardedHost = headerStore.get('x-forwarded-host');
-  if (forwardedHost) {
-    const protocol = headerStore.get('x-forwarded-proto') ?? 'https';
-    return `${protocol}://${forwardedHost}`;
-  }
-
-  // Last resort: use host header (unreliable behind proxies like Railway)
-  const host = headerStore.get('host');
-  if (host && !host.includes('localhost')) {
-    const protocol = headerStore.get('x-forwarded-proto') ?? 'https';
-    return `${protocol}://${host}`;
-  }
-
-  return getBaseUrl();
-};
-
 export async function getAkbankPayHostingForm(
   request: ProductAkbankRequest,
 ): Promise<AkbankFormResponse> {
@@ -91,7 +64,7 @@ export async function getAkbankPayHostingForm(
     // Build a unique order ID: BRB + timestamp + 4 random digits
     const merchantOid = `BRB${Date.now()}${String(Math.floor(Math.random() * 10000)).padStart(4, '0')}`;
 
-    const appUrl = resolveRequestBaseUrl();
+    const appUrl = getBaseUrl();
     const localePrefix = request.locale && request.locale !== 'tr' ? `/${request.locale}` : '';
 
     // okUrl / failUrl: Akbank will POST the response body here.

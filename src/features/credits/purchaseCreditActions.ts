@@ -220,9 +220,9 @@ export async function createCreditPurchase(
       emailAddress: userEmail,
       // Use Clerk profile phone if available; sanitizeMobilePhone validates format
       // and falls back to a valid Turkish GSM format placeholder (530 = Turkcell prefix)
-      mobilePhoneNumber: sanitizedPhone,
-      homePhoneNumber: '',
-      workPhoneNumber: '',
+      mobilePhone: sanitizedPhone,
+      homePhone: '',
+      workPhone: '',
       randomNumber,
       requestDateTime,
       b2bIdentityNumber: '',

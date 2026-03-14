@@ -68,18 +68,8 @@ export async function GET(request: NextRequest) {
     okUrl: `${origin}/api/akbank/return?flow=product&redirect=%2F`,
     failUrl: `${origin}/api/akbank/return?flow=product&redirect=%2F`,
     emailAddress: 'test@test.com',
-    mobilePhone: '5321001010',
-    homePhone: '',
-    workPhone: '',
     randomNumber: getRandomNumberBase16(128),
     requestDateTime: formatAkbankDateTime(),
-    b2bIdentityNumber: '',
-    merchantData: '',
-    merchantBranchNo: '',
-    mobileEci: '',
-    walletProgramData: '',
-    mobileAssignedId: '',
-    mobileDeviceType: '',
   };
 
   const hash = hashToString(buildPayHostingHashInput(plainFields), Env.AKBANK_SECRET_KEY);

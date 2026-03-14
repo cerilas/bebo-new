@@ -10,7 +10,6 @@ import {
   getPayHostingActionUrl,
   getRandomNumberBase16,
   hashToString,
-  sanitizeMobilePhone,
 } from '@/features/payments/akbankUtils';
 import { db } from '@/libs/DB';
 import { Env } from '@/libs/Env';
@@ -97,18 +96,8 @@ export async function getAkbankPayHostingForm(
       okUrl,
       failUrl,
       emailAddress: request.customerEmail,
-      mobilePhone: sanitizeMobilePhone(request.customerPhone),
-      homePhone: '',
-      workPhone: '',
       randomNumber,
       requestDateTime,
-      b2bIdentityNumber: '',
-      merchantData: '',
-      merchantBranchNo: '',
-      mobileEci: '',
-      walletProgramData: '',
-      mobileAssignedId: '',
-      mobileDeviceType: '',
     };
 
     const hash = hashToString(

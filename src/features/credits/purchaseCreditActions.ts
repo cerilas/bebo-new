@@ -12,7 +12,6 @@ import {
   getPayHostingActionUrl,
   getRandomNumberBase16,
   hashToString,
-  sanitizeMobilePhone,
 } from '@/features/payments/akbankUtils';
 import { db } from '@/libs/DB';
 import { Env } from '@/libs/Env';
@@ -101,56 +100,32 @@ export async function createCreditPurchase(
       = (typeof claims.email === 'string' && claims.email)
       || (typeof claims.email_address === 'string' && claims.email_address)
       || '';
-    let userPhone = '';
 
-    // 1. Try DB user profile for phone + email fallback
-    const [dbUser] = await db
-      .select({ email: userSchema.email, phone: userSchema.phone })
-      .from(userSchema)
-      .where(eq(userSchema.id, userId))
-      .limit(1);
+    // 1. Try DB user profile for email fallback
+    if (!userEmail) {
+      const [dbUser] = await db
+        .select({ email: userSchema.email })
+        .from(userSchema)
+        .where(eq(userSchema.id, userId))
+        .limit(1);
 
-    if (!userEmail && dbUser?.email) {
-      userEmail = dbUser.email;
-    }
-    if (dbUser?.phone) {
-      userPhone = dbUser.phone;
-    }
-
-    // 2. If still missing email or phone, fall back to Clerk profile
-    if (!userEmail || !userPhone) {
-      const clerkUser = await currentUser();
-
-      if (!userEmail) {
-        const primaryEmailId = clerkUser?.primaryEmailAddressId;
-        if (clerkUser?.emailAddresses?.length) {
-          const primaryEmail = clerkUser.emailAddresses.find(a => a.id === primaryEmailId);
-          userEmail = primaryEmail?.emailAddress || clerkUser.emailAddresses[0]?.emailAddress || '';
-        }
+      if (dbUser?.email) {
+        userEmail = dbUser.email;
       }
+    }
 
-      if (!userPhone && clerkUser?.phoneNumbers?.length) {
-        const primaryPhone = clerkUser.phoneNumbers.find(p => p.id === clerkUser.primaryPhoneNumberId)
-          ?? clerkUser.phoneNumbers[0];
-        if (primaryPhone?.phoneNumber) {
-          userPhone = primaryPhone.phoneNumber;
-        }
+    // 2. If still missing email, fall back to Clerk profile
+    if (!userEmail) {
+      const clerkUser = await currentUser();
+      const primaryEmailId = clerkUser?.primaryEmailAddressId;
+      if (clerkUser?.emailAddresses?.length) {
+        const primaryEmail = clerkUser.emailAddresses.find(a => a.id === primaryEmailId);
+        userEmail = primaryEmail?.emailAddress || clerkUser.emailAddresses[0]?.emailAddress || '';
       }
     }
 
     if (!userEmail) {
       return { success: false, error: 'Email adresi gerekli' };
-    }
-
-    // Validate phone — sanitizeMobilePhone strips country code + spaces.
-    // If the user has no phone on record, require them to add one.
-    const sanitizedPhone = sanitizeMobilePhone(userPhone);
-    const phoneIsPlaceholder = !userPhone || sanitizedPhone === sanitizeMobilePhone('');
-    if (phoneIsPlaceholder) {
-      return {
-        success: false,
-        error: 'Ödeme için telefon numaranız gereklidir. Lütfen profil sayfanızdan telefon numaranızı ekleyin.',
-      };
     }
 
     const settings = await getCreditSettings();
@@ -218,20 +193,8 @@ export async function createCreditPurchase(
       okUrl,
       failUrl,
       emailAddress: userEmail,
-      // Use Clerk profile phone if available; sanitizeMobilePhone validates format
-      // and falls back to a valid Turkish GSM format placeholder (530 = Turkcell prefix)
-      mobilePhone: sanitizedPhone,
-      homePhone: '',
-      workPhone: '',
       randomNumber,
       requestDateTime,
-      b2bIdentityNumber: '',
-      merchantData: '',
-      merchantBranchNo: '',
-      mobileEci: '',
-      walletProgramData: '',
-      mobileAssignedId: '',
-      mobileDeviceType: '',
     };
 
     const hash = hashToString(
@@ -243,11 +206,8 @@ export async function createCreditPurchase(
 
     const customerName = userEmail.split('@')[0] || 'Birebiro Kullanıcısı';
 
-    // ── DETAILED DEBUG LOGGING ──
-    // Log every single field that will be POSTed to Akbank
+    // ── DEBUG LOGGING ──
     console.log('═══ AKBANK FULL REQUEST DEBUG ═══');
-    console.log('userPhoneRaw:', JSON.stringify(userPhone));
-    console.log('sanitizedPhone:', JSON.stringify(sanitizedPhone));
     for (const [k, v] of Object.entries(fields)) {
       console.log(`  ${k}: ${JSON.stringify(v).slice(0, 200)}`);
     }
@@ -266,8 +226,6 @@ export async function createCreditPurchase(
       paymentAmount: amount,
       rawPayload: JSON.stringify({
         _type: 'outgoing_request',
-        userPhoneRaw: userPhone,
-        sanitizedPhone,
         allFields: fields,
       }),
       ipAddress: null,
@@ -284,7 +242,7 @@ export async function createCreditPurchase(
       paytrToken: null,
       customerName,
       customerEmail: userEmail,
-      customerPhone: sanitizedPhone,
+      customerPhone: userEmail, // PAY_HOSTING uses email only, no phone needed
       customerAddress: 'Online Kredi Satın Alımı',
       orderType: 'credit',
       creditAmount,

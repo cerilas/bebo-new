@@ -39,21 +39,10 @@ export type AkbankPayHostingRequestFields = {
   okUrl: string;
   failUrl: string;
   emailAddress: string;
-  /** 10-digit Turkish mobile number without leading 0 (e.g. "5321001010") */
-  mobilePhone: string;
-  homePhone: string;
-  workPhone: string;
   /** 128-character lowercase hex random string */
   randomNumber: string;
   /** Format: YYYY-MM-DDTHH:mm:ss.SSS */
   requestDateTime: string;
-  b2bIdentityNumber: string;
-  merchantData: string;
-  merchantBranchNo: string;
-  mobileEci: string;
-  walletProgramData: string;
-  mobileAssignedId: string;
-  mobileDeviceType: string;
   hash: string;
 };
 
@@ -108,6 +97,10 @@ export const getPayHostingActionUrl = (): string => {
 export const buildPayHostingHashInput = (
   fields: Omit<AkbankPayHostingRequestFields, 'hash'>,
 ): string => {
+  // Field order MUST match Akbank PAY_HOSTING documentation exactly.
+  // PAY_HOSTING does NOT include mobilePhone, homePhone, workPhone,
+  // b2bIdentityNumber, merchantData, merchantBranchNo, mobileEci,
+  // walletProgramData, mobileAssignedId, mobileDeviceType.
   return [
     fields.paymentModel, // PAY_HOSTING
     fields.txnCode, // 1000
@@ -124,40 +117,9 @@ export const buildPayHostingHashInput = (
     fields.okUrl,
     fields.failUrl,
     fields.emailAddress,
-    fields.mobilePhone,
-    fields.homePhone,
-    fields.workPhone,
     fields.randomNumber, // 128-char lowercase hex
     fields.requestDateTime, // YYYY-MM-DDTHH:mm:ss.SSS
-    fields.b2bIdentityNumber, // ""
-    fields.merchantData, // ""
-    fields.merchantBranchNo, // ""
-    fields.mobileEci, // ""
-    fields.walletProgramData, // ""
-    fields.mobileAssignedId, // ""
-    fields.mobileDeviceType, // ""
   ].join('');
-};
-
-/**
- * Sanitizes a raw phone string to a 10-digit Turkish mobile number.
- * Strips spaces, dashes, parentheses, the leading "0" and country code "+90".
- * Falls back to "5000000000" if the result is not 10 digits.
- */
-export const sanitizeMobilePhone = (raw: string): string => {
-  let digits = raw.replace(/\D/g, '');
-  // Remove leading country code (90 or 0)
-  if (digits.startsWith('90') && digits.length === 12) {
-    digits = digits.slice(2);
-  } else if (digits.startsWith('0') && digits.length === 11) {
-    digits = digits.slice(1);
-  }
-  // Must be exactly 10 digits starting with 5 (Turkish GSM format per Akbank docs)
-  // e.g. "5321001010"
-  if (digits.length === 10 && digits.startsWith('5')) {
-    return digits;
-  }
-  return ''; // invalid — caller should handle
 };
 
 // ------------------------------------------------------------------

@@ -250,6 +250,8 @@ export async function createCreditPurchase(
       creditAmount,
       okUrl,
       failUrl,
+      mobilePhone: sanitizedPhone,
+      userPhoneRaw: userPhone,
     });
 
     await db.insert(orderSchema).values({

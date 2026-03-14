@@ -16,7 +16,7 @@ import {
 } from '@/features/payments/akbankUtils';
 import { db } from '@/libs/DB';
 import { Env } from '@/libs/Env';
-import { artCreditSettingsSchema, orderSchema } from '@/models/Schema';
+import { artCreditSettingsSchema, orderSchema, userSchema } from '@/models/Schema';
 import { AppConfig } from '@/utils/AppConfig';
 import { getBaseUrl } from '@/utils/Helpers';
 
@@ -103,16 +103,38 @@ export async function createCreditPurchase(
       || '';
     let userPhone = '';
 
-    // Always fetch currentUser to get both email (fallback) and phone
-    const clerkUser = await currentUser();
+    // 1. Try DB user profile for phone + email fallback
+    const [dbUser] = await db
+      .select({ email: userSchema.email, phone: userSchema.phone })
+      .from(userSchema)
+      .where(eq(userSchema.id, userId))
+      .limit(1);
 
-    if (!userEmail) {
-      const primaryEmailId = clerkUser?.primaryEmailAddressId;
-      if (clerkUser?.emailAddresses?.length) {
-        const primaryEmail = clerkUser.emailAddresses.find(
-          address => address.id === primaryEmailId,
-        );
-        userEmail = primaryEmail?.emailAddress || clerkUser.emailAddresses[0]?.emailAddress || '';
+    if (!userEmail && dbUser?.email) {
+      userEmail = dbUser.email;
+    }
+    if (dbUser?.phone) {
+      userPhone = dbUser.phone;
+    }
+
+    // 2. If still missing email or phone, fall back to Clerk profile
+    if (!userEmail || !userPhone) {
+      const clerkUser = await currentUser();
+
+      if (!userEmail) {
+        const primaryEmailId = clerkUser?.primaryEmailAddressId;
+        if (clerkUser?.emailAddresses?.length) {
+          const primaryEmail = clerkUser.emailAddresses.find(a => a.id === primaryEmailId);
+          userEmail = primaryEmail?.emailAddress || clerkUser.emailAddresses[0]?.emailAddress || '';
+        }
+      }
+
+      if (!userPhone && clerkUser?.phoneNumbers?.length) {
+        const primaryPhone = clerkUser.phoneNumbers.find(p => p.id === clerkUser.primaryPhoneNumberId)
+          ?? clerkUser.phoneNumbers[0];
+        if (primaryPhone?.phoneNumber) {
+          userPhone = primaryPhone.phoneNumber;
+        }
       }
     }
 
@@ -120,14 +142,15 @@ export async function createCreditPurchase(
       return { success: false, error: 'Email adresi gerekli' };
     }
 
-    // Get phone from Clerk profile if available
-    if (clerkUser?.phoneNumbers?.length) {
-      const primaryPhoneId = clerkUser.primaryPhoneNumberId;
-      const primaryPhone = clerkUser.phoneNumbers.find(p => p.id === primaryPhoneId)
-        ?? clerkUser.phoneNumbers[0];
-      if (primaryPhone?.phoneNumber) {
-        userPhone = primaryPhone.phoneNumber;
-      }
+    // Validate phone — sanitizeMobilePhone strips country code + spaces.
+    // If the user has no phone on record, require them to add one.
+    const sanitizedPhone = sanitizeMobilePhone(userPhone);
+    const phoneIsPlaceholder = !userPhone || sanitizedPhone === sanitizeMobilePhone('');
+    if (phoneIsPlaceholder) {
+      return {
+        success: false,
+        error: 'Ödeme için telefon numaranız gereklidir. Lütfen profil sayfanızdan telefon numaranızı ekleyin.',
+      };
     }
 
     const settings = await getCreditSettings();
@@ -176,7 +199,6 @@ export async function createCreditPurchase(
     const amount = (totalAmount / 100).toFixed(2);
     const requestDateTime = formatAkbankDateTime();
     const randomNumber = getRandomNumberBase16(128); // 128-char lowercase hex
-    const sanitizedPhone = sanitizeMobilePhone(userPhone); // valid 10-digit Turkish GSM
 
     const lang: 'TR' | 'EN' = locale.toUpperCase() === 'EN' ? 'EN' : 'TR';
 

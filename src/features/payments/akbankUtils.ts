@@ -152,11 +152,12 @@ export const sanitizeMobilePhone = (raw: string): string => {
   } else if (digits.startsWith('0') && digits.length === 11) {
     digits = digits.slice(1);
   }
-  // Must be exactly 10 digits starting with 5
+  // Must be exactly 10 digits starting with 5 (Turkish GSM format)
+  // Second digit 0-9 is valid — prefixes 50x (TT), 53x (Turkcell), etc.
   if (digits.length === 10 && digits.startsWith('5')) {
     return digits;
   }
-  return '5000000000'; // safe fallback
+  return '5301111111'; // fallback: valid Turkcell prefix (530)
 };
 
 // ------------------------------------------------------------------

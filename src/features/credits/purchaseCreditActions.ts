@@ -12,6 +12,7 @@ import {
   getPayHostingActionUrl,
   getRandomNumberBase16,
   hashToString,
+  sanitizeMobilePhone,
 } from '@/features/payments/akbankUtils';
 import { db } from '@/libs/DB';
 import { Env } from '@/libs/Env';
@@ -100,10 +101,12 @@ export async function createCreditPurchase(
       = (typeof claims.email === 'string' && claims.email)
       || (typeof claims.email_address === 'string' && claims.email_address)
       || '';
+    let userPhone = '';
+
+    // Always fetch currentUser to get both email (fallback) and phone
+    const clerkUser = await currentUser();
 
     if (!userEmail) {
-      const clerkUser = await currentUser();
-
       const primaryEmailId = clerkUser?.primaryEmailAddressId;
       if (clerkUser?.emailAddresses?.length) {
         const primaryEmail = clerkUser.emailAddresses.find(
@@ -115,6 +118,16 @@ export async function createCreditPurchase(
 
     if (!userEmail) {
       return { success: false, error: 'Email adresi gerekli' };
+    }
+
+    // Get phone from Clerk profile if available
+    if (clerkUser?.phoneNumbers?.length) {
+      const primaryPhoneId = clerkUser.primaryPhoneNumberId;
+      const primaryPhone = clerkUser.phoneNumbers.find(p => p.id === primaryPhoneId)
+        ?? clerkUser.phoneNumbers[0];
+      if (primaryPhone?.phoneNumber) {
+        userPhone = primaryPhone.phoneNumber;
+      }
     }
 
     const settings = await getCreditSettings();
@@ -163,6 +176,7 @@ export async function createCreditPurchase(
     const amount = (totalAmount / 100).toFixed(2);
     const requestDateTime = formatAkbankDateTime();
     const randomNumber = getRandomNumberBase16(128); // 128-char lowercase hex
+    const sanitizedPhone = sanitizeMobilePhone(userPhone); // valid 10-digit Turkish GSM
 
     const lang: 'TR' | 'EN' = locale.toUpperCase() === 'EN' ? 'EN' : 'TR';
 
@@ -182,8 +196,9 @@ export async function createCreditPurchase(
       okUrl,
       failUrl,
       emailAddress: userEmail,
-      // No real phone for credit purchases – use a valid placeholder format
-      mobilePhone: '5000000000',
+      // Use Clerk profile phone if available; sanitizeMobilePhone validates format
+      // and falls back to a valid Turkish GSM format placeholder (530 = Turkcell prefix)
+      mobilePhone: sanitizedPhone,
       homePhone: '',
       workPhone: '',
       randomNumber,
@@ -225,7 +240,7 @@ export async function createCreditPurchase(
       paytrToken: null,
       customerName,
       customerEmail: userEmail,
-      customerPhone: '5000000000',
+      customerPhone: sanitizedPhone,
       customerAddress: 'Online Kredi Satın Alımı',
       orderType: 'credit',
       creditAmount,

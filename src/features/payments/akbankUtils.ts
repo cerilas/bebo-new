@@ -40,9 +40,9 @@ export type AkbankPayHostingRequestFields = {
   failUrl: string;
   emailAddress: string;
   /** 10-digit Turkish mobile number without leading 0 (e.g. "5321001010") */
-  mobilePhone: string;
-  homePhone: string;
-  workPhone: string;
+  mobilePhoneNumber: string;
+  homePhoneNumber: string;
+  workPhoneNumber: string;
   /** 128-character lowercase hex random string */
   randomNumber: string;
   /** Format: YYYY-MM-DDTHH:mm:ss.SSS */
@@ -124,9 +124,9 @@ export const buildPayHostingHashInput = (
     fields.okUrl,
     fields.failUrl,
     fields.emailAddress,
-    fields.mobilePhone,
-    fields.homePhone,
-    fields.workPhone,
+    fields.mobilePhoneNumber,
+    fields.homePhoneNumber,
+    fields.workPhoneNumber,
     fields.randomNumber, // 128-char lowercase hex
     fields.requestDateTime, // YYYY-MM-DDTHH:mm:ss.SSS
     fields.b2bIdentityNumber, // ""

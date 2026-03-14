@@ -1,8 +1,10 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 
 export const VideoSection = () => {
+  const t = useTranslations('HowItWorks');
   const [isVisible, setIsVisible] = useState(false);
   const [player, setPlayer] = useState<any>(null);
   const videoRef = useRef<HTMLDivElement>(null);
@@ -83,7 +85,7 @@ export const VideoSection = () => {
   }, [isVisible, player]);
 
   return (
-    <section id="nasil-calisir" className="relative overflow-hidden bg-[#0a0a0f] py-24 md:py-32">
+    <section id="nasil-calisir" className="relative overflow-hidden bg-[#0a0a0f] pb-8 pt-24 md:pb-10 md:pt-32">
       {/* Background gradient effects */}
       <div className="absolute inset-0 z-0">
         <div className="absolute left-1/4 top-0 size-96 rounded-full bg-purple-500/20 blur-[120px]" />
@@ -101,6 +103,17 @@ export const VideoSection = () => {
       />
 
       <div className="relative z-10 mx-auto max-w-6xl px-6">
+        <div className="mb-12 text-center">
+          <p className="mb-2 text-sm uppercase tracking-widest text-purple-400">
+            Basit & Hızlı
+          </p>
+          <h2 className="mb-4 text-4xl font-bold tracking-tight text-white md:text-5xl lg:text-6xl">
+            {t('section_title')}
+          </h2>
+          <p className="mx-auto max-w-2xl text-lg text-gray-400">
+            {t('section_subtitle')}
+          </p>
+        </div>
 
         {/* Video container */}
         <div
@@ -122,12 +135,6 @@ export const VideoSection = () => {
           </div>
         </div>
 
-        {/* Optional decorative elements */}
-        <div className="mt-8 flex justify-center gap-2">
-          <div className="size-2 rounded-full bg-purple-400/50" />
-          <div className="size-2 rounded-full bg-pink-400/50" />
-          <div className="size-2 rounded-full bg-orange-400/50" />
-        </div>
       </div>
     </section>
   );

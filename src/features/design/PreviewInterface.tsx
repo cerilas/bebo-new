@@ -22,6 +22,7 @@ type PreviewInterfaceProps = {
   productSlug: string;
   sizeSlug: string;
   frameSlug: string;
+  orientation?: 'landscape' | 'portrait';
 };
 
 export function PreviewInterface({
@@ -30,6 +31,7 @@ export function PreviewInterface({
   productSlug,
   sizeSlug,
   frameSlug,
+  orientation: initialOrientation,
 }: PreviewInterfaceProps) {
   const t = useTranslations('Design');
   const tProducts = useTranslations('Products');
@@ -39,7 +41,7 @@ export function PreviewInterface({
   const [priceData, setPriceData] = useState<ProductPriceData | null>(null);
   const [isPriceLoading, setIsPriceLoading] = useState(true);
   const [isFlipped, setIsFlipped] = useState(false);
-  const [orientation, setOrientation] = useState<'landscape' | 'portrait'>('landscape');
+  const [orientation, setOrientation] = useState<'landscape' | 'portrait'>(initialOrientation === 'portrait' ? 'portrait' : 'landscape');
   const [isEditing, setIsEditing] = useState(false);
   const [imageTransform, setImageTransform] = useState<ImageTransform>({ x: 0, y: 0, scale: 1 });
   const [isLayoutAdjusted, setIsLayoutAdjusted] = useState(false);

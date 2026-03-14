@@ -9,7 +9,6 @@ import { Hero } from '@/templates/Hero';
 import { HowItWorks } from '@/templates/HowItWorks';
 import { Navbar } from '@/templates/Navbar';
 import { Newsletter } from '@/templates/Newsletter';
-import { Pricing } from '@/templates/Pricing';
 import { ProcessSteps } from '@/templates/ProcessSteps';
 import { Sponsors } from '@/templates/Sponsors';
 import { VideoSection } from '@/templates/VideoSection';
@@ -58,13 +57,12 @@ const IndexPage = (props: { params: { locale: string } }) => {
       <Navbar />
       <Hero />
       <VideoSection />
-      <HowItWorks />
+      <HowItWorks showHeader={false} compact sectionId={null} />
       <Features />
       <FAQ />
       <Sponsors />
       <Newsletter />
       <ProcessSteps />
-      <Pricing />
       <CTA />
       <Footer />
     </>

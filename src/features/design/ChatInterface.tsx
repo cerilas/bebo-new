@@ -30,6 +30,7 @@ type ChatInterfaceProps = {
   productSlug?: string;
   sizeSlug?: string;
   frameSlug?: string;
+  orientationSlug?: 'landscape' | 'portrait';
   initialImageUrl?: string;
 };
 
@@ -38,6 +39,7 @@ export function ChatInterface({
   productSlug,
   sizeSlug,
   frameSlug,
+  orientationSlug,
   initialImageUrl,
 }: ChatInterfaceProps) {
   const t = useTranslations('Design');
@@ -58,6 +60,7 @@ export function ChatInterface({
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const [selectedImageDetail, setSelectedImageDetail] = useState<GeneratedImageResponse | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isModalImageLoading, setIsModalImageLoading] = useState(true);
   const [artCredits, setArtCredits] = useState<number>(0);
   const [productFullData, setProductFullData] = useState<any>(null);
   // User upload section states
@@ -166,6 +169,12 @@ export function ChatInterface({
       setUserUploadedImageUrl(decodeURIComponent(initialImageUrl));
     }
   }, [initialImageUrl, userUploadedImageUrl]);
+
+  useEffect(() => {
+    if (isModalOpen && selectedImageDetail?.image_url) {
+      setIsModalImageLoading(true);
+    }
+  }, [isModalOpen, selectedImageDetail?.image_url]);
 
   // Welcome message
   useEffect(() => {
@@ -566,13 +575,25 @@ export function ChatInterface({
 
                       let display = productFullData.name;
                       if (size) {
-                        display += ` - ${size.dimensions} cm`;
+                        const dimensions = String(size.dimensions || '').trim();
+                        const formattedDimensions = /\bcm\b/i.test(dimensions)
+                          ? dimensions
+                          : `${dimensions} cm`;
+                        display += ` - ${formattedDimensions}`;
                       }
                       if (frame && frameSlug !== 'none') {
                         display += ` - ${frame.name}`;
                       } else if (frameSlug === 'none') {
                         display += ` - ${locale === 'tr' ? 'Çerçevesiz' : (locale === 'fr' ? 'Sans Cadre' : 'No Frame')}`;
                       }
+
+                      if (orientationSlug) {
+                        const orientationLabel = orientationSlug === 'portrait'
+                          ? (locale === 'tr' ? 'Dikey' : (locale === 'fr' ? 'Vertical' : 'Vertical'))
+                          : (locale === 'tr' ? 'Yatay' : (locale === 'fr' ? 'Horizontal' : 'Horizontal'));
+                        display += ` - ${orientationLabel}`;
+                      }
+
                       return display;
                     })()}
                   </span>
@@ -908,9 +929,16 @@ export function ChatInterface({
                                 return;
                               }
                               // Navigate to preview with uploaded image
-                              router.push(
-                                `/design/preview?imageUrl=${encodeURIComponent(userUploadedImageUrl)}&product=${productSlug}&size=${sizeSlug}&frame=${frameSlug}`,
-                              );
+                              const params = new URLSearchParams({
+                                imageUrl: userUploadedImageUrl,
+                                product: productSlug,
+                                size: sizeSlug,
+                                frame: frameSlug,
+                              });
+                              if (orientationSlug) {
+                                params.set('orientation', orientationSlug);
+                              }
+                              router.push(`/design/preview?${params.toString()}`);
                             }}
                             className="absolute bottom-2 right-2 rounded-lg bg-white px-3 py-1 text-xs font-medium text-gray-800 transition-colors hover:bg-gray-100"
                           >
@@ -1022,7 +1050,7 @@ export function ChatInterface({
           >
             {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
             <div
-              className="relative max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl dark:bg-gray-800"
+              className="relative flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl dark:bg-gray-800"
               onClick={e => e.stopPropagation()}
             >
               {/* Close Button */}
@@ -1034,51 +1062,59 @@ export function ChatInterface({
                 <X className="size-5" />
               </button>
 
-              {/* Image */}
-              <div className="mb-6">
-                <ProtectedImage
-                  src={selectedImageDetail.image_url}
-                  alt={selectedImageDetail.text_prompt}
-                  width={800}
-                  height={800}
-                  className="h-auto w-full rounded-xl"
-                />
-              </div>
-
-              {/* Details */}
-              <div className="space-y-4">
-                {/* Creation Date */}
-                <div>
-                  <h3 className="mb-1 text-sm font-medium text-gray-500 dark:text-gray-400">
-                    {t('creation_date')}
-                  </h3>
-                  <p className="text-base text-gray-900 dark:text-white">
-                    {new Date(selectedImageDetail.created_at).toLocaleDateString('tr-TR', {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
-                  </p>
+              <div className="overflow-y-auto p-6 pt-14">
+                {/* Image */}
+                <div className="relative mb-6">
+                  {isModalImageLoading && (
+                    <div className="absolute inset-0 animate-pulse rounded-xl bg-gray-200 dark:bg-gray-700" />
+                  )}
+                  <ProtectedImage
+                    src={selectedImageDetail.image_url}
+                    alt={selectedImageDetail.text_prompt}
+                    width={800}
+                    height={800}
+                    onLoad={() => setIsModalImageLoading(false)}
+                    className={`h-auto w-full rounded-xl transition-opacity duration-300 ${isModalImageLoading ? 'opacity-0' : 'opacity-100'}`}
+                  />
                 </div>
 
-                {/* Prompt */}
-                <div>
+              </div>
+
+              {/* Sticky Bottom Action Area */}
+              <div className="sticky bottom-0 border-t border-gray-200 bg-white/95 p-4 backdrop-blur-sm dark:border-gray-700 dark:bg-gray-800/95">
+                <p className="mb-3 text-sm text-gray-600 dark:text-gray-300">
+                  {t('creation_date')}
+                  :
+                  {new Date(selectedImageDetail.created_at).toLocaleDateString('tr-TR', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                </p>
+                <div className="mb-3">
                   <h3 className="mb-1 text-sm font-medium text-gray-500 dark:text-gray-400">
                     {t('your_prompt')}
                   </h3>
-                  <p className="text-base text-gray-900 dark:text-white">
+                  <p className="line-clamp-2 text-sm text-gray-900 dark:text-white">
                     {selectedImageDetail.text_prompt}
                   </p>
                 </div>
-
-                {/* Select Button */}
                 <button
                   type="button"
                   onClick={() => {
                     // Navigate to preview page with all necessary params
-                    router.push(`/design/preview?generationId=${selectedImageDetail.generation_id}&product=${productSlug}&size=${sizeSlug}&frame=${frameSlug}`);
+                    const params = new URLSearchParams({
+                      generationId: selectedImageDetail.generation_id,
+                      product: productSlug || '',
+                      size: sizeSlug || '',
+                      frame: frameSlug || '',
+                    });
+                    if (orientationSlug) {
+                      params.set('orientation', orientationSlug);
+                    }
+                    router.push(`/design/preview?${params.toString()}`);
                   }}
                   className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-500 px-6 py-3 text-base font-medium text-white transition-colors hover:bg-blue-600"
                 >

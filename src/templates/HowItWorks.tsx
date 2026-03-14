@@ -1,7 +1,17 @@
 import { Package, ShoppingCart, Sparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
-const HowItWorks = () => {
+type HowItWorksProps = {
+  showHeader?: boolean;
+  compact?: boolean;
+  sectionId?: string | null;
+};
+
+const HowItWorks = ({
+  showHeader = true,
+  compact = false,
+  sectionId = 'nasil-calisir',
+}: HowItWorksProps) => {
   const t = useTranslations('HowItWorks');
 
   const steps = [
@@ -32,7 +42,7 @@ const HowItWorks = () => {
   ];
 
   return (
-    <section id="nasil-calisir" className="relative bg-[#0a0a0f] py-16 md:py-20">
+    <section id={sectionId ?? undefined} className={`relative bg-[#0a0a0f] ${compact ? 'py-6 md:py-10' : 'py-16 md:py-20'}`}>
       {/* Background elements */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute left-0 top-1/4 size-[400px] rounded-full bg-purple-500/10 blur-[100px]" />
@@ -40,18 +50,19 @@ const HowItWorks = () => {
       </div>
 
       <div className="relative mx-auto max-w-6xl px-6">
-        {/* Header */}
-        <div className="mb-12 text-center">
-          <p className="mb-2 text-sm uppercase tracking-widest text-purple-400">
-            Basit & Hızlı
-          </p>
-          <h2 className="mb-4 text-4xl font-bold tracking-tight text-white md:text-5xl lg:text-6xl">
-            {t('section_title')}
-          </h2>
-          <p className="mx-auto max-w-2xl text-lg text-gray-400">
-            {t('section_subtitle')}
-          </p>
-        </div>
+        {showHeader && (
+          <div className="mb-12 text-center">
+            <p className="mb-2 text-sm uppercase tracking-widest text-purple-400">
+              Basit & Hızlı
+            </p>
+            <h2 className="mb-4 text-4xl font-bold tracking-tight text-white md:text-5xl lg:text-6xl">
+              {t('section_title')}
+            </h2>
+            <p className="mx-auto max-w-2xl text-lg text-gray-400">
+              {t('section_subtitle')}
+            </p>
+          </div>
+        )}
 
         {/* Steps */}
         <div className="relative grid gap-8 md:grid-cols-3">

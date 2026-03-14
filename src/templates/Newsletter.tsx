@@ -41,7 +41,7 @@ export function Newsletter() {
 
   if (isSuccess) {
     return (
-      <section className="relative overflow-hidden bg-[#0a0a0f] py-24">
+      <section id="bulten" className="relative overflow-hidden bg-[#0a0a0f] py-24">
         {/* Background Elements */}
         <div className="absolute inset-0">
           <div className="absolute left-1/2 top-1/2 size-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-gradient-to-r from-green-500/20 to-emerald-500/20 blur-3xl" />
@@ -75,7 +75,7 @@ export function Newsletter() {
   }
 
   return (
-    <section className="relative overflow-hidden bg-[#0a0a0f] py-24">
+    <section id="bulten" className="relative overflow-hidden bg-[#0a0a0f] py-24">
       {/* Background Elements */}
       <div className="absolute inset-0">
         <div className="absolute left-1/4 top-1/2 size-[500px] -translate-y-1/2 rounded-full bg-gradient-to-r from-purple-500/10 to-pink-500/10 blur-3xl" />

@@ -1,10 +1,10 @@
 'use client';
 
-import { ArrowLeft, ChevronRight, Frame, Maximize2 } from 'lucide-react';
+import { ArrowLeft, ChevronRight, Frame, Maximize2, RectangleHorizontal, RectangleVertical } from 'lucide-react';
 import NextImage from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { ProductCarousel } from '@/components/ProductCarousel';
 import { Button } from '@/components/ui/button';
@@ -46,6 +46,7 @@ type ProductFrame = {
 type ProductConfig = {
   frame: string | null;
   size: string | null;
+  orientation: 'landscape' | 'portrait' | null;
 };
 
 type Props = {
@@ -66,9 +67,11 @@ export const ProductSelection = ({ products, locale, imageUrl }: Props) => {
   const [loading, setLoading] = useState(false);
   const [navigating, setNavigating] = useState(false);
   const [availabilityData, setAvailabilityData] = useState<SizeFrameAvailability[]>([]);
+  const frameCardRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const [config, setConfig] = useState<ProductConfig>({
     frame: null,
     size: null,
+    orientation: null,
   });
 
   // Load full details for all products on mount to calculate starting prices
@@ -154,7 +157,7 @@ export const ProductSelection = ({ products, locale, imageUrl }: Props) => {
 
   const handleProductClick = (productSlug: string) => {
     setSelectedProduct(productSlug);
-    setConfig({ frame: null, size: null });
+    setConfig({ frame: null, size: null, orientation: null });
   };
 
   const calculateStartingPrice = (productSlug: string) => {
@@ -172,12 +175,13 @@ export const ProductSelection = ({ products, locale, imageUrl }: Props) => {
   };
 
   const handleContinue = () => {
-    if (config.frame && config.size && selectedProduct) {
+    if (config.frame && config.size && config.orientation && selectedProduct) {
       setNavigating(true);
       const params = new URLSearchParams({
         product: selectedProduct,
         size: config.size,
         frame: config.frame,
+        orientation: config.orientation,
       });
 
       // Add imageUrl if provided
@@ -202,8 +206,31 @@ export const ProductSelection = ({ products, locale, imageUrl }: Props) => {
     return total;
   };
 
-  const isConfigComplete = config.frame !== null && config.size !== null;
+  const isConfigComplete = config.frame !== null && config.size !== null && config.orientation !== null;
   const currentProduct = products.find(p => p.slug === selectedProduct);
+
+  // Auto-scroll to selected frame card when frame preview expands
+  useEffect(() => {
+    if (!config.frame) {
+      return;
+    }
+
+    const targetCard = frameCardRefs.current[config.frame];
+    if (!targetCard) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      targetCard.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+      });
+    }, 60);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [config.frame]);
 
   return (
     <div className="bg-background px-3 pb-24 pt-2 md:px-4 md:pb-28 md:pt-6">
@@ -279,63 +306,115 @@ export const ProductSelection = ({ products, locale, imageUrl }: Props) => {
               >
                 {/* Product Card - Horizontal compact layout */}
                 {!isSelected && (
-                  <div className={cn(
-                    'flex gap-4 p-3',
-                    products.length > 1 && 'md:flex-col md:p-0',
-                  )}
-                  >
-                    {/* Image - small on mobile, larger on desktop */}
-                    <div className="shrink-0">
-                      <ProductCarousel
-                        images={carouselImages}
-                        productName={product.name}
-                        variant="square"
-                        className={cn(
-                          'size-36 rounded-xl md:size-60',
-                          products.length > 1 && 'md:aspect-[4/3] md:size-auto md:w-full md:rounded-b-none md:rounded-t-2xl',
-                        )}
-                      />
-                    </div>
+                  products.length === 1
+                    ? (
+                        <div className="aspect-square w-full overflow-hidden rounded-2xl">
+                          <div className="h-3/5">
+                            <ProductCarousel
+                              images={carouselImages}
+                              productName={product.name}
+                              variant="square"
+                              className="size-full rounded-none"
+                            />
+                          </div>
 
-                    {/* Info */}
-                    <div className={cn(
-                      'flex flex-1 flex-col justify-center',
-                      products.length > 1 && 'md:p-4',
-                    )}
-                    >
-                      <h3 className="mb-0.5 text-base font-semibold md:mb-1 md:text-lg">{product.name}</h3>
-                      <p className="mb-1 hidden text-sm text-muted-foreground md:mb-3 md:line-clamp-2 md:block">
-                        {product.description}
-                      </p>
+                          <div className="flex h-2/5 flex-col justify-between p-3 md:p-4">
+                            <div>
+                              <h3 className="line-clamp-1 text-base font-semibold md:text-lg">{product.name}</h3>
+                              <p className="mt-1 line-clamp-2 text-xs text-muted-foreground md:text-sm">
+                                {product.description}
+                              </p>
+                            </div>
 
-                      {/* Color Options Display */}
-                      {productFramesList.length > 0 && productFramesList.some(f => f.colorCode) && (
-                        <div className="mb-1.5 flex items-center gap-2 md:mb-3">
-                          <div className="flex gap-1.5">
-                            {productFramesList
-                              .filter(frame => frame.colorCode)
-                              .map(frame => (
-                                <div
-                                  key={frame.id}
-                                  className="size-4 rounded-full border border-gray-300 dark:border-gray-600 md:size-5"
-                                  style={{ backgroundColor: frame.colorCode || '#gray' }}
-                                  title={frame.name}
-                                />
-                              ))}
+                            <div>
+                              {productFramesList.length > 0 && productFramesList.some(f => f.colorCode) && (
+                                <div className="mb-2 flex items-center gap-2">
+                                  <div className="flex gap-1.5">
+                                    {productFramesList
+                                      .filter(frame => frame.colorCode)
+                                      .map(frame => (
+                                        <div
+                                          key={frame.id}
+                                          className="size-4 rounded-full border border-gray-300 dark:border-gray-600"
+                                          style={{ backgroundColor: frame.colorCode || '#gray' }}
+                                          title={frame.name}
+                                        />
+                                      ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm font-bold text-primary md:text-base">
+                                  {t('starting_from')}
+                                  {' '}
+                                  {startingPrice !== null ? `${startingPrice}₺` : '...'}
+                                </span>
+                                <ChevronRight className="size-5 text-muted-foreground transition-transform group-hover:translate-x-1" />
+                              </div>
+                            </div>
                           </div>
                         </div>
-                      )}
+                      )
+                    : (
+                        <div className={cn(
+                          'flex gap-4 p-3',
+                          products.length > 1 && 'md:flex-col md:p-0',
+                        )}
+                        >
+                          {/* Image - small on mobile, larger on desktop */}
+                          <div className="shrink-0">
+                            <ProductCarousel
+                              images={carouselImages}
+                              productName={product.name}
+                              variant="square"
+                              className={cn(
+                                'size-36 rounded-xl md:size-60',
+                                products.length > 1 && 'md:aspect-[4/3] md:size-auto md:w-full md:rounded-b-none md:rounded-t-2xl',
+                              )}
+                            />
+                          </div>
 
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-bold text-primary md:text-lg">
-                          {t('starting_from')}
-                          {' '}
-                          {startingPrice !== null ? `${startingPrice}₺` : '...'}
-                        </span>
-                        <ChevronRight className="size-5 text-muted-foreground transition-transform group-hover:translate-x-1" />
-                      </div>
-                    </div>
-                  </div>
+                          {/* Info */}
+                          <div className={cn(
+                            'flex flex-1 flex-col justify-center',
+                            products.length > 1 && 'md:p-4',
+                          )}
+                          >
+                            <h3 className="mb-0.5 text-base font-semibold md:mb-1 md:text-lg">{product.name}</h3>
+                            <p className="mb-1 hidden text-sm text-muted-foreground md:mb-3 md:line-clamp-2 md:block">
+                              {product.description}
+                            </p>
+
+                            {/* Color Options Display */}
+                            {productFramesList.length > 0 && productFramesList.some(f => f.colorCode) && (
+                              <div className="mb-1.5 flex items-center gap-2 md:mb-3">
+                                <div className="flex gap-1.5">
+                                  {productFramesList
+                                    .filter(frame => frame.colorCode)
+                                    .map(frame => (
+                                      <div
+                                        key={frame.id}
+                                        className="size-4 rounded-full border border-gray-300 dark:border-gray-600 md:size-5"
+                                        style={{ backgroundColor: frame.colorCode || '#gray' }}
+                                        title={frame.name}
+                                      />
+                                    ))}
+                                </div>
+                              </div>
+                            )}
+
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm font-bold text-primary md:text-lg">
+                                {t('starting_from')}
+                                {' '}
+                                {startingPrice !== null ? `${startingPrice}₺` : '...'}
+                              </span>
+                              <ChevronRight className="size-5 text-muted-foreground transition-transform group-hover:translate-x-1" />
+                            </div>
+                          </div>
+                        </div>
+                      )
                 )}
 
                 {/* Expanded Configuration - normal page flow */}
@@ -351,7 +430,7 @@ export const ProductSelection = ({ products, locale, imageUrl }: Props) => {
                         onClick={(e) => {
                           e.stopPropagation();
                           setSelectedProduct(null);
-                          setConfig({ frame: null, size: null });
+                          setConfig({ frame: null, size: null, orientation: null });
                         }}
                       >
                         <ArrowLeft className="mr-2 size-4" />
@@ -444,6 +523,9 @@ export const ProductSelection = ({ products, locale, imageUrl }: Props) => {
                                   return (
                                     <div
                                       key={frame.id}
+                                      ref={(element) => {
+                                        frameCardRefs.current[frame.slug] = element;
+                                      }}
                                       className={cn(
                                         'overflow-hidden rounded-lg border-2 transition-all duration-300',
                                         !available
@@ -523,15 +605,59 @@ export const ProductSelection = ({ products, locale, imageUrl }: Props) => {
                                       >
                                         <div className="overflow-hidden">
                                           {previewImage && (
-                                            <div className="relative mx-3 mb-3 aspect-[16/9] overflow-hidden rounded-lg md:mx-4 md:mb-4">
-                                              <NextImage
-                                                src={previewImage}
-                                                alt={`${frame.name} - ${currentProduct?.name}`}
-                                                fill
-                                                className="object-cover"
-                                                sizes="(max-width: 768px) 100vw, 50vw"
-                                              />
-                                            </div>
+                                            <>
+                                              <div className="relative mx-3 mb-3 aspect-[16/9] overflow-hidden rounded-lg md:mx-4 md:mb-4">
+                                                <NextImage
+                                                  src={previewImage}
+                                                  alt={`${frame.name} - ${currentProduct?.name}`}
+                                                  fill
+                                                  className="object-cover"
+                                                  sizes="(max-width: 768px) 100vw, 50vw"
+                                                />
+                                              </div>
+
+                                              {config.size && (
+                                                <div className="mx-3 mb-3 rounded-lg border border-primary/20 bg-primary/5 p-2.5 duration-300 animate-in fade-in-0 slide-in-from-top-2 md:mx-4 md:mb-4 md:p-3">
+                                                  <p className="mb-2 text-xs font-medium text-muted-foreground md:text-sm">
+                                                    {t('select_orientation')}
+                                                  </p>
+                                                  <div className="grid grid-cols-2 gap-2">
+                                                    <button
+                                                      type="button"
+                                                      onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setConfig(prev => ({ ...prev, orientation: 'landscape' }));
+                                                      }}
+                                                      className={cn(
+                                                        'group flex items-center justify-center gap-2 rounded-md border px-3 py-2 text-xs font-medium transition-all duration-300 md:text-sm',
+                                                        config.orientation === 'landscape'
+                                                          ? 'border-primary bg-primary text-primary-foreground shadow-sm'
+                                                          : 'border-border bg-background hover:-translate-y-0.5 hover:border-primary/50 hover:bg-primary/5',
+                                                      )}
+                                                    >
+                                                      <RectangleHorizontal className={cn('size-4 transition-transform duration-300', config.orientation === 'landscape' ? 'scale-110' : 'group-hover:scale-105')} />
+                                                      {t('orientation_landscape')}
+                                                    </button>
+                                                    <button
+                                                      type="button"
+                                                      onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setConfig(prev => ({ ...prev, orientation: 'portrait' }));
+                                                      }}
+                                                      className={cn(
+                                                        'group flex items-center justify-center gap-2 rounded-md border px-3 py-2 text-xs font-medium transition-all duration-300 md:text-sm',
+                                                        config.orientation === 'portrait'
+                                                          ? 'border-primary bg-primary text-primary-foreground shadow-sm'
+                                                          : 'border-border bg-background hover:-translate-y-0.5 hover:border-primary/50 hover:bg-primary/5',
+                                                      )}
+                                                    >
+                                                      <RectangleVertical className={cn('size-4 transition-transform duration-300', config.orientation === 'portrait' ? 'scale-110' : 'group-hover:scale-105')} />
+                                                      {t('orientation_portrait')}
+                                                    </button>
+                                                  </div>
+                                                </div>
+                                              )}
+                                            </>
                                           )}
                                         </div>
                                       </div>

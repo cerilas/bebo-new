@@ -1,4 +1,4 @@
-import { ArrowRight, Heart, Palette, Sparkles, Star, Truck, Wand2 } from 'lucide-react';
+import { ArrowRight, Palette, Sparkles, Star, Truck, Wand2 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
@@ -15,42 +15,6 @@ export const Pricing = () => {
       </div>
 
       <div className="relative mx-auto max-w-7xl px-6">
-        {/* Main message */}
-        <div className="mb-16 text-center md:mb-24">
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-purple-500/30 bg-purple-500/10 px-4 py-2">
-            <Heart className="size-4 text-pink-400" />
-            <span className="text-sm text-purple-300">{t('equality_badge')}</span>
-          </div>
-
-          <h2 className="mx-auto max-w-4xl text-4xl font-bold leading-tight text-white md:text-5xl lg:text-6xl">
-            {t.rich('main_title', {
-              gradient: chunks => (
-                <span className="relative mx-2 inline-block">
-                  <span className="relative z-10 bg-gradient-to-r from-purple-400 via-pink-400 to-orange-400 bg-clip-text text-transparent">
-                    {chunks}
-                  </span>
-                  <svg className="absolute -bottom-2 left-0 h-3 w-full" viewBox="0 0 100 12" preserveAspectRatio="none">
-                    <path d="M0,8 Q25,0 50,8 T100,8" stroke="url(#underline-gradient)" strokeWidth="3" fill="none" strokeLinecap="round" />
-                    <defs>
-                      <linearGradient id="underline-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                        <stop offset="0%" stopColor="#a855f7" />
-                        <stop offset="50%" stopColor="#ec4899" />
-                        <stop offset="100%" stopColor="#f97316" />
-                      </linearGradient>
-                    </defs>
-                  </svg>
-                </span>
-              ),
-            })}
-          </h2>
-
-          <p className="mx-auto mt-8 max-w-2xl text-lg text-gray-400 md:text-xl">
-            {t.rich('main_description', {
-              br: () => <br className="hidden md:block" />,
-            })}
-          </p>
-        </div>
-
         {/* Two column layout */}
         <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
           {/* Left side - Image showcase */}

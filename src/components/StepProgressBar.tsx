@@ -1,6 +1,5 @@
 'use client';
 
-import { Check, ChevronRight } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 type StepProgressBarProps = {
@@ -16,56 +15,60 @@ export const StepProgressBar = ({ currentStep }: StepProgressBarProps) => {
     { number: 3, key: 'step_3' },
   ];
 
+  const progressPercent = ((currentStep - 1) / (steps.length - 1)) * 100;
+
   return (
     <div className="w-full">
-      <div className="mx-auto max-w-4xl px-4 py-1.5 md:py-4">
+      <div className="mx-auto mt-4 max-w-2xl px-4 py-1 md:mt-5 md:max-w-3xl md:py-2">
         <nav aria-label="Progress">
-          <ol className="flex items-center justify-center gap-2 md:gap-4">
-            {steps.map((step, index) => {
-              const isCompleted = currentStep > step.number;
-              const isCurrent = currentStep === step.number;
-              const isLast = index === steps.length - 1;
+          <div className="px-5 md:px-8">
+            <div className="relative">
+              <div className="h-1 w-full rounded-full bg-gray-200/80 dark:bg-gray-700/70" />
+              <div
+                className="absolute left-0 top-0 h-1 rounded-full bg-gradient-to-r from-purple-600 to-pink-500 transition-all duration-500 ease-out"
+                style={{ width: `${progressPercent}%` }}
+              />
 
-              return (
-                <li key={step.number} className="flex items-center">
-                  <div className={`relative flex items-center gap-1.5 md:gap-3 ${isCurrent ? 'flex-1' : ''}`}>
-                    {/* Step Circle */}
+              {steps.map((step, index) => {
+                const isActive = currentStep >= step.number;
+                const position = (index / (steps.length - 1)) * 100;
+
+                return (
+                  <div
+                    key={step.number}
+                    className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2"
+                    style={{ left: `${position}%` }}
+                  >
                     <div
-                      className={`
-                        flex size-7 shrink-0 items-center justify-center rounded-full border-2 text-xs font-bold transition-all duration-300 md:size-10 md:text-base
-                        ${isCompleted
-                  ? 'border-green-500 bg-green-500 text-white shadow-sm'
-                  : isCurrent
-                    ? 'border-purple-600 bg-purple-50 text-purple-600 shadow-[0_0_20px_rgba(147,51,234,0.15)] ring-2 ring-purple-600/20'
-                    : 'border-gray-200 bg-gray-50 text-gray-400'
-                }
-                      `}
+                      className={`grid size-[27px] place-items-center rounded-full border transition-all duration-300 md:size-[30px] ${isActive ? 'border-purple-600 bg-white text-purple-600 dark:bg-gray-900' : 'border-gray-300 bg-white text-gray-400 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-500'}`}
                     >
-                      {isCompleted ? <Check className="size-3.5 md:size-5" /> : step.number}
+                      <span className="block text-[12px] font-semibold tabular-nums leading-none md:text-[13px]">
+                        {step.number}
+                      </span>
                     </div>
-
-                    {/* Step Label (Always visible on desktop, visible if current on mobile) */}
-                    <span
-                      className={`
-                        whitespace-nowrap text-xs font-semibold transition-colors duration-300 md:text-sm
-                        ${isCompleted ? 'text-green-600' : ''}
-                        ${isCurrent ? 'text-purple-700' : 'hidden text-gray-500 md:block'}
-                      `}
-                    >
-                      {t(step.key)}
-                    </span>
                   </div>
+                );
+              })}
+            </div>
 
-                  {/* Connector Line */}
-                  {!isLast && (
-                    <div className="mx-2 text-gray-300 md:mx-4">
-                      <ChevronRight className="size-4 md:size-5" />
-                    </div>
-                  )}
-                </li>
-              );
-            })}
-          </ol>
+            <ol className="relative mt-4 h-5 text-[10px] leading-tight md:mt-5 md:h-6 md:text-xs">
+              {steps.map((step, index) => {
+                const isActive = currentStep >= step.number;
+                const isCurrent = currentStep === step.number;
+                const position = (index / (steps.length - 1)) * 100;
+
+                return (
+                  <li
+                    key={step.number}
+                    className={`absolute top-0 -translate-x-1/2 whitespace-nowrap text-center font-medium transition-colors ${isCurrent ? 'text-purple-700 dark:text-purple-300' : isActive ? 'text-gray-700 dark:text-gray-300' : 'text-gray-400 dark:text-gray-500'}`}
+                    style={{ left: `${position}%` }}
+                  >
+                    {t(step.key)}
+                  </li>
+                );
+              })}
+            </ol>
+          </div>
         </nav>
       </div>
     </div>

@@ -14,9 +14,17 @@ export default function PreviewPage(props: {
     product?: string;
     size?: string;
     frame?: string;
+    orientation?: string;
   };
 }) {
-  const { generationId, imageUrl, product, size, frame } = props.searchParams;
+  const {
+    generationId,
+    imageUrl,
+    product,
+    size,
+    frame,
+    orientation,
+  } = props.searchParams;
 
   // Check if we have either generationId OR imageUrl, and required product params
   if ((!generationId && !imageUrl) || !product || !size || !frame) {
@@ -48,6 +56,7 @@ export default function PreviewPage(props: {
         productSlug={product}
         sizeSlug={size}
         frameSlug={frame}
+        orientation={orientation as 'landscape' | 'portrait' | undefined}
       />
       <Footer />
     </>

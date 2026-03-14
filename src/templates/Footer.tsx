@@ -4,7 +4,7 @@ import { Github, Instagram, Linkedin, Twitter, Youtube } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { getSiteSettings, type SiteSettings } from '@/features/settings/siteSettingsActions';
 
@@ -17,6 +17,8 @@ export const Footer = () => {
   const pathname = usePathname();
   const locale = (params?.locale as string) || 'tr';
   const [settings, setSettings] = useState<SiteSettings>({});
+  const [footerOffset, setFooterOffset] = useState(0);
+  const footerRef = useRef<HTMLElement | null>(null);
 
   // Ana sayfada mıyız kontrol et
   const isLandingPage = pathname === '/' || pathname === `/${locale}`;
@@ -24,6 +26,39 @@ export const Footer = () => {
   useEffect(() => {
     getSiteSettings().then(setSettings);
   }, []);
+
+  const ensureFooterBelowFold = useCallback(() => {
+    const footerEl = footerRef.current;
+    if (!footerEl || typeof window === 'undefined') {
+      return;
+    }
+
+    const rect = footerEl.getBoundingClientRect();
+    const naturalTop = rect.top - footerOffset;
+    const requiredOffset = Math.max(0, Math.ceil(window.innerHeight - naturalTop + 8));
+
+    if (requiredOffset !== footerOffset) {
+      setFooterOffset(requiredOffset);
+    }
+  }, [footerOffset]);
+
+  useEffect(() => {
+    const raf1 = window.requestAnimationFrame(() => {
+      const raf2 = window.requestAnimationFrame(() => {
+        ensureFooterBelowFold();
+      });
+
+      return () => window.cancelAnimationFrame(raf2);
+    });
+
+    const onResize = () => ensureFooterBelowFold();
+    window.addEventListener('resize', onResize);
+
+    return () => {
+      window.cancelAnimationFrame(raf1);
+      window.removeEventListener('resize', onResize);
+    };
+  }, [ensureFooterBelowFold, pathname]);
 
   // Ana sayfadaki section'a scroll yap veya ana sayfaya yönlendir
   const handleAnchorClick = (sectionId: string) => {
@@ -49,7 +84,7 @@ export const Footer = () => {
         { label: tNavbar('products'), href: `/${locale}/products` },
         { label: tNavbar('product'), sectionId: 'ozellikler' },
         { label: tNavbar('docs'), sectionId: 'nasil-calisir' },
-        { label: t('pricing'), sectionId: 'fiyatlandirma' },
+        { label: t('subscribe_newsletter'), sectionId: 'bulten' },
       ],
     },
     {
@@ -92,7 +127,11 @@ export const Footer = () => {
   ];
 
   return (
-    <footer className="relative overflow-hidden border-t border-white/10 bg-[#0a0a0f]">
+    <footer
+      ref={footerRef}
+      style={{ marginTop: footerOffset > 0 ? `${footerOffset}px` : undefined }}
+      className="relative overflow-hidden border-t border-white/10 bg-[#0a0a0f]"
+    >
       {/* Background Gradient */}
       <div className="absolute inset-0">
         <div className="absolute bottom-0 left-1/4 size-[400px] rounded-full bg-purple-500/5 blur-3xl" />

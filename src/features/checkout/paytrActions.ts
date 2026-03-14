@@ -54,18 +54,28 @@ export type AkbankFormResponse = {
 
 /** Resolves the public base URL of the current request (works behind proxies). */
 const resolveRequestBaseUrl = (): string => {
-  const headerStore = headers();
-  const host = headerStore.get('x-forwarded-host') || headerStore.get('host');
-
-  if (!host) {
-    return getBaseUrl();
+  // NEXT_PUBLIC_APP_URL is the most reliable source in production (Railway, Vercel, etc.)
+  // because internal proxies often set host: localhost:PORT internally.
+  if (process.env.NEXT_PUBLIC_APP_URL) {
+    return process.env.NEXT_PUBLIC_APP_URL;
   }
 
-  const protocol
-    = headerStore.get('x-forwarded-proto')
-    ?? (host.includes('localhost') ? 'http' : 'https');
+  const headerStore = headers();
+  // x-forwarded-host is set by the edge/CDN and contains the real public hostname
+  const forwardedHost = headerStore.get('x-forwarded-host');
+  if (forwardedHost) {
+    const protocol = headerStore.get('x-forwarded-proto') ?? 'https';
+    return `${protocol}://${forwardedHost}`;
+  }
 
-  return `${protocol}://${host}`;
+  // Last resort: use host header (unreliable behind proxies like Railway)
+  const host = headerStore.get('host');
+  if (host && !host.includes('localhost')) {
+    const protocol = headerStore.get('x-forwarded-proto') ?? 'https';
+    return `${protocol}://${host}`;
+  }
+
+  return getBaseUrl();
 };
 
 export async function getAkbankPayHostingForm(

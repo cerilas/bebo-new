@@ -100,27 +100,40 @@ export async function createCreditPurchase(
       = (typeof claims.email === 'string' && claims.email)
       || (typeof claims.email_address === 'string' && claims.email_address)
       || '';
+    let userPhone = '';
 
-    // 1. Try DB user profile for email fallback
-    if (!userEmail) {
-      const [dbUser] = await db
-        .select({ email: userSchema.email })
-        .from(userSchema)
-        .where(eq(userSchema.id, userId))
-        .limit(1);
+    // 1. Try DB user profile for email + phone
+    const [dbUser] = await db
+      .select({ email: userSchema.email, phone: userSchema.phone })
+      .from(userSchema)
+      .where(eq(userSchema.id, userId))
+      .limit(1);
 
-      if (dbUser?.email) {
-        userEmail = dbUser.email;
-      }
+    if (!userEmail && dbUser?.email) {
+      userEmail = dbUser.email;
+    }
+    if (dbUser?.phone) {
+      userPhone = dbUser.phone;
     }
 
-    // 2. If still missing email, fall back to Clerk profile
-    if (!userEmail) {
+    // 2. If still missing email or phone, fall back to Clerk profile
+    if (!userEmail || !userPhone) {
       const clerkUser = await currentUser();
-      const primaryEmailId = clerkUser?.primaryEmailAddressId;
-      if (clerkUser?.emailAddresses?.length) {
-        const primaryEmail = clerkUser.emailAddresses.find(a => a.id === primaryEmailId);
-        userEmail = primaryEmail?.emailAddress || clerkUser.emailAddresses[0]?.emailAddress || '';
+
+      if (!userEmail) {
+        const primaryEmailId = clerkUser?.primaryEmailAddressId;
+        if (clerkUser?.emailAddresses?.length) {
+          const primaryEmail = clerkUser.emailAddresses.find(a => a.id === primaryEmailId);
+          userEmail = primaryEmail?.emailAddress || clerkUser.emailAddresses[0]?.emailAddress || '';
+        }
+      }
+
+      if (!userPhone && clerkUser?.phoneNumbers?.length) {
+        const primaryPhone = clerkUser.phoneNumbers.find(p => p.id === clerkUser.primaryPhoneNumberId)
+          ?? clerkUser.phoneNumbers[0];
+        if (primaryPhone?.phoneNumber) {
+          userPhone = primaryPhone.phoneNumber;
+        }
       }
     }
 
@@ -242,7 +255,7 @@ export async function createCreditPurchase(
       paytrToken: null,
       customerName,
       customerEmail: userEmail,
-      customerPhone: userEmail, // PAY_HOSTING uses email only, no phone needed
+      customerPhone: (userPhone || 'N/A').slice(0, 20), // phone for order record only, not sent to Akbank
       customerAddress: 'Online Kredi Satın Alımı',
       orderType: 'credit',
       creditAmount,

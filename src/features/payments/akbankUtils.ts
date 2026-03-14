@@ -1,4 +1,3 @@
-import { Buffer } from 'node:buffer';
 import { createHmac, randomBytes } from 'node:crypto';
 
 import { Env } from '@/libs/Env';
@@ -91,13 +90,11 @@ export const getRandomNumberBase16 = (length = 128): string => {
  * HMAC-SHA512 → Base64.
  * Used for both request hash generation and response hash verification.
  *
- * Akbank provides the secret key as a hex-encoded string (128 hex chars = 64 bytes).
- * The key must be hex-decoded to raw bytes before use with HMAC.
+ * PHP equivalent: base64_encode(hash_hmac('sha512', $data, $secretKey, true))
+ * The secret key is used as-is (string), matching Akbank's PHP example.
  */
 export const hashToString = (value: string, secretKey: string): string => {
-  // Akbank secret key is hex-encoded — decode to raw bytes
-  const keyBuffer = Buffer.from(secretKey, 'hex');
-  return createHmac('sha512', keyBuffer).update(value, 'utf8').digest('base64');
+  return createHmac('sha512', secretKey).update(value, 'utf8').digest('base64');
 };
 
 /** Returns the correct gateway URL based on the AKBANK_ENV env variable. */

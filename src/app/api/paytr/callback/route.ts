@@ -1,102 +1,13 @@
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
-import { validatePayTRCallback } from '@/features/checkout/paytrActions';
-import { validatePayTRCreditCallback } from '@/features/credits/creditCallbackActions';
-import { db } from '@/libs/DB';
-import { paymentLogsSchema } from '@/models/Schema';
-
 // Force dynamic rendering for this API route
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
-/**
- * PayTR Bildirim URL (Webhook) Endpoint
- *
- * PayTR'dan ödeme sonucu bildirimi alır.
- * PayTR Paneli > Destek & Kurulum > Ayarlar > Bildirim URL'de tanımlanmalı:
- * https://yourdomain.com/api/paytr/callback
- */
 export async function POST(request: NextRequest) {
-  try {
-    // PayTR'dan gelen POST verilerini al
-    const formData = await request.formData();
-
-    // Log all keys to debug mismatched field names
-    const allData: Record<string, string> = {};
-    formData.forEach((value, key) => {
-      if (typeof value === 'string') {
-        allData[key] = value;
-      }
-    });
-    console.log('📝 PayTR RAW Callback Data:', allData);
-
-    const payload = {
-      merchant_oid: formData.get('merchant_oid') as string,
-      status: formData.get('status') as string,
-      total_amount: formData.get('total_amount') as string,
-      hash: formData.get('hash') as string,
-      payment_type: formData.get('payment_type') as string | undefined,
-      failed_reason_code: formData.get('failed_reason_code') as string | undefined,
-      failed_reason_msg: formData.get('failed_reason_msg') as string | undefined,
-    };
-
-    console.log('PayTR callback processed payload:', {
-      merchant_oid: payload.merchant_oid,
-      status: payload.status,
-      fail_msg: payload.failed_reason_msg,
-    });
-
-    // Log to database
-    try {
-      await db.insert(paymentLogsSchema).values({
-        merchantOid: payload.merchant_oid,
-        status: payload.status,
-        totalAmount: payload.total_amount,
-        hash: payload.hash,
-        paymentType: payload.payment_type || null,
-        failedReasonCode: payload.failed_reason_code || null,
-        failedReasonMsg: payload.failed_reason_msg || null,
-        testMode: allData.test_mode || null,
-        currency: allData.currency || null,
-        paymentAmount: allData.payment_amount || null,
-        rawPayload: JSON.stringify(allData),
-        ipAddress: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || null,
-        userAgent: request.headers.get('user-agent') || null,
-      });
-      console.log('✅ Payment log saved to database');
-    } catch (logError) {
-      console.error('❌ Failed to save payment log:', logError);
-    }
-
-    // Kredi ödeme kontrolü - merchant_oid CRD ile başlıyor
-    let result;
-    if (payload.merchant_oid.startsWith('CRD')) {
-      // Kredi ödeme callback'i
-      result = await validatePayTRCreditCallback(payload);
-    } else {
-      // Ürün ödeme callback'i
-      result = await validatePayTRCallback(payload);
-    }
-
-    if (!result.success) {
-      console.error('PayTR callback validation failed:', result.error);
-      // Hata olsa bile PayTR'ın tekrar denemesini engellemek için OK dönüyoruz.
-    }
-
-    // PayTR'a başarılı yanıt dön
-    // ÖNEMLİ: Sadece "OK" yazısı, başka hiçbir şey olmamalı
-    return new NextResponse('OK', {
-      status: 200,
-      headers: {
-        'Content-Type': 'text/plain',
-      },
-    });
-  } catch (error) {
-    console.error('PayTR callback error:', error);
-    // Beklenmedik hatada bile OK dönerek timeout/retry döngüsünü kırıyoruz
-    return new NextResponse('OK', { status: 200 });
-  }
+  await request.formData();
+  return new NextResponse('OK', { status: 200 });
 }
 
 // GET isteğini reddet (PayTR sadece POST kullanır)

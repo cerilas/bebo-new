@@ -1,12 +1,11 @@
 'use client';
 
-import { useUser } from '@clerk/nextjs';
+import { useAuth } from '@clerk/nextjs';
 import { AlertCircle, Info, Sparkles, X } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import Script from 'next/script';
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 
+import type { AkbankPayHostingRequestFields } from '@/features/payments/akbankUtils';
 import { Footer } from '@/templates/Footer';
 import { Navbar } from '@/templates/Navbar';
 
@@ -16,9 +15,8 @@ import { createCreditPurchase, type CreditSettings, getCreditSettings } from './
 export function PurchaseCreditsInterface() {
   const t = useTranslations('PurchaseCredits');
   const locale = useLocale();
-  const router = useRouter();
-  const iframeRef = useRef<HTMLIFrameElement>(null);
-  const { user } = useUser();
+  const akbankFormRef = useRef<HTMLFormElement>(null);
+  const { isLoaded, userId } = useAuth();
 
   const [selectedAmount, setSelectedAmount] = useState<number>(10);
   const [customAmount, setCustomAmount] = useState<string>('');
@@ -26,8 +24,8 @@ export function PurchaseCreditsInterface() {
   const [creditSettings, setCreditSettings] = useState<CreditSettings | null>(null);
   const [isLoadingSettings, setIsLoadingSettings] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [paytrToken, setPaytrToken] = useState<string | null>(null);
-  const [merchantOid, setMerchantOid] = useState<string | null>(null);
+  const [akbankActionUrl, setAkbankActionUrl] = useState<string | null>(null);
+  const [akbankFields, setAkbankFields] = useState<AkbankPayHostingRequestFields | null>(null);
   const [currentCredits, setCurrentCredits] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
 
@@ -43,7 +41,25 @@ export function PurchaseCreditsInterface() {
   // Mevcut kredi miktarını ve ayarları yükle
   useEffect(() => {
     async function loadData() {
+      if (!isLoaded) {
+        return;
+      }
+
       setIsLoadingSettings(true);
+
+      if (!userId) {
+        setCreditSettings({
+          pricePerCredit: 100,
+          minPurchase: 1,
+          maxPurchase: 1000,
+          maxUserCredits: null,
+          isActive: true,
+        });
+        setCurrentCredits(0);
+        setIsLoadingSettings(false);
+        return;
+      }
+
       try {
         const [settings, credits] = await Promise.all([
           getCreditSettings(),
@@ -67,7 +83,7 @@ export function PurchaseCreditsInterface() {
     }
 
     loadData();
-  }, []);
+  }, [isLoaded, userId]);
 
   const pricePerCredit = creditSettings?.pricePerCredit || 100;
   const minPurchase = creditSettings?.minPurchase || 1;
@@ -95,7 +111,12 @@ export function PurchaseCreditsInterface() {
 
   const handlePurchase = async () => {
     setError(null);
-    if (!user?.id) {
+
+    if (!isLoaded) {
+      return;
+    }
+
+    if (!userId) {
       setError('Lütfen giriş yapın');
       return;
     }
@@ -109,29 +130,16 @@ export function PurchaseCreditsInterface() {
       }
     }
 
-    // Email kontrolü
-    const userEmail = user.primaryEmailAddress?.emailAddress;
-    if (!userEmail) {
-      setError('Email adresi bulunamadı. Lütfen hesap ayarlarınızı kontrol edin.');
-      return;
-    }
-
     setIsProcessing(true);
 
     try {
       const amount = isCustom ? Number.parseInt(customAmount, 10) : selectedAmount;
 
-      // Kullanıcı IP'sini al
-      const ipResponse = await fetch('https://api.ipify.org?format=json');
-      const ipData = await ipResponse.json();
-      const userIp = ipData.ip;
+      const result = await createCreditPurchase(amount, locale);
 
-      // PayTR token al - userId ve email'i geçiyoruz, ve LOCALE
-      const result = await createCreditPurchase(user.id, userEmail, amount, userIp, locale);
-
-      if (result.success && result.token) {
-        setPaytrToken(result.token);
-        setMerchantOid(result.merchantOid || null);
+      if (result.success && result.actionUrl && result.fields) {
+        setAkbankActionUrl(result.actionUrl);
+        setAkbankFields(result.fields);
       } else {
         setError(result.error || 'Ödeme işlemi başlatılamadı');
         setIsProcessing(false);
@@ -144,35 +152,14 @@ export function PurchaseCreditsInterface() {
     }
   };
 
-  // PayTR callback dinleyici
+  // AKBANK form hazır olduğunda otomatik submit et
   useEffect(() => {
-    if (!paytrToken) {
+    if (!akbankActionUrl || !akbankFields || !akbankFormRef.current) {
       return;
     }
 
-    // PayTR iframe'e scroll yap
-    if (iframeRef.current) {
-      setTimeout(() => {
-        iframeRef.current?.scrollIntoView({
-          behavior: 'smooth',
-          block: 'start',
-        });
-      }, 300); // iframe render olması için kısa bir gecikme
-    }
-
-    const handleMessage = (event: MessageEvent) => {
-      if (event.origin === 'https://www.paytr.com') {
-        if (event.data === 'success' && merchantOid) {
-          router.push(`/${locale}/purchase-credits/success?merchant_oid=${merchantOid}`);
-        } else if (event.data === 'fail') {
-          router.push(`/${locale}/purchase-credits/failed`);
-        }
-      }
-    };
-
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, [paytrToken, merchantOid, router, locale]);
+    akbankFormRef.current.submit();
+  }, [akbankActionUrl, akbankFields]);
 
   // Loading durumu
   if (isLoadingSettings) {
@@ -228,6 +215,14 @@ export function PurchaseCreditsInterface() {
           </h1>
           <p className="text-gray-600 dark:text-gray-400">{t('page_description')}</p>
         </div>
+
+        {isLoaded && !userId && (
+          <div className="mb-8 rounded-xl border border-amber-200 bg-amber-50 p-4 text-center dark:border-amber-900/40 dark:bg-amber-950/20">
+            <p className="text-sm font-medium text-amber-900 dark:text-amber-100">
+              Tasarım kredisi satın almak için önce giriş yapmanız gerekiyor.
+            </p>
+          </div>
+        )}
 
         {/* Exchange Rate Card */}
         <div className="mb-8 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 p-6 text-white shadow-lg">
@@ -353,7 +348,7 @@ export function PurchaseCreditsInterface() {
         <button
           type="button"
           onClick={handlePurchase}
-          disabled={totalPrice === 0 || isProcessing}
+          disabled={totalPrice === 0 || isProcessing || !isLoaded || !userId}
           className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 px-8 py-4 text-lg font-semibold text-white shadow-lg transition-all hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Sparkles className="size-6" />
@@ -365,30 +360,25 @@ export function PurchaseCreditsInterface() {
           Ödeme işleminiz güvenli SSL sertifikası ile korunmaktadır
         </p>
 
-        {/* PayTR Ödeme Formu */}
-        {paytrToken && (
-          <div className="mt-8 rounded-xl border border-gray-200 bg-white p-6 shadow-lg dark:border-gray-700 dark:bg-gray-800" style={{ minHeight: '1000px' }}>
+        {akbankFields && akbankActionUrl && (
+          <div className="mt-8 rounded-xl border border-gray-200 bg-white p-6 shadow-lg dark:border-gray-700 dark:bg-gray-800">
             <h2 className="mb-6 text-xl font-semibold text-gray-900 dark:text-white">
               Güvenli Ödeme
             </h2>
-            <Script src="https://www.paytr.com/js/iframeResizer.min.js" strategy="afterInteractive" />
-            <div className="overflow-hidden rounded-lg" style={{ minHeight: '1000px' }}>
-              <iframe
-                ref={iframeRef}
-                src={`https://www.paytr.com/odeme/guvenli/${paytrToken}`}
-                id="paytriframe"
-                frameBorder="0"
-                scrolling="no"
-                style={{ width: '100%', height: 'auto', minHeight: '1000px' }}
-                className="block"
-                title="PayTR Payment"
-              />
-            </div>
-            <script
-              dangerouslySetInnerHTML={{
-                __html: `iFrameResize({},'#paytriframe');`,
-              }}
-            />
+            <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
+              AKBANK güvenli ödeme ekranına yönlendiriliyorsunuz...
+            </p>
+            <form ref={akbankFormRef} action={akbankActionUrl} method="POST">
+              {Object.entries(akbankFields).map(([key, value]) => (
+                <input key={key} type="hidden" name={key} value={value} />
+              ))}
+              <button
+                type="submit"
+                className="rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 px-5 py-2.5 text-sm font-semibold text-white"
+              >
+                Ödeme ekranına git
+              </button>
+            </form>
           </div>
         )}
       </div>

@@ -3,17 +3,18 @@
 import { useUser } from '@clerk/nextjs';
 import { AlertCircle, ArrowLeft, ChevronDown, CreditCard, Loader2, Package, Shield, X } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import Script from 'next/script';
 import { useTranslations } from 'next-intl';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { MockupPreview } from '@/components/MockupPreview';
 import { ProtectedImage } from '@/components/ProtectedImage';
 import { type City, type District, getCities, getDistricts } from '@/features/checkout/geliverActions';
-import { getPayTRToken } from '@/features/checkout/paytrActions';
 import { type GeneratedImageResponse, getGeneratedImage, getUserGeneratedImages } from '@/features/design/chatActions';
 import { getProductPricing, type ProductPriceData } from '@/features/design/productPriceActions';
+import type { AkbankPayHostingRequestFields } from '@/features/payments/akbankUtils';
 import { parseMockupConfig } from '@/utils/mockupUtils';
+
+import { getAkbankPayHostingForm } from './paytrActions';
 
 type CheckoutInterfaceProps = {
   locale: string;
@@ -27,6 +28,7 @@ type CheckoutInterfaceProps = {
 };
 
 export function CheckoutInterface({
+  locale,
   generationId: propGenerationId,
   imageUrl,
   productSlug: propProductSlug,
@@ -52,8 +54,10 @@ export function CheckoutInterface({
   const [priceData, setPriceData] = useState<ProductPriceData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [paytrToken, setPaytrToken] = useState<string | null>(null);
+  const [akbankActionUrl, setAkbankActionUrl] = useState<string | null>(null);
+  const [akbankFields, setAkbankFields] = useState<AkbankPayHostingRequestFields | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const akbankFormRef = useRef<HTMLFormElement>(null);
 
   // Hata mesajını otomatik temizle
   useEffect(() => {
@@ -181,40 +185,12 @@ export function CheckoutInterface({
     }
   }, [user]);
 
-  // PayTR iframe'den gelen mesajları dinle
+  // AKBANK form hazır olduğunda otomatik submit et
   useEffect(() => {
-    const handlePayTRMessage = (event: MessageEvent) => {
-      // Tüm mesajları logla
-      console.log('📨 Message received:', {
-        origin: event.origin,
-        data: event.data,
-        dataType: typeof event.data,
-      });
-
-      // PayTR'den gelen mesajları kontrol et
-      if (event.origin === 'https://www.paytr.com') {
-        console.log('✅ PayTR confirmed message:', event.data);
-
-        // Ödeme başarılı
-        if (event.data === 'success' || event.data?.status === 'success') {
-          console.log('🎉 Payment SUCCESS - Redirecting...');
-          router.push('/checkout/success');
-        } else if (event.data === 'failed' || event.data?.status === 'failed') {
-          // Ödeme başarısız
-          console.log('❌ Payment FAILED - Redirecting...');
-          router.push('/checkout/failed');
-        } else {
-          console.log('⚠️ Unknown PayTR message format:', event.data);
-        }
-      }
-    };
-
-    window.addEventListener('message', handlePayTRMessage);
-
-    return () => {
-      window.removeEventListener('message', handlePayTRMessage);
-    };
-  }, [router]);
+    if (akbankActionUrl && akbankFields && akbankFormRef.current) {
+      akbankFormRef.current.submit();
+    }
+  }, [akbankActionUrl, akbankFields]);
 
   // Ödeme işlemini başlat
   const handleCompletePayment = async () => {
@@ -244,22 +220,7 @@ export function CheckoutInterface({
     setIsProcessing(true);
 
     try {
-      // Kullanıcı IP'sini al
-      const ipResponse = await fetch('https://api.ipify.org?format=json');
-      const ipData = await ipResponse.json();
-      const userIp = ipData.ip;
-
-      // Sepet içeriğini hazırla (base64 encoded JSON)
-      const basketItems = [
-        [
-          `${priceData.productName} - ${priceData.sizeName} - ${priceData.frameName}`,
-          (priceData.totalPrice / 100).toFixed(2),
-          1,
-        ],
-      ];
-      const userBasket = btoa(unescape(encodeURIComponent(JSON.stringify(basketItems))));
-
-      console.log('Sending to PayTR:', {
+      console.log('Sending to AKBANK:', {
         productId: priceData.productId,
         sizeId: priceData.sizeId,
         frameId: priceData.frameId,
@@ -267,15 +228,14 @@ export function CheckoutInterface({
         imageUrl: imageData.image_url,
       });
 
-      // Resolve names for PayTR
+      // Resolve city/district names
       const selectedCity = cities.find(c => c.cityCode === customerCity);
       const selectedDistrict = districts.find(d => d.districtID.toString() === customerDistrict);
 
       const cityName = selectedCity?.name || customerCity;
       const districtName = selectedDistrict?.name || customerDistrict;
 
-      // PayTR token al
-      const result = await getPayTRToken({
+      const result = await getAkbankPayHostingForm({
         generationId,
         imageUrl: imageData.image_url,
         productId: priceData.productId,
@@ -297,12 +257,12 @@ export function CheckoutInterface({
         companyAddress: wantsCorporateInvoice ? companyAddress : undefined,
         orientation,
         imageTransform: propImageTransform, // Görsel konumlandırma/crop bilgisi
-        userBasket,
-        userIp,
+        locale,
       });
 
-      if (result.success && result.token) {
-        setPaytrToken(result.token);
+      if (result.success && result.actionUrl && result.fields) {
+        setAkbankActionUrl(result.actionUrl);
+        setAkbankFields(result.fields);
       } else {
         setError(result.error || 'Ödeme işlemi başlatılamadı');
         setIsProcessing(false);
@@ -388,7 +348,7 @@ export function CheckoutInterface({
         {/* Sol: Form ve Ödeme */}
         <div className="space-y-6">
           {/* Müşteri Bilgileri */}
-          {!paytrToken && (
+          {!akbankFields && (
             <>
               <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-lg dark:border-gray-700 dark:bg-gray-800">
                 <h2 className="mb-4 flex items-center gap-2 text-xl font-semibold text-gray-900 dark:text-white">
@@ -606,36 +566,26 @@ export function CheckoutInterface({
             </>
           )}
 
-          {/* PayTR Ödeme Formu - Müşteri bilgileri gönderildikten sonra burada göster */}
-          {paytrToken && (
+          {akbankFields && akbankActionUrl && (
             <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-lg dark:border-gray-700 dark:bg-gray-800">
               <h2 className="mb-6 flex items-center gap-2 text-xl font-semibold text-gray-900 dark:text-white">
                 <CreditCard className="size-6 text-purple-600" />
                 {t('payment_form')}
               </h2>
-              <Script
-                src="https://www.paytr.com/js/iframeResizer.min.js"
-                strategy="afterInteractive"
-              />
-              <div className="overflow-hidden rounded-lg">
-                <iframe
-                  src={`https://www.paytr.com/odeme/guvenli/${paytrToken}`}
-                  id="paytriframe"
-                  title="PayTR Payment Form"
-                  sandbox="allow-forms allow-scripts allow-same-origin allow-top-navigation"
-                  frameBorder="0"
-                  scrolling="no"
-                  style={{ width: '100%', height: 'auto', minHeight: '800px' }}
-                  className="block"
-                />
-              </div>
-              <Script
-                id="paytr-iframe-resize"
-                strategy="afterInteractive"
-                dangerouslySetInnerHTML={{
-                  __html: `iFrameResize({},'#paytriframe');`,
-                }}
-              />
+              <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
+                AKBANK güvenli ödeme ekranına yönlendiriliyorsunuz...
+              </p>
+              <form ref={akbankFormRef} action={akbankActionUrl} method="POST">
+                {Object.entries(akbankFields).map(([key, value]) => (
+                  <input key={key} type="hidden" name={key} value={value} />
+                ))}
+                <button
+                  type="submit"
+                  className="rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 px-5 py-2.5 text-sm font-semibold text-white"
+                >
+                  Ödeme ekranına git
+                </button>
+              </form>
             </div>
           )}
         </div>
@@ -744,7 +694,7 @@ export function CheckoutInterface({
             </div>
 
             {/* Ödeme Butonu - Sadece token yokken göster */}
-            {!paytrToken && (
+            {!akbankFields && (
               <button
                 type="button"
                 onClick={handleCompletePayment}

@@ -5,6 +5,8 @@
 import * as Sentry from '@sentry/nextjs';
 import * as Spotlight from '@spotlightjs/spotlight';
 
+const enableSpotlight = process.env.NEXT_PUBLIC_SENTRY_SPOTLIGHT === 'true';
+
 Sentry.init({
   // Sentry DSN
   dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
@@ -31,6 +33,6 @@ Sentry.init({
   ],
 });
 
-if (process.env.NODE_ENV === 'development') {
+if (enableSpotlight) {
   Spotlight.init();
 }

@@ -44,6 +44,9 @@ yarn-error.log*
 # local env files
 .env*.local
 
+# Local debug scripts output
+debug-akbank-form.html
+
 # local folder
 local
 

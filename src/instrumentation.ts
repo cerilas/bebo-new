@@ -1,14 +1,16 @@
 import * as Sentry from '@sentry/nextjs';
 
 export async function register() {
+  const enableSpotlight = process.env.SENTRY_SPOTLIGHT === 'true';
+
   if (process.env.NEXT_RUNTIME === 'nodejs') {
     // Node.js Sentry configuration
     Sentry.init({
       // Sentry DSN
       dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
 
-      // Enable Spotlight in development
-      spotlight: process.env.NODE_ENV === 'development',
+      // Keep Spotlight opt-in to avoid local stream noise on :8969
+      spotlight: enableSpotlight,
 
       // Adjust this value in production, or use tracesSampler for greater control
       tracesSampleRate: 1,
@@ -24,8 +26,8 @@ export async function register() {
       // Sentry DSN
       dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
 
-      // Enable Spotlight in development
-      spotlight: process.env.NODE_ENV === 'development',
+      // Keep Spotlight opt-in to avoid local stream noise on :8969
+      spotlight: enableSpotlight,
 
       // Adjust this value in production, or use tracesSampler for greater control
       tracesSampleRate: 1,

@@ -37,6 +37,10 @@ export async function validatePayTRCreditCallback(
     const merchantKey = Env.PAYTR_MERCHANT_KEY;
     const merchantSalt = Env.PAYTR_MERCHANT_SALT;
 
+    if (!merchantKey || !merchantSalt) {
+      return { success: false, error: 'PAYTR credentials are not configured' };
+    }
+
     const expectedHash = createHmac('sha256', merchantKey)
       .update(`${merchant_oid}${merchantSalt}${status}${total_amount}`)
       .digest('base64');

@@ -1,55 +1,76 @@
 'use server';
 
-import { createHmac } from 'node:crypto';
-
 import { auth } from '@clerk/nextjs/server';
 import { eq } from 'drizzle-orm';
+import { headers } from 'next/headers';
 
+import {
+  type AkbankPayHostingRequestFields,
+  buildPayHostingHashInput,
+  formatAkbankDateTime,
+  getPayHostingActionUrl,
+  getRandomNumberBase16,
+  hashToString,
+  sanitizeMobilePhone,
+} from '@/features/payments/akbankUtils';
 import { db } from '@/libs/DB';
 import { Env } from '@/libs/Env';
-import { SmsService } from '@/libs/SmsService';
-import { generatedImageSchema, orderSchema, userSchema } from '@/models/Schema';
+import { orderSchema } from '@/models/Schema';
 import { getBaseUrl } from '@/utils/Helpers';
 
-export type PayTRTokenRequest = {
+export type ProductAkbankRequest = {
   generationId: string;
-  imageUrl: string; // Görselin URL'i
+  imageUrl: string;
   productId: number;
   productSizeId: number;
   productFrameId: number;
-  paymentAmount: number; // Kuruş cinsinden (örn: 3456 = 34.56 TL)
+  /** Payment amount in kuruş (integer, e.g. 14999 for 149.99 TL) */
+  paymentAmount: number;
   customerName: string;
   customerEmail: string;
   customerPhone: string;
   customerAddress: string;
-  customerCity?: string; // İl
-  cityCode?: string; // Geliver İl Kodu
-  customerDistrict?: string; // İlçe
-  districtId?: number; // Geliver İlçe ID
-  isCorporateInvoice?: boolean; // Kurumsal fatura flag
-  companyName?: string; // Ünvan
-  taxNumber?: string; // Vergi kimlik no
-  taxOffice?: string; // Vergi dairesi
-  companyAddress?: string; // Şirket adresi
-  orientation?: 'landscape' | 'portrait'; // Yatay veya dikey baskı yönü
-  imageTransform?: { x: number; y: number; scale: number }; // Görsel konumlandırma/crop bilgisi
-  userBasket: string; // Base64 encoded JSON
-  userIp: string;
+  customerCity?: string;
+  cityCode?: string;
+  customerDistrict?: string;
+  districtId?: number;
+  isCorporateInvoice?: boolean;
+  companyName?: string;
+  taxNumber?: string;
+  taxOffice?: string;
+  companyAddress?: string;
+  orientation?: 'landscape' | 'portrait';
+  imageTransform?: { x: number; y: number; scale: number };
+  locale?: string;
 };
 
-export type PayTRTokenResponse = {
+export type AkbankFormResponse = {
   success: boolean;
-  token?: string;
+  actionUrl?: string;
+  fields?: AkbankPayHostingRequestFields;
   merchantOid?: string;
   error?: string;
 };
 
-/**
- * PayTR iframe token alır ve sipariş oluşturur
- */
-export async function getPayTRToken(
-  request: PayTRTokenRequest,
-): Promise<PayTRTokenResponse> {
+/** Resolves the public base URL of the current request (works behind proxies). */
+const resolveRequestBaseUrl = (): string => {
+  const headerStore = headers();
+  const host = headerStore.get('x-forwarded-host') || headerStore.get('host');
+
+  if (!host) {
+    return getBaseUrl();
+  }
+
+  const protocol
+    = headerStore.get('x-forwarded-proto')
+    ?? (host.includes('localhost') ? 'http' : 'https');
+
+  return `${protocol}://${host}`;
+};
+
+export async function getAkbankPayHostingForm(
+  request: ProductAkbankRequest,
+): Promise<AkbankFormResponse> {
   try {
     const { userId } = await auth();
 
@@ -57,67 +78,64 @@ export async function getPayTRToken(
       return { success: false, error: 'User not authenticated' };
     }
 
-    // Benzersiz sipariş numarası oluştur
-    const merchantOid = `BRB${Date.now()}${Math.floor(Math.random() * 1000)}`;
+    // Build a unique order ID: BRB + timestamp + 4 random digits
+    const merchantOid = `BRB${Date.now()}${String(Math.floor(Math.random() * 10000)).padStart(4, '0')}`;
 
-    // PayTR API bilgileri
-    const merchantId = Env.PAYTR_MERCHANT_ID;
-    const merchantKey = Env.PAYTR_MERCHANT_KEY;
-    const merchantSalt = Env.PAYTR_MERCHANT_SALT;
+    const appUrl = resolveRequestBaseUrl();
+    const localePrefix = request.locale && request.locale !== 'tr' ? `/${request.locale}` : '';
 
-    // App URL'ler - Production'da Railway'den gelecek
-    const appUrl = getBaseUrl();
+    // okUrl / failUrl: Akbank will POST the response body here.
+    // We use a single handler endpoint; the `flow` param lets the handler pick
+    // the right redirect after processing.
+    const okUrl = `${appUrl}/api/akbank/return?flow=product&redirect=${encodeURIComponent(`${localePrefix}/checkout/success`)}`;
+    const failUrl = `${appUrl}/api/akbank/return?flow=product&redirect=${encodeURIComponent(`${localePrefix}/checkout/failed`)}`;
 
-    console.log('App URL for PayTR:', appUrl);
+    // Amount: kuruş → TL with 2 decimal places (e.g. 14999 → "149.99")
+    const amount = (request.paymentAmount / 100).toFixed(2);
+    const requestDateTime = formatAkbankDateTime();
+    const randomNumber = getRandomNumberBase16(128); // 128-char lowercase hex
 
-    const merchantOkUrl = `${appUrl}/checkout/success?merchant_oid=${merchantOid}`;
-    const merchantFailUrl = `${appUrl}/checkout/failed?merchant_oid=${merchantOid}`;
+    const lang: 'TR' | 'EN'
+      = (request.locale ?? 'tr').toUpperCase() === 'EN' ? 'EN' : 'TR';
 
-    const noInstallment = 0;
-    const maxInstallment = 0;
-    const currency = 'TL';
-    const testMode = 0;
+    const plainFields: Omit<AkbankPayHostingRequestFields, 'hash'> = {
+      paymentModel: 'PAY_HOSTING',
+      txnCode: '1000', // Satış (sale) – Akbank PAY_HOSTING docs
+      merchantSafeId: Env.AKBANK_MERCHANT_SAFE_ID,
+      terminalSafeId: Env.AKBANK_TERMINAL_SAFE_ID,
+      orderId: merchantOid,
+      lang,
+      amount,
+      ccbRewardAmount: '0.00',
+      pcbRewardAmount: '0.00',
+      xcbRewardAmount: '0.00',
+      currencyCode: '949', // TRY
+      installCount: '1',
+      okUrl,
+      failUrl,
+      emailAddress: request.customerEmail,
+      mobilePhone: sanitizeMobilePhone(request.customerPhone),
+      homePhone: '',
+      workPhone: '',
+      randomNumber,
+      requestDateTime,
+      b2bIdentityNumber: '',
+      merchantData: '',
+      merchantBranchNo: '',
+      mobileEci: '',
+      walletProgramData: '',
+      mobileAssignedId: '',
+      mobileDeviceType: '',
+    };
 
-    // Hash oluştur - PayTR dokümanına göre
-    // merchant_id + user_ip + merchant_oid + email + payment_amount + user_basket + no_installment + max_installment + currency + test_mode
-    const hashStr = `${merchantId}${request.userIp}${merchantOid}${request.customerEmail}${request.paymentAmount}${request.userBasket}${noInstallment}${maxInstallment}${currency}${testMode}`;
-    const paytrToken = createHmac('sha256', merchantKey)
-      .update(hashStr + merchantSalt)
-      .digest('base64');
+    const hash = hashToString(
+      buildPayHostingHashInput(plainFields),
+      Env.AKBANK_SECRET_KEY,
+    );
 
-    console.log('PayTR Token Debug:', {
-      merchantId,
-      merchantOid,
-      paymentAmount: request.paymentAmount,
-      hashStr: `${hashStr.substring(0, 50)}...`, // İlk 50 karakter
-    });
+    const fields: AkbankPayHostingRequestFields = { ...plainFields, hash };
 
-    // PayTR API'ye gönderilecek veriler
-    const postData = new URLSearchParams({
-      merchant_id: merchantId,
-      user_ip: request.userIp,
-      merchant_oid: merchantOid,
-      email: request.customerEmail,
-      payment_amount: request.paymentAmount.toString(),
-      paytr_token: paytrToken,
-      user_basket: request.userBasket,
-      debug_on: '1',
-      no_installment: noInstallment.toString(),
-      max_installment: maxInstallment.toString(),
-      user_name: request.customerName,
-      user_address: request.customerAddress,
-      user_phone: request.customerPhone,
-      merchant_ok_url: merchantOkUrl,
-      merchant_fail_url: merchantFailUrl,
-      timeout_limit: '30',
-      currency,
-      test_mode: testMode.toString(),
-      lang: 'tr',
-      // iframe içinde redirect etmesi için
-      iframe_redirect: '1',
-    });
-
-    // 1. Önce Siparişi 'pending' olarak oluştur
+    // Persist the pending order before redirecting to Akbank
     await db.insert(orderSchema).values({
       userId,
       generationId: request.generationId,
@@ -129,7 +147,7 @@ export async function getPayTRToken(
       paymentAmount: request.paymentAmount,
       currency: 'TL',
       paymentStatus: 'pending',
-      paytrToken: null, // Token henüz yok
+      paytrToken: null,
       customerName: request.customerName,
       customerEmail: request.customerEmail,
       customerPhone: request.customerPhone,
@@ -138,213 +156,37 @@ export async function getPayTRToken(
       cityCode: request.cityCode,
       customerDistrict: request.customerDistrict,
       districtId: request.districtId,
-      isCorporateInvoice: request.isCorporateInvoice || false,
+      isCorporateInvoice: request.isCorporateInvoice ?? false,
       companyName: request.companyName,
       taxNumber: request.taxNumber,
       taxOffice: request.taxOffice,
       companyAddress: request.companyAddress,
-      orientation: request.orientation || 'landscape',
-      imageTransform: request.imageTransform ? JSON.stringify(request.imageTransform) : null,
+      orientation: request.orientation ?? 'landscape',
+      imageTransform: request.imageTransform
+        ? JSON.stringify(request.imageTransform)
+        : null,
     });
 
-    // PayTR'a token isteği gönder
-    const response = await fetch('https://www.paytr.com/odeme/api/get-token', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: postData.toString(),
+    console.log('AKBANK product payment initiated', {
+      merchantOid,
+      amount,
+      txnCode: plainFields.txnCode,
+      okUrl,
+      failUrl,
     });
-
-    const result = await response.json();
-
-    console.log('PayTR Response:', result);
-
-    if (result.status === 'success' && result.token) {
-      // 2. Token alındı, siparişi güncelle
-      await db
-        .update(orderSchema)
-        .set({
-          paytrToken: result.token,
-        })
-        .where(eq(orderSchema.merchantOid, merchantOid));
-
-      return {
-        success: true,
-        token: result.token,
-        merchantOid,
-      };
-    }
-
-    // Başarısız olursa siparişi güncelle (Opsiyonel: Failed olarak işaretle)
-    await db
-      .update(orderSchema)
-      .set({
-        paymentStatus: 'failed',
-        failedReasonMsg: result.reason || 'Token alınamadı',
-      })
-      .where(eq(orderSchema.merchantOid, merchantOid));
 
     return {
-      success: false,
-      error: result.reason || 'Token alınamadı',
+      success: true,
+      actionUrl: getPayHostingActionUrl(),
+      fields,
+      merchantOid,
     };
   } catch (error) {
-    console.error('PayTR token error:', error);
-    return {
-      success: false,
-      error: 'Ödeme işlemi başlatılamadı',
-    };
+    console.error('AKBANK payment form creation error:', error);
+    return { success: false, error: 'Ödeme işlemi başlatılamadı' };
   }
 }
 
-/**
- * PayTR callback doğrulama ve sipariş güncelleme
- */
-export async function validatePayTRCallback(payload: {
-  merchant_oid: string;
-  status: string;
-  total_amount: string;
-  hash: string;
-  payment_type?: string;
-  failed_reason_code?: string;
-  failed_reason_msg?: string;
-}): Promise<{ success: boolean; error?: string }> {
-  try {
-    const merchantKey = Env.PAYTR_MERCHANT_KEY;
-    const merchantSalt = Env.PAYTR_MERCHANT_SALT;
-
-    // Hash doğrula
-    const hashStr = `${payload.merchant_oid}${merchantSalt}${payload.status}${payload.total_amount}`;
-    const computedHash = createHmac('sha256', merchantKey)
-      .update(hashStr)
-      .digest('base64');
-
-    if (computedHash !== payload.hash) {
-      console.error('PayTR hash mismatch');
-      return { success: false, error: 'Invalid hash' };
-    }
-
-    // Siparişi bul
-    const order = await db
-      .select()
-      .from(orderSchema)
-      .where(eq(orderSchema.merchantOid, payload.merchant_oid))
-      .limit(1);
-
-    if (!order || order.length === 0) {
-      return { success: false, error: 'Order not found' };
-    }
-
-    const existingOrder = order[0]!;
-
-    console.log('PayTR Callback - Order Details:', {
-      merchantOid: payload.merchant_oid,
-      orderType: existingOrder.orderType,
-      creditAmount: existingOrder.creditAmount,
-      userId: existingOrder.userId,
-      status: payload.status,
-    });
-
-    // Sipariş zaten onaylandıysa veya iptal edildiyse tekrar işlem yapma
-    if (
-      existingOrder.paymentStatus === 'success'
-      || existingOrder.paymentStatus === 'failed'
-    ) {
-      return { success: true }; // Tekrar bildirim gelmiş, OK dön
-    }
-
-    // Siparişi güncelle
-    // PayTR'da status: '1' = Başarılı, '0' = Başarısız. Bazen 'success' dönebilir.
-    if (payload.status === '1' || payload.status === 'success') {
-      await db
-        .update(orderSchema)
-        .set({
-          paymentStatus: 'success',
-          totalAmount: Number.parseInt(payload.total_amount, 10),
-          paymentType: payload.payment_type,
-          paidAt: new Date(),
-          shippingStatus: existingOrder.orderType === 'credit' ? null : 'preparing',
-        })
-        .where(eq(orderSchema.merchantOid, payload.merchant_oid));
-
-      // Eğer kredi satın alımıysa, kullanıcının kredi bakiyesini artır
-      if (existingOrder.orderType === 'credit' && existingOrder.creditAmount) {
-        // Önce mevcut krediyi al
-        const [currentUser] = await db
-          .select({ artCredits: userSchema.artCredits })
-          .from(userSchema)
-          .where(eq(userSchema.id, existingOrder.userId))
-          .limit(1);
-
-        if (!currentUser) {
-          console.error(`❌ User not found: ${existingOrder.userId}`);
-          throw new Error('User not found');
-        }
-
-        // Yeni kredi miktarını hesapla
-        const newCreditAmount = currentUser.artCredits + existingOrder.creditAmount;
-
-        console.log(`💰 Adding ${existingOrder.creditAmount} credits to user ${existingOrder.userId}`);
-
-        console.log(`� Current: ${currentUser.artCredits} → New: ${newCreditAmount}`);
-
-        // Kredileri güncelle - SQL expression yerine direkt değer kullan
-        await db
-          .update(userSchema)
-          .set({
-            artCredits: newCreditAmount,
-          })
-          .where(eq(userSchema.id, existingOrder.userId));
-
-        console.log(`✅ Successfully updated credits for user ${existingOrder.userId}`);
-      } else {
-        console.log('⚠️ NOT A CREDIT ORDER or creditAmount is null:', {
-          orderType: existingOrder.orderType,
-          creditAmount: existingOrder.creditAmount,
-        });
-
-        // Ürün siparişiyse, görselin is_selected alanını true yap
-        if (existingOrder.generationId) {
-          await db
-            .update(generatedImageSchema)
-            .set({ isSelected: true })
-            .where(eq(generatedImageSchema.generationId, existingOrder.generationId));
-
-          console.log(`✅ Marked image as selected: ${existingOrder.generationId}`);
-        }
-      }
-
-      // Send SMS notification
-      try {
-        const smsMessage = `Sayin ${existingOrder.customerName}, siparisiniz alinmistir. Siparis numaraniz: ${existingOrder.merchantOid}. Tesekkur ederiz. Birebiro`;
-        await SmsService.sendSms(existingOrder.customerPhone, smsMessage);
-      } catch (smsError) {
-        console.error('Failed to send SMS for order:', smsError);
-      }
-
-      // TODO: Admin'e bildirim gönder
-    } else {
-      await db
-        .update(orderSchema)
-        .set({
-          paymentStatus: 'failed',
-          failedReasonCode: payload.failed_reason_code,
-          failedReasonMsg: payload.failed_reason_msg,
-        })
-        .where(eq(orderSchema.merchantOid, payload.merchant_oid));
-    }
-
-    return { success: true };
-  } catch (error) {
-    console.error('PayTR callback validation error:', error);
-    return { success: false, error: 'Validation failed' };
-  }
-}
-
-/**
- * Sipariş durumunu getir
- */
 export async function getOrderStatus(merchantOid: string) {
   try {
     const { userId } = await auth();
@@ -365,7 +207,6 @@ export async function getOrderStatus(merchantOid: string) {
 
     const orderData = order[0]!;
 
-    // Kullanıcı kendi siparişini görüntülüyor mu kontrol et
     if (orderData.userId !== userId) {
       return { success: false, error: 'Unauthorized' };
     }

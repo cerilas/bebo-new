@@ -14,6 +14,10 @@ const intlMiddleware = createMiddleware({
   defaultLocale: AppConfig.defaultLocale,
 });
 
+const isPublicApiRoute = createRouteMatcher([
+  '/api/akbank/(.*)', // Akbank callback + test endpoint (no auth needed)
+]);
+
 const isProtectedRoute = createRouteMatcher([
   '/dashboard(.*)',
   '/:locale/dashboard(.*)',
@@ -35,7 +39,18 @@ export default function middleware(
 ) {
   return clerkMiddleware(async (auth, req) => {
     const { userId } = await auth();
+    const pathname = req.nextUrl.pathname;
     const isSignRoute = req.nextUrl.pathname.includes('/sign-in') || req.nextUrl.pathname.includes('/sign-up');
+    const isPaymentResultRoute = /\/(?:checkout|purchase-credits)\/(?:success|failed)$/.test(pathname);
+
+    if (isPaymentResultRoute) {
+      return intlMiddleware(req);
+    }
+
+    // Akbank callback + test endpoint: no auth required
+    if (isPublicApiRoute(req)) {
+      return NextResponse.next();
+    }
 
     if (isProtectedRoute(req) && !userId) {
       const pathSegments = req.nextUrl.pathname.split('/');
@@ -80,8 +95,8 @@ export default function middleware(
 
 export const config = {
   matcher: [
-    '/((?!.+\\.[\\w]+$|_next|monitoring|api/paytr/callback|api/webhooks).*)',
+    '/((?!.+\\.[\\w]+$|_next|monitoring|api/paytr/callback|api/akbank/return|api/webhooks).*)',
     '/',
-    '/(api(?!/paytr/callback|/webhooks)|trpc)(.*)',
+    '/(api(?!/paytr/callback|/akbank/return|/webhooks)|trpc)(.*)',
   ],
 };

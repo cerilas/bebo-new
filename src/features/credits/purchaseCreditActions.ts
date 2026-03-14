@@ -16,7 +16,7 @@ import {
 } from '@/features/payments/akbankUtils';
 import { db } from '@/libs/DB';
 import { Env } from '@/libs/Env';
-import { artCreditSettingsSchema, orderSchema, userSchema } from '@/models/Schema';
+import { artCreditSettingsSchema, orderSchema, paymentLogsSchema, userSchema } from '@/models/Schema';
 import { AppConfig } from '@/utils/AppConfig';
 import { getBaseUrl } from '@/utils/Helpers';
 
@@ -243,15 +243,35 @@ export async function createCreditPurchase(
 
     const customerName = userEmail.split('@')[0] || 'Birebiro Kullanıcısı';
 
-    console.log('AKBANK credit payment initiated', {
+    // ── DETAILED DEBUG LOGGING ──
+    // Log every single field that will be POSTed to Akbank
+    console.log('═══ AKBANK FULL REQUEST DEBUG ═══');
+    console.log('userPhoneRaw:', JSON.stringify(userPhone));
+    console.log('sanitizedPhone:', JSON.stringify(sanitizedPhone));
+    for (const [k, v] of Object.entries(fields)) {
+      console.log(`  ${k}: ${JSON.stringify(v).slice(0, 200)}`);
+    }
+    console.log('═══ END AKBANK DEBUG ═══');
+
+    // Save full outgoing request to payment_logs for DB-level debugging
+    await db.insert(paymentLogsSchema).values({
       merchantOid,
-      amount,
-      txnCode: plainFields.txnCode,
-      creditAmount,
-      okUrl,
-      failUrl,
-      mobilePhone: sanitizedPhone,
-      userPhoneRaw: userPhone,
+      status: 'OUTGOING_REQUEST',
+      totalAmount: amount,
+      hash,
+      paymentType: 'akbank_payhosting',
+      failedReasonCode: null,
+      failedReasonMsg: null,
+      currency: 'TRY',
+      paymentAmount: amount,
+      rawPayload: JSON.stringify({
+        _type: 'outgoing_request',
+        userPhoneRaw: userPhone,
+        sanitizedPhone,
+        allFields: fields,
+      }),
+      ipAddress: null,
+      userAgent: null,
     });
 
     await db.insert(orderSchema).values({

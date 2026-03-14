@@ -39,10 +39,21 @@ export type AkbankPayHostingRequestFields = {
   okUrl: string;
   failUrl: string;
   emailAddress: string;
+  /** Leave empty — PAY_HOSTING validates non-empty values against a phone pattern */
+  mobilePhone: string;
+  homePhone: string;
+  workPhone: string;
   /** 128-character lowercase hex random string */
   randomNumber: string;
   /** Format: YYYY-MM-DDTHH:mm:ss.SSS */
   requestDateTime: string;
+  b2bIdentityNumber: string;
+  merchantData: string;
+  merchantBranchNo: string;
+  mobileEci: string;
+  walletProgramData: string;
+  mobileAssignedId: string;
+  mobileDeviceType: string;
   hash: string;
 };
 
@@ -97,10 +108,8 @@ export const getPayHostingActionUrl = (): string => {
 export const buildPayHostingHashInput = (
   fields: Omit<AkbankPayHostingRequestFields, 'hash'>,
 ): string => {
-  // Field order MUST match Akbank PAY_HOSTING documentation exactly.
-  // PAY_HOSTING does NOT include mobilePhone, homePhone, workPhone,
-  // b2bIdentityNumber, merchantData, merchantBranchNo, mobileEci,
-  // walletProgramData, mobileAssignedId, mobileDeviceType.
+  // ALL fields must be included in the hash computation (even empty strings)
+  // so that Akbank's hash verification matches. Order MUST match exactly.
   return [
     fields.paymentModel, // PAY_HOSTING
     fields.txnCode, // 1000
@@ -117,8 +126,18 @@ export const buildPayHostingHashInput = (
     fields.okUrl,
     fields.failUrl,
     fields.emailAddress,
+    fields.mobilePhone, // "" (empty — avoids VPS-3001 pattern validation)
+    fields.homePhone, // ""
+    fields.workPhone, // ""
     fields.randomNumber, // 128-char lowercase hex
     fields.requestDateTime, // YYYY-MM-DDTHH:mm:ss.SSS
+    fields.b2bIdentityNumber, // ""
+    fields.merchantData, // ""
+    fields.merchantBranchNo, // ""
+    fields.mobileEci, // ""
+    fields.walletProgramData, // ""
+    fields.mobileAssignedId, // ""
+    fields.mobileDeviceType, // ""
   ].join('');
 };
 

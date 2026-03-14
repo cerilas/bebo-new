@@ -82,7 +82,7 @@ export async function getAkbankPayHostingForm(
 
     const plainFields: Omit<AkbankPayHostingRequestFields, 'hash'> = {
       paymentModel: 'PAY_HOSTING',
-      txnCode: '1000', // Satış (sale) – Akbank PAY_HOSTING docs
+      txnCode: '1000',
       merchantSafeId: Env.AKBANK_MERCHANT_SAFE_ID,
       terminalSafeId: Env.AKBANK_TERMINAL_SAFE_ID,
       orderId: merchantOid,
@@ -91,13 +91,23 @@ export async function getAkbankPayHostingForm(
       ccbRewardAmount: '0.00',
       pcbRewardAmount: '0.00',
       xcbRewardAmount: '0.00',
-      currencyCode: '949', // TRY
+      currencyCode: '949',
       installCount: '1',
       okUrl,
       failUrl,
       emailAddress: request.customerEmail,
+      mobilePhone: '', // empty avoids VPS-3001 pattern validation
+      homePhone: '',
+      workPhone: '',
       randomNumber,
       requestDateTime,
+      b2bIdentityNumber: '',
+      merchantData: '',
+      merchantBranchNo: '',
+      mobileEci: '',
+      walletProgramData: '',
+      mobileAssignedId: '',
+      mobileDeviceType: '',
     };
 
     const hash = hashToString(

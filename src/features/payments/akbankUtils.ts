@@ -39,7 +39,7 @@ export type AkbankPayHostingRequestFields = {
   okUrl: string;
   failUrl: string;
   emailAddress: string;
-  /** 10-digit Turkish mobile number (e.g. "5XXXXXXXXX") */
+  /** 11-digit Turkish mobile number with leading 0 (e.g. "05XXXXXXXXX") */
   mobilePhone: string;
   homePhone: string;
   workPhone: string;
@@ -154,9 +154,14 @@ export const sanitizeMobilePhone = (raw: string): string => {
   }
   // Must be exactly 10 digits starting with 5 (Turkish GSM format)
   if (digits.length === 10 && digits.startsWith('5')) {
+    // Akbank expects 11-digit format with leading 0: 05XXXXXXXXX
+    return `0${digits}`;
+  }
+  // Already 11 digits with leading 0 (e.g. 05XXXXXXXXX)
+  if (digits.length === 11 && digits.startsWith('05')) {
     return digits;
   }
-  return '5321001010'; // fallback: valid Turkcell 532 prefix
+  return ''; // invalid — caller should handle
 };
 
 // ------------------------------------------------------------------

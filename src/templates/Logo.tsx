@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 
 type LogoProps = {
   variant?: 'light' | 'dark' | 'auto';
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'sm' | 'md' | 'lg' | 'xl';
   scrollProgress?: number; // 0 to 100
   className?: string;
 };
@@ -20,6 +20,7 @@ export const Logo = ({ variant = 'auto', size = 'md', className = '' }: LogoProp
     sm: 'h-6 md:h-8',
     md: 'h-8 md:h-10',
     lg: 'h-10 md:h-12',
+    xl: 'h-14 md:h-16 lg:h-20',
   };
 
   // Determine which logo to use based on variant and actual theme

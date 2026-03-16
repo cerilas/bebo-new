@@ -3,7 +3,7 @@
 import { useAuth } from '@clerk/nextjs';
 import { AlertCircle, Info, Sparkles, X } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import type { AkbankPayHostingRequestFields } from '@/features/payments/akbankUtils';
 import { Footer } from '@/templates/Footer';
@@ -89,7 +89,40 @@ export function PurchaseCreditsInterface() {
   const minPurchase = creditSettings?.minPurchase || 1;
   const maxPurchase = creditSettings?.maxPurchase || 1000;
   const maxUserCredits = creditSettings?.maxUserCredits;
-  const quickAmounts = [5, 10, 25, 50];
+  const remainingByUserLimit = typeof maxUserCredits === 'number' && maxUserCredits > 0
+    ? Math.max(0, maxUserCredits - currentCredits)
+    : null;
+  const effectiveMaxPurchase = remainingByUserLimit === null
+    ? maxPurchase
+    : Math.min(maxPurchase, remainingByUserLimit);
+  const quickAmounts = useMemo(() => {
+    const baseQuickAmounts = [5, 10, 25, 50];
+    const dynamicAmounts = baseQuickAmounts.filter(amount => amount >= minPurchase && amount <= effectiveMaxPurchase);
+
+    if (effectiveMaxPurchase >= minPurchase && !dynamicAmounts.includes(effectiveMaxPurchase)) {
+      dynamicAmounts.push(effectiveMaxPurchase);
+    }
+
+    return Array.from(new Set(dynamicAmounts)).sort((a, b) => a - b);
+  }, [effectiveMaxPurchase, minPurchase]);
+
+  useEffect(() => {
+    if (effectiveMaxPurchase < minPurchase) {
+      setSelectedAmount(0);
+      setCustomAmount('');
+      setIsCustom(false);
+      return;
+    }
+
+    if (!isCustom) {
+      if (selectedAmount >= minPurchase && selectedAmount <= effectiveMaxPurchase) {
+        return;
+      }
+
+      const fallbackAmount = quickAmounts[quickAmounts.length - 1] || effectiveMaxPurchase;
+      setSelectedAmount(fallbackAmount);
+    }
+  }, [effectiveMaxPurchase, isCustom, minPurchase, quickAmounts, selectedAmount]);
 
   // Toplam fiyat hesaplama (kuruştan TL'ye çevir)
   const totalPrice = isCustom
@@ -118,6 +151,11 @@ export function PurchaseCreditsInterface() {
 
     if (!userId) {
       setError('Lütfen giriş yapın');
+      return;
+    }
+
+    if (effectiveMaxPurchase < minPurchase) {
+      setError(t('purchase_limit_reached'));
       return;
     }
 
@@ -259,26 +297,34 @@ export function PurchaseCreditsInterface() {
           <label className="mb-3 block text-sm font-semibold text-gray-700 dark:text-gray-300">
             {t('quick_amounts')}
           </label>
-          <div className="grid grid-cols-4 gap-3">
-            {quickAmounts.map(amount => (
-              <button
-                key={amount}
-                type="button"
-                onClick={() => handleQuickSelect(amount)}
-                className={`rounded-lg border-2 p-4 text-center transition-all ${!isCustom && selectedAmount === amount
-                  ? 'border-purple-600 bg-purple-50 dark:border-purple-400 dark:bg-purple-900/20'
-                  : 'border-gray-200 hover:border-purple-300 dark:border-gray-700 dark:hover:border-purple-500'
-                }`}
-              >
-                <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                  {amount}
+          {quickAmounts.length > 0
+            ? (
+                <div className={`grid gap-3 ${quickAmounts.length >= 4 ? 'grid-cols-4' : quickAmounts.length === 3 ? 'grid-cols-3' : quickAmounts.length === 2 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                  {quickAmounts.map(amount => (
+                    <button
+                      key={amount}
+                      type="button"
+                      onClick={() => handleQuickSelect(amount)}
+                      className={`rounded-lg border-2 p-4 text-center transition-all ${!isCustom && selectedAmount === amount
+                        ? 'border-purple-600 bg-purple-50 dark:border-purple-400 dark:bg-purple-900/20'
+                        : 'border-gray-200 hover:border-purple-300 dark:border-gray-700 dark:hover:border-purple-500'
+                      }`}
+                    >
+                      <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                        {amount}
+                      </div>
+                      <div className="text-xs text-gray-600 dark:text-gray-400">
+                        Tasarım hakkı
+                      </div>
+                    </button>
+                  ))}
                 </div>
-                <div className="text-xs text-gray-600 dark:text-gray-400">
-                  Tasarım hakkı
+              )
+            : (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-100">
+                  {t('purchase_limit_reached')}
                 </div>
-              </button>
-            ))}
-          </div>
+              )}
         </div>
 
         {/* Custom Amount Input */}
@@ -290,10 +336,11 @@ export function PurchaseCreditsInterface() {
             <input
               type="number"
               min={minPurchase}
-              max={maxPurchase}
+              max={Math.max(minPurchase, effectiveMaxPurchase)}
               value={customAmount}
               onChange={e => handleCustomInput(e.target.value)}
               placeholder={t('amount_placeholder')}
+              disabled={effectiveMaxPurchase < minPurchase}
               className={`w-full rounded-lg border-2 px-4 py-3 transition-all focus:outline-none dark:bg-gray-800 dark:text-gray-100 ${isCustom
                 ? 'border-purple-600 dark:border-purple-400'
                 : 'border-gray-200 focus:border-purple-400 dark:border-gray-700'
@@ -304,7 +351,7 @@ export function PurchaseCreditsInterface() {
           <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
             {t('min_purchase', { min: minPurchase })}
             {' • '}
-            {t('max_purchase', { max: maxPurchase })}
+            {t('max_purchase', { max: effectiveMaxPurchase })}
           </p>
         </div>
 
@@ -348,7 +395,7 @@ export function PurchaseCreditsInterface() {
         <button
           type="button"
           onClick={handlePurchase}
-          disabled={totalPrice === 0 || isProcessing || !isLoaded || !userId}
+          disabled={totalPrice === 0 || isProcessing || !isLoaded || !userId || effectiveMaxPurchase < minPurchase}
           className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 px-8 py-4 text-lg font-semibold text-white shadow-lg transition-all hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Sparkles className="size-6" />

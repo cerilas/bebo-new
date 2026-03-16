@@ -7,6 +7,8 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
+import { Logo } from './Logo';
+
 const DarkVeil = dynamic(() => import('@/components/DarkVeil'), {
   ssr: false,
   loading: () => <div className="size-full bg-[#0a0a0f]" />,
@@ -44,11 +46,16 @@ export const Hero = () => {
       <div className="relative z-10 mx-auto flex min-h-screen max-w-6xl flex-col items-center justify-center px-6 py-32">
 
         {/* Main heading */}
-        <h1 className="mb-6 text-center text-5xl font-bold leading-tight tracking-tight text-white md:text-7xl lg:text-8xl">
+        <h1 className="mb-6 text-center text-[2.85rem] font-bold leading-tight tracking-tight text-white md:text-[4.2rem] lg:text-[5.4rem]">
           {t.rich('title', {
             important: chunks => (
-              <span className="bg-gradient-to-r from-purple-400 via-pink-400 to-orange-400 bg-clip-text text-transparent">
+              <span className="inline-flex flex-wrap items-center justify-center gap-x-3 bg-gradient-to-r from-purple-400 via-pink-400 to-orange-400 bg-clip-text text-transparent">
                 {chunks}
+              </span>
+            ),
+            logo: () => (
+              <span className="inline-flex translate-y-[0.06em] items-center">
+                <Logo size="xl" className="mx-2" />
               </span>
             ),
           })}

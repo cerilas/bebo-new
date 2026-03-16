@@ -22,7 +22,7 @@
   },
   "Hero": {
     "follow_twitter": "X'te @Birebiro'yu takip et",
-    "title": "Sunulanı Değil Hayalindeki Ürünü Al <important>Hayalindeki Tasarım Birebiro</important>",
+    "title": "Sunulanı Değil Hayalindeki Ürünü Al <important>Hayalindeki Tasarım <logo></logo></important>",
     "description": "Kalemin yok, fırçan yok… ama hayalin var. Artık sunulan stoklu ürünlerle vakit kaybetmene gerek yok. Birebiro, sadece birkaç kelimenle bilinçaltının derinliklerinden bu mistik manzarayı ortaya çıkarır, evin ve ofisin için ustalıkla eserini işler ve sana ulaştırır. Bu senin zihninden çıkan bir şaheser.",
     "primary_button": "Hemen Tasarla",
     "how_it_works": "Nasıl Çalışır?"
@@ -462,6 +462,7 @@
     "failed_message": "Ödeme işleminiz tamamlanamadı. Lütfen tekrar deneyin veya müşteri hizmetlerimizle iletişime geçin.",
     "try_again": "Tekrar Dene",
     "max_limit_error": "Maksimum kredi limitine ({max}) ulaşacaksınız. Mevcut krediniz: {current}. En fazla {available} kredi daha alabilirsiniz.",
+    "purchase_limit_reached": "Mevcut kredi limitiniz nedeniyle şu anda yeni Tasarım hakkı satın alamazsınız.",
     "error_title": "İşlem Başarısız"
   },
   "Legal": {

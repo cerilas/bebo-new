@@ -14,7 +14,7 @@
   },
   "Hero": {
     "follow_twitter": "Suivez @Birebiro sur X",
-    "title": "Obtenez Votre Produit de Rêve, Pas Ce Qui Est Offert <important>Concevez Votre Rêve avec Birebiro</important>",
+    "title": "Obtenez Votre Produit de Rêve, Pas Ce Qui Est Offert <important>Concevez Votre Rêve avec <logo></logo></important>",
     "description": "Pas de crayon, pas de pinceau… mais vous avez un rêve. Plus besoin de perdre du temps avec des produits en stock. Birebiro donne vie à ce paysage mystique des profondeurs de votre subconscient en quelques mots, façonne expertement votre chef-d'œuvre pour votre maison et bureau, et vous le livre. C'est un chef-d'œuvre de votre esprit.",
     "primary_button": "Démarrer",
     "secondary_button": "Mettez une étoile sur GitHub"
@@ -315,7 +315,10 @@
     "go_dashboard": "Aller au Tableau de Bord",
     "failed_title": "Paiement Échoué",
     "failed_message": "Votre paiement n'a pas pu être complété. Veuillez réessayer ou contacter le support client.",
-    "try_again": "Réessayer"
+    "try_again": "Réessayer",
+    "max_limit_error": "Vous atteindrez la limite maximale de crédits ({max}). Vos crédits actuels : {current}. Vous pouvez acheter au maximum {available} crédits supplémentaires.",
+    "purchase_limit_reached": "Vous ne pouvez pas acheter de nouveaux Crédits d'Art pour le moment car vous avez atteint votre limite actuelle.",
+    "error_title": "Échec de la transaction"
   },
   "Legal": {
     "meta_title": "Documents Légaux",

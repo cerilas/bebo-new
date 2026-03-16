@@ -80,6 +80,11 @@ export function CheckoutInterface({
   const [taxNumber, setTaxNumber] = useState('');
   const [taxOffice, setTaxOffice] = useState('');
   const [companyAddress, setCompanyAddress] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState<'card' | null>(null);
+  const [cardHolderName, setCardHolderName] = useState('');
+  const [cardNumber, setCardNumber] = useState('');
+  const [cardExpiry, setCardExpiry] = useState('');
+  const [cardCvv, setCardCvv] = useState('');
 
   // Geliver Address State
   const [cities, setCities] = useState<City[]>([]);
@@ -206,6 +211,37 @@ export function CheckoutInterface({
       return;
     }
 
+    if (wantsCorporateInvoice && (!companyName || !taxNumber || !taxOffice || !companyAddress)) {
+      setError(locale === 'en'
+        ? 'Please fill in all corporate invoice fields'
+        : locale === 'fr'
+          ? 'Veuillez remplir tous les champs de facture entreprise'
+          : 'Lütfen tüm kurumsal fatura alanlarını doldurun');
+      return;
+    }
+
+    if (paymentMethod !== 'card') {
+      setError(locale === 'en'
+        ? 'Please select a payment method'
+        : locale === 'fr'
+          ? 'Veuillez sélectionner un mode de paiement'
+          : 'Lütfen bir ödeme yöntemi seçin');
+      return;
+    }
+
+    const normalizedCardNumber = cardNumber.replace(/\s/g, '');
+    const normalizedCvv = cardCvv.replace(/\D/g, '');
+    const cardExpiryValid = /^(?:0[1-9]|1[0-2])\/\d{2}$/.test(cardExpiry);
+
+    if (!cardHolderName || normalizedCardNumber.length < 15 || !cardExpiryValid || normalizedCvv.length < 3) {
+      setError(locale === 'en'
+        ? 'Please enter valid card information'
+        : locale === 'fr'
+          ? 'Veuillez saisir des informations de carte valides'
+          : 'Lütfen geçerli kart bilgileri girin');
+      return;
+    }
+
     // ID'leri kontrol et
     if (!priceData.productId || !priceData.sizeId || !priceData.frameId) {
       console.error('Missing product IDs:', {
@@ -255,6 +291,7 @@ export function CheckoutInterface({
         taxNumber: wantsCorporateInvoice ? taxNumber : undefined,
         taxOffice: wantsCorporateInvoice ? taxOffice : undefined,
         companyAddress: wantsCorporateInvoice ? companyAddress : undefined,
+        paymentType: 'card',
         orientation,
         imageTransform: propImageTransform, // Görsel konumlandırma/crop bilgisi
         locale,
@@ -548,6 +585,115 @@ export function CheckoutInterface({
                       </div>
                     </div>
                   )}
+
+                  <div className="border-t border-gray-200 pt-4 dark:border-gray-700">
+                    <h3 className="mb-3 text-base font-semibold text-gray-900 dark:text-white">
+                      {locale === 'en' ? 'Payment Method' : locale === 'fr' ? 'Mode de paiement' : 'Ödeme Yöntemi'}
+                    </h3>
+
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod('card')}
+                      className={`w-full rounded-lg border-2 p-4 text-left transition-all ${paymentMethod === 'card'
+                        ? 'border-purple-600 bg-purple-50 dark:border-purple-400 dark:bg-purple-900/20'
+                        : 'border-gray-200 hover:border-purple-300 dark:border-gray-700 dark:hover:border-purple-500'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <CreditCard className="size-5 text-purple-600 dark:text-purple-400" />
+                        <div>
+                          <p className="font-medium text-gray-900 dark:text-white">
+                            {locale === 'en' ? 'Credit / Debit Card' : locale === 'fr' ? 'Carte de crédit / débit' : 'Kredi / Banka Kartı'}
+                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            {locale === 'en' ? 'Enter your card details securely' : locale === 'fr' ? 'Saisissez vos informations de carte en toute sécurité' : 'Kart bilgilerinizi güvenle girin'}
+                          </p>
+                        </div>
+                      </div>
+                    </button>
+
+                    <div
+                      className={`grid transition-all duration-300 ease-in-out ${paymentMethod === 'card'
+                        ? 'mt-3 grid-rows-[1fr] opacity-100'
+                        : 'grid-rows-[0fr] opacity-0'
+                      }`}
+                    >
+                      <div className="overflow-hidden">
+                        <div className="space-y-4 rounded-lg border border-purple-200 bg-purple-50/70 p-4 dark:border-purple-900/40 dark:bg-purple-900/10">
+                          <div>
+                            <label htmlFor="card-holder-name" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                              {locale === 'en' ? 'Card Holder Name' : locale === 'fr' ? 'Nom du titulaire' : 'Kart Üzerindeki İsim'}
+                            </label>
+                            <input
+                              id="card-holder-name"
+                              type="text"
+                              value={cardHolderName}
+                              onChange={e => setCardHolderName(e.target.value)}
+                              placeholder={locale === 'en' ? 'e.g. JOHN DOE' : locale === 'fr' ? 'ex. JEAN DUPONT' : 'Örn: AHMET YILMAZ'}
+                              className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                            />
+                          </div>
+
+                          <div>
+                            <label htmlFor="card-number" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                              {locale === 'en' ? 'Card Number' : locale === 'fr' ? 'Numéro de carte' : 'Kart Numarası'}
+                            </label>
+                            <input
+                              id="card-number"
+                              type="text"
+                              inputMode="numeric"
+                              value={cardNumber}
+                              onChange={(e) => {
+                                const digitsOnly = e.target.value.replace(/\D/g, '').slice(0, 19);
+                                const formatted = digitsOnly.replace(/(.{4})/g, '$1 ').trim();
+                                setCardNumber(formatted);
+                              }}
+                              placeholder="0000 0000 0000 0000"
+                              className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                            />
+                          </div>
+
+                          <div className="grid gap-4 md:grid-cols-2">
+                            <div>
+                              <label htmlFor="card-expiry" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                {locale === 'en' ? 'Expiry Date' : locale === 'fr' ? 'Date d\'expiration' : 'Son Kullanma Tarihi'}
+                              </label>
+                              <input
+                                id="card-expiry"
+                                type="text"
+                                inputMode="numeric"
+                                value={cardExpiry}
+                                onChange={(e) => {
+                                  const digitsOnly = e.target.value.replace(/\D/g, '').slice(0, 4);
+                                  const formatted = digitsOnly.length > 2
+                                    ? `${digitsOnly.slice(0, 2)}/${digitsOnly.slice(2)}`
+                                    : digitsOnly;
+                                  setCardExpiry(formatted);
+                                }}
+                                placeholder="MM/YY"
+                                className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                              />
+                            </div>
+
+                            <div>
+                              <label htmlFor="card-cvv" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                CVV
+                              </label>
+                              <input
+                                id="card-cvv"
+                                type="password"
+                                inputMode="numeric"
+                                value={cardCvv}
+                                onChange={e => setCardCvv(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                                placeholder="123"
+                                className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
 

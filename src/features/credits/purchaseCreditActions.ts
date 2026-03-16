@@ -37,6 +37,23 @@ type AkbankCreditFormResponse = {
   error?: string;
 };
 
+export type CreditPurchaseCustomerPayload = {
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string;
+  customerAddress: string;
+  customerCity?: string;
+  cityCode?: string;
+  customerDistrict?: string;
+  districtId?: number;
+  isCorporateInvoice?: boolean;
+  companyName?: string;
+  taxNumber?: string;
+  taxOffice?: string;
+  companyAddress?: string;
+  paymentType?: 'card';
+};
+
 export async function getCreditSettings(): Promise<CreditSettings | null> {
   try {
     const settings = await db
@@ -87,6 +104,7 @@ export async function calculateCreditPrice(amount: number): Promise<number> {
 export async function createCreditPurchase(
   creditAmount: number,
   locale: string = 'tr',
+  customerPayload?: CreditPurchaseCustomerPayload,
 ): Promise<AkbankCreditFormResponse> {
   try {
     const { userId, sessionClaims } = await auth();
@@ -190,6 +208,8 @@ export async function createCreditPurchase(
 
     const lang: 'TR' | 'EN' = locale.toUpperCase() === 'EN' ? 'EN' : 'TR';
 
+    const billingEmail = customerPayload?.customerEmail || userEmail;
+
     const plainFields: Omit<AkbankPayHostingRequestFields, 'hash'> = {
       paymentModel: 'PAY_HOSTING',
       txnCode: '1000',
@@ -205,7 +225,7 @@ export async function createCreditPurchase(
       installCount: '1',
       okUrl,
       failUrl,
-      emailAddress: userEmail,
+      emailAddress: billingEmail,
       mobilePhone: '', // empty avoids VPS-3001 pattern validation
       homePhone: '',
       workPhone: '',
@@ -228,7 +248,7 @@ export async function createCreditPurchase(
 
     const fields: AkbankPayHostingRequestFields = { ...plainFields, hash };
 
-    const customerName = userEmail.split('@')[0] || 'Birebiro Kullanıcısı';
+    const customerName = customerPayload?.customerName || userEmail.split('@')[0] || 'Birebiro Kullanıcısı';
 
     // ── DEBUG LOGGING ──
     const sk = Env.AKBANK_SECRET_KEY;
@@ -273,9 +293,19 @@ export async function createCreditPurchase(
       paymentStatus: 'pending',
       paytrToken: null,
       customerName,
-      customerEmail: userEmail,
-      customerPhone: (userPhone || 'N/A').slice(0, 20), // phone for order record only, not sent to Akbank
-      customerAddress: 'Online Kredi Satın Alımı',
+      customerEmail: billingEmail,
+      customerPhone: (customerPayload?.customerPhone || userPhone || 'N/A').slice(0, 20),
+      customerAddress: customerPayload?.customerAddress || 'Online Kredi Satın Alımı',
+      customerCity: customerPayload?.customerCity,
+      cityCode: customerPayload?.cityCode,
+      customerDistrict: customerPayload?.customerDistrict,
+      districtId: customerPayload?.districtId,
+      isCorporateInvoice: customerPayload?.isCorporateInvoice ?? false,
+      companyName: customerPayload?.isCorporateInvoice ? customerPayload.companyName : null,
+      taxNumber: customerPayload?.isCorporateInvoice ? customerPayload.taxNumber : null,
+      taxOffice: customerPayload?.isCorporateInvoice ? customerPayload.taxOffice : null,
+      companyAddress: customerPayload?.isCorporateInvoice ? customerPayload.companyAddress : null,
+      paymentType: customerPayload?.paymentType ?? 'card',
       orderType: 'credit',
       creditAmount,
       generationId: null,

@@ -1,10 +1,11 @@
 'use client';
 
-import { useAuth } from '@clerk/nextjs';
-import { AlertCircle, Info, Sparkles, X } from 'lucide-react';
+import { useAuth, useUser } from '@clerk/nextjs';
+import { AlertCircle, CreditCard, Info, Shield, Sparkles, X } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
+import { type City, type District, getCities, getDistricts } from '@/features/checkout/geliverActions';
 import type { AkbankPayHostingRequestFields } from '@/features/payments/akbankUtils';
 import { Footer } from '@/templates/Footer';
 import { Navbar } from '@/templates/Navbar';
@@ -17,6 +18,7 @@ export function PurchaseCreditsInterface() {
   const locale = useLocale();
   const akbankFormRef = useRef<HTMLFormElement>(null);
   const { isLoaded, userId } = useAuth();
+  const { user } = useUser();
 
   const [selectedAmount, setSelectedAmount] = useState<number>(10);
   const [customAmount, setCustomAmount] = useState<string>('');
@@ -28,6 +30,24 @@ export function PurchaseCreditsInterface() {
   const [akbankFields, setAkbankFields] = useState<AkbankPayHostingRequestFields | null>(null);
   const [currentCredits, setCurrentCredits] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
+  const [customerName, setCustomerName] = useState('');
+  const [customerEmail, setCustomerEmail] = useState('');
+  const [customerPhone, setCustomerPhone] = useState('');
+  const [customerAddress, setCustomerAddress] = useState('');
+  const [customerCity, setCustomerCity] = useState('');
+  const [customerDistrict, setCustomerDistrict] = useState('');
+  const [cities, setCities] = useState<City[]>([]);
+  const [districts, setDistricts] = useState<District[]>([]);
+  const [wantsCorporateInvoice, setWantsCorporateInvoice] = useState(false);
+  const [companyName, setCompanyName] = useState('');
+  const [taxNumber, setTaxNumber] = useState('');
+  const [taxOffice, setTaxOffice] = useState('');
+  const [companyAddress, setCompanyAddress] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState<'card' | null>(null);
+  const [cardHolderName, setCardHolderName] = useState('');
+  const [cardNumber, setCardNumber] = useState('');
+  const [cardExpiry, setCardExpiry] = useState('');
+  const [cardCvv, setCardCvv] = useState('');
 
   // Hata mesajını otomatik temizle
   useEffect(() => {
@@ -37,6 +57,51 @@ export function PurchaseCreditsInterface() {
     }
     return undefined;
   }, [error]);
+
+  useEffect(() => {
+    const fullName = user?.fullName || `${user?.firstName || ''} ${user?.lastName || ''}`.trim();
+    const email = user?.primaryEmailAddress?.emailAddress || '';
+
+    if (fullName) {
+      setCustomerName(prev => prev || fullName);
+    }
+
+    if (email) {
+      setCustomerEmail(prev => prev || email);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    async function loadCities() {
+      const result = await getCities();
+      if (result.success && result.data) {
+        setCities(result.data);
+      }
+    }
+
+    loadCities();
+  }, []);
+
+  useEffect(() => {
+    async function loadDistricts() {
+      if (!customerCity) {
+        setDistricts([]);
+        setCustomerDistrict('');
+        return;
+      }
+
+      const result = await getDistricts(customerCity);
+      if (result.success && result.data) {
+        setDistricts(result.data);
+      } else {
+        setDistricts([]);
+      }
+
+      setCustomerDistrict('');
+    }
+
+    loadDistricts();
+  }, [customerCity]);
 
   // Mevcut kredi miktarını ve ayarları yükle
   useEffect(() => {
@@ -130,6 +195,38 @@ export function PurchaseCreditsInterface() {
     : (selectedAmount * pricePerCredit) / 100;
 
   const currentAmount = isCustom ? Number.parseInt(customAmount, 10) || 0 : selectedAmount;
+  const normalizedCardNumber = cardNumber.replace(/\s/g, '');
+  const normalizedCvv = cardCvv.replace(/\D/g, '');
+  const cardExpiryValid = /^(?:0[1-9]|1[0-2])\/\d{2}$/.test(cardExpiry);
+  const isBillingInfoComplete = Boolean(
+    customerName.trim()
+    && customerEmail.trim()
+    && customerPhone.trim()
+    && customerAddress.trim()
+    && customerCity
+    && customerDistrict,
+  );
+  const isCorporateInfoComplete = !wantsCorporateInvoice || Boolean(
+    companyName.trim()
+    && taxNumber.trim()
+    && taxOffice.trim()
+    && companyAddress.trim(),
+  );
+  const isPaymentInfoComplete = paymentMethod === 'card' && Boolean(
+    cardHolderName.trim()
+    && normalizedCardNumber.length >= 15
+    && cardExpiryValid
+    && normalizedCvv.length >= 3,
+  );
+  const isPurchaseFormReady = Boolean(
+    isLoaded
+    && userId
+    && totalPrice > 0
+    && effectiveMaxPurchase >= minPurchase
+    && isBillingInfoComplete
+    && isCorporateInfoComplete
+    && isPaymentInfoComplete,
+  );
 
   const handleQuickSelect = (amount: number) => {
     setSelectedAmount(amount);
@@ -159,6 +256,42 @@ export function PurchaseCreditsInterface() {
       return;
     }
 
+    if (!customerName || !customerEmail || !customerPhone || !customerAddress || !customerCity || !customerDistrict) {
+      setError(locale === 'en'
+        ? 'Please fill in all billing and address fields'
+        : locale === 'fr'
+          ? 'Veuillez remplir tous les champs de facturation et d\'adresse'
+          : 'Lütfen tüm fatura ve adres alanlarını doldurun');
+      return;
+    }
+
+    if (wantsCorporateInvoice && (!companyName || !taxNumber || !taxOffice || !companyAddress)) {
+      setError(locale === 'en'
+        ? 'Please fill in all corporate invoice fields'
+        : locale === 'fr'
+          ? 'Veuillez remplir tous les champs de facture entreprise'
+          : 'Lütfen tüm kurumsal fatura alanlarını doldurun');
+      return;
+    }
+
+    if (paymentMethod !== 'card') {
+      setError(locale === 'en'
+        ? 'Please select a payment method'
+        : locale === 'fr'
+          ? 'Veuillez sélectionner un mode de paiement'
+          : 'Lütfen bir ödeme yöntemi seçin');
+      return;
+    }
+
+    if (!cardHolderName || normalizedCardNumber.length < 15 || !cardExpiryValid || normalizedCvv.length < 3) {
+      setError(locale === 'en'
+        ? 'Please enter valid card information'
+        : locale === 'fr'
+          ? 'Veuillez saisir des informations de carte valides'
+          : 'Lütfen geçerli kart bilgileri girin');
+      return;
+    }
+
     // Limit kontrolü
     if (typeof maxUserCredits === 'number' && maxUserCredits > 0) {
       const nextTotal = currentCredits + currentAmount;
@@ -173,7 +306,25 @@ export function PurchaseCreditsInterface() {
     try {
       const amount = isCustom ? Number.parseInt(customAmount, 10) : selectedAmount;
 
-      const result = await createCreditPurchase(amount, locale);
+      const selectedCity = cities.find(city => city.cityCode === customerCity);
+      const selectedDistrict = districts.find(district => district.districtID.toString() === customerDistrict);
+
+      const result = await createCreditPurchase(amount, locale, {
+        customerName,
+        customerEmail,
+        customerPhone,
+        customerAddress,
+        customerCity: selectedCity?.name || customerCity,
+        cityCode: customerCity,
+        customerDistrict: selectedDistrict?.name || customerDistrict,
+        districtId: customerDistrict ? Number.parseInt(customerDistrict, 10) : undefined,
+        isCorporateInvoice: wantsCorporateInvoice,
+        companyName: wantsCorporateInvoice ? companyName : undefined,
+        taxNumber: wantsCorporateInvoice ? taxNumber : undefined,
+        taxOffice: wantsCorporateInvoice ? taxOffice : undefined,
+        companyAddress: wantsCorporateInvoice ? companyAddress : undefined,
+        paymentType: 'card',
+      });
 
       if (result.success && result.actionUrl && result.fields) {
         setAkbankActionUrl(result.actionUrl);
@@ -223,7 +374,7 @@ export function PurchaseCreditsInterface() {
       <Navbar />
 
       {/* Main Content */}
-      <div className="mx-auto max-w-4xl px-4 py-8">
+      <div className="mx-auto max-w-4xl px-4 pb-40 pt-14 sm:pb-44 sm:pt-16">
         {/* Error Notification */}
         {error && (
           <div className="fixed inset-x-4 top-24 z-[100] flex justify-center sm:inset-x-0">
@@ -355,6 +506,285 @@ export function PurchaseCreditsInterface() {
           </p>
         </div>
 
+        <div className="mb-8 rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+          <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
+            {locale === 'en' ? 'Billing Information' : locale === 'fr' ? 'Informations de facturation' : 'Fatura Bilgileri'}
+          </h2>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <div>
+              <label htmlFor="customer-name" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                {locale === 'en' ? 'Full Name' : locale === 'fr' ? 'Nom complet' : 'Ad Soyad'}
+              </label>
+              <input
+                id="customer-name"
+                type="text"
+                value={customerName}
+                onChange={e => setCustomerName(e.target.value)}
+                className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="customer-email" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                E-posta
+              </label>
+              <input
+                id="customer-email"
+                type="email"
+                value={customerEmail}
+                onChange={e => setCustomerEmail(e.target.value)}
+                className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="customer-phone" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                {locale === 'en' ? 'Phone' : locale === 'fr' ? 'Téléphone' : 'Telefon'}
+              </label>
+              <input
+                id="customer-phone"
+                type="tel"
+                value={customerPhone}
+                onChange={e => setCustomerPhone(e.target.value)}
+                placeholder="05XX XXX XX XX"
+                className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="customer-city" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                {locale === 'en' ? 'City' : locale === 'fr' ? 'Ville' : 'İl'}
+              </label>
+              <select
+                id="customer-city"
+                value={customerCity}
+                onChange={e => setCustomerCity(e.target.value)}
+                className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+              >
+                <option value="">{locale === 'en' ? 'Select city' : locale === 'fr' ? 'Sélectionnez une ville' : 'İl seçin'}</option>
+                {cities.map(city => (
+                  <option key={city.cityCode} value={city.cityCode}>{city.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="md:col-span-2">
+              <label htmlFor="customer-district" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                {locale === 'en' ? 'District' : locale === 'fr' ? 'District' : 'İlçe'}
+              </label>
+              <select
+                id="customer-district"
+                value={customerDistrict}
+                onChange={e => setCustomerDistrict(e.target.value)}
+                disabled={!customerCity || districts.length === 0}
+                className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+              >
+                <option value="">{locale === 'en' ? 'Select district' : locale === 'fr' ? 'Sélectionnez un district' : 'İlçe seçin'}</option>
+                {districts.map(district => (
+                  <option key={district.districtID} value={district.districtID.toString()}>{district.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="md:col-span-2">
+              <label htmlFor="customer-address" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                {locale === 'en' ? 'Address' : locale === 'fr' ? 'Adresse' : 'Adres'}
+              </label>
+              <textarea
+                id="customer-address"
+                rows={3}
+                value={customerAddress}
+                onChange={e => setCustomerAddress(e.target.value)}
+                className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+              />
+            </div>
+          </div>
+
+          <div className="mt-4 border-t border-gray-200 pt-4 dark:border-gray-700">
+            <label className="flex items-center gap-3 text-sm font-medium text-gray-700 dark:text-gray-300">
+              <input
+                type="checkbox"
+                checked={wantsCorporateInvoice}
+                onChange={e => setWantsCorporateInvoice(e.target.checked)}
+                className="size-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+              />
+              {locale === 'en' ? 'I want a corporate invoice' : locale === 'fr' ? 'Je veux une facture entreprise' : 'Kurumsal fatura istiyorum'}
+            </label>
+
+            {wantsCorporateInvoice && (
+              <div className="mt-4 grid gap-4 md:grid-cols-2">
+                <div>
+                  <label htmlFor="company-name" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {locale === 'en' ? 'Company Name' : locale === 'fr' ? 'Nom de l\'entreprise' : 'Şirket Ünvanı'}
+                  </label>
+                  <input
+                    id="company-name"
+                    type="text"
+                    value={companyName}
+                    onChange={e => setCompanyName(e.target.value)}
+                    className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="tax-number" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {locale === 'en' ? 'Tax Number' : locale === 'fr' ? 'Numéro fiscal' : 'Vergi Numarası'}
+                  </label>
+                  <input
+                    id="tax-number"
+                    type="text"
+                    value={taxNumber}
+                    onChange={e => setTaxNumber(e.target.value)}
+                    className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="tax-office" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {locale === 'en' ? 'Tax Office' : locale === 'fr' ? 'Centre des impôts' : 'Vergi Dairesi'}
+                  </label>
+                  <input
+                    id="tax-office"
+                    type="text"
+                    value={taxOffice}
+                    onChange={e => setTaxOffice(e.target.value)}
+                    className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label htmlFor="company-address" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {locale === 'en' ? 'Company Address' : locale === 'fr' ? 'Adresse de l\'entreprise' : 'Şirket Adresi'}
+                  </label>
+                  <textarea
+                    id="company-address"
+                    rows={2}
+                    value={companyAddress}
+                    onChange={e => setCompanyAddress(e.target.value)}
+                    className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="mb-8 rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+          <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
+            {locale === 'en' ? 'Payment Method' : locale === 'fr' ? 'Mode de paiement' : 'Ödeme Yöntemi'}
+          </h2>
+
+          <button
+            type="button"
+            onClick={() => setPaymentMethod('card')}
+            className={`w-full rounded-lg border-2 p-4 text-left transition-all ${paymentMethod === 'card'
+              ? 'border-purple-600 bg-purple-50 dark:border-purple-400 dark:bg-purple-900/20'
+              : 'border-gray-200 hover:border-purple-300 dark:border-gray-700 dark:hover:border-purple-500'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <CreditCard className="size-5 text-purple-600 dark:text-purple-400" />
+              <div>
+                <p className="font-medium text-gray-900 dark:text-white">
+                  {locale === 'en' ? 'Credit / Debit Card' : locale === 'fr' ? 'Carte de crédit / débit' : 'Kredi / Banka Kartı'}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  {locale === 'en' ? 'Enter your card details securely' : locale === 'fr' ? 'Saisissez vos informations de carte en toute sécurité' : 'Kart bilgilerinizi güvenle girin'}
+                </p>
+              </div>
+            </div>
+          </button>
+
+          <div
+            className={`grid transition-all duration-300 ease-in-out ${paymentMethod === 'card'
+              ? 'mt-3 grid-rows-[1fr] opacity-100'
+              : 'grid-rows-[0fr] opacity-0'
+            }`}
+          >
+            <div className="overflow-hidden">
+              <div className="space-y-4 rounded-lg border border-purple-200 bg-purple-50/70 p-4 dark:border-purple-900/40 dark:bg-purple-900/10">
+                <div>
+                  <label htmlFor="card-holder-name" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {locale === 'en' ? 'Card Holder Name' : locale === 'fr' ? 'Nom du titulaire' : 'Kart Üzerindeki İsim'}
+                  </label>
+                  <input
+                    id="card-holder-name"
+                    type="text"
+                    value={cardHolderName}
+                    onChange={e => setCardHolderName(e.target.value)}
+                    className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="card-number" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {locale === 'en' ? 'Card Number' : locale === 'fr' ? 'Numéro de carte' : 'Kart Numarası'}
+                  </label>
+                  <input
+                    id="card-number"
+                    type="text"
+                    inputMode="numeric"
+                    value={cardNumber}
+                    onChange={(e) => {
+                      const digitsOnly = e.target.value.replace(/\D/g, '').slice(0, 19);
+                      const formatted = digitsOnly.replace(/(.{4})/g, '$1 ').trim();
+                      setCardNumber(formatted);
+                    }}
+                    placeholder="0000 0000 0000 0000"
+                    className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div>
+                    <label htmlFor="card-expiry" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      {locale === 'en' ? 'Expiry Date' : locale === 'fr' ? 'Date d\'expiration' : 'Son Kullanma Tarihi'}
+                    </label>
+                    <input
+                      id="card-expiry"
+                      type="text"
+                      inputMode="numeric"
+                      value={cardExpiry}
+                      onChange={(e) => {
+                        const digitsOnly = e.target.value.replace(/\D/g, '').slice(0, 4);
+                        const formatted = digitsOnly.length > 2
+                          ? `${digitsOnly.slice(0, 2)}/${digitsOnly.slice(2)}`
+                          : digitsOnly;
+                        setCardExpiry(formatted);
+                      }}
+                      placeholder="MM/YY"
+                      className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="card-cvv" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      CVV
+                    </label>
+                    <input
+                      id="card-cvv"
+                      type="password"
+                      inputMode="numeric"
+                      value={cardCvv}
+                      onChange={e => setCardCvv(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                      placeholder="123"
+                      className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4 flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+            <Shield className="size-4 text-green-600" />
+            <span>
+              {locale === 'en' ? 'Your payment is protected with SSL encryption' : locale === 'fr' ? 'Votre paiement est protégé par un chiffrement SSL' : 'Ödemeniz SSL şifreleme ile korunur'}
+            </span>
+          </div>
+        </div>
+
         {/* Total Price Display */}
         <div className="mb-8 rounded-xl border-2 border-gray-200 bg-gray-50 p-6 dark:border-gray-700 dark:bg-gray-800">
           <div className="flex items-center justify-between">
@@ -391,21 +821,25 @@ export function PurchaseCreditsInterface() {
           </p>
         </div>
 
-        {/* Purchase Button */}
-        <button
-          type="button"
-          onClick={handlePurchase}
-          disabled={totalPrice === 0 || isProcessing || !isLoaded || !userId || effectiveMaxPurchase < minPurchase}
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 px-8 py-4 text-lg font-semibold text-white shadow-lg transition-all hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          <Sparkles className="size-6" />
-          {isProcessing ? t('processing') : t('buy_button')}
-        </button>
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-gray-200 bg-white/95 shadow-2xl backdrop-blur dark:border-gray-700 dark:bg-gray-900/95">
+          <div className="mx-auto w-full max-w-4xl px-4 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-3">
+            {/* Purchase Button */}
+            <button
+              type="button"
+              onClick={handlePurchase}
+              disabled={!isPurchaseFormReady || isProcessing}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 px-8 py-4 text-lg font-semibold text-white shadow-lg transition-all hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <Sparkles className="size-6" />
+              {isProcessing ? t('processing') : t('buy_button')}
+            </button>
 
-        {/* Footer Note */}
-        <p className="mt-4 text-center text-xs text-gray-500 dark:text-gray-400">
-          Ödeme işleminiz güvenli SSL sertifikası ile korunmaktadır
-        </p>
+            {/* Footer Note */}
+            <p className="mt-2 text-center text-xs text-gray-500 dark:text-gray-400">
+              Ödeme işleminiz güvenli SSL sertifikası ile korunmaktadır
+            </p>
+          </div>
+        </div>
 
         {akbankFields && akbankActionUrl && (
           <div className="mt-8 rounded-xl border border-gray-200 bg-white p-6 shadow-lg dark:border-gray-700 dark:bg-gray-800">

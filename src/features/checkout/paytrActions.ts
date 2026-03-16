@@ -37,6 +37,7 @@ export type ProductAkbankRequest = {
   taxNumber?: string;
   taxOffice?: string;
   companyAddress?: string;
+  paymentType?: 'card';
   orientation?: 'landscape' | 'portrait';
   imageTransform?: { x: number; y: number; scale: number };
   locale?: string;
@@ -143,6 +144,7 @@ export async function getAkbankPayHostingForm(
       taxNumber: request.taxNumber,
       taxOffice: request.taxOffice,
       companyAddress: request.companyAddress,
+      paymentType: request.paymentType ?? 'card',
       orientation: request.orientation ?? 'landscape',
       imageTransform: request.imageTransform
         ? JSON.stringify(request.imageTransform)

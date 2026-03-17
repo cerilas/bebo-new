@@ -76,8 +76,14 @@
   html,
   body {
     @apply bg-background text-foreground;
-    overscroll-behavior-y: none;
     overflow-x: hidden;
+    overscroll-behavior-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html {
     scroll-behavior: smooth;
   }
 }

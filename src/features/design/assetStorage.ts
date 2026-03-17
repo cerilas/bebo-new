@@ -59,8 +59,22 @@ export const savePublicImageBuffer = async (
   const absolutePath = path.join(UPLOADS_ROOT, ...relativePath.split('/'));
   const absoluteDir = path.dirname(absolutePath);
 
-  await mkdir(absoluteDir, { recursive: true });
-  await writeFile(absolutePath, input.buffer);
+  try {
+    await mkdir(absoluteDir, { recursive: true });
+    await writeFile(absolutePath, input.buffer);
+  } catch (error) {
+    const errorCode = error instanceof Error && 'code' in error ? (error as any).code : 'UNKNOWN';
+    console.error('savePublicImageBuffer error:', {
+      uploadRoot: UPLOADS_ROOT,
+      uploadDirEnv: process.env.UPLOAD_DIR ?? 'NOT_SET',
+      absolutePath,
+      absoluteDir,
+      relativePath,
+      errorCode,
+      message: error instanceof Error ? error.message : String(error),
+    });
+    throw error;
+  }
 
   // URL served by /api/files/[...path]
   return {

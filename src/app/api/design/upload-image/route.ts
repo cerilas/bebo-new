@@ -85,9 +85,23 @@ export async function POST(request: Request) {
       thumb_url: thumbAsset.url,
     });
   } catch (error) {
-    console.error('Native upload image error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Upload failed';
+    const errorCode = error instanceof Error && 'code' in error ? (error as any).code : 'UNKNOWN';
+    console.error('Native upload image error:', {
+      message: errorMessage,
+      code: errorCode,
+      nodeEnv: process.env.NODE_ENV,
+      uploadDirEnv: process.env.UPLOAD_DIR ?? 'NOT_SET',
+      error:
+        error instanceof Error
+          ? {
+              name: error.name,
+              stack: error.stack,
+            }
+          : error,
+    });
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Upload failed' },
+      { error: `Upload failed: ${errorMessage}${errorCode !== 'UNKNOWN' ? ` (${errorCode})` : ''}` },
       { status: 500 },
     );
   }

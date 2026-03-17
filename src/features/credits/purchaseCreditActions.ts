@@ -7,18 +7,15 @@ import { eq } from 'drizzle-orm';
 import { headers } from 'next/headers';
 
 import {
-  chargeAkbankPaymentApi,
-  createAkbankPaymentApiAuthHash,
+  type Akbank3dPayRequestFields,
+  createAkbank3dPayRequestFields,
   formatAkbankCardExpireDate,
   formatAkbankDateTime,
-  getAkbankPaymentErrorMessage,
   getRandomNumberBase16,
-  isAkbankPaymentApproved,
+  getSecurePayActionUrl,
   maskCardNumber,
-  sanitizeAkbankIpAddress,
 } from '@/features/payments/akbankUtils';
 import { db } from '@/libs/DB';
-import { Env } from '@/libs/Env';
 import {
   artCreditSettingsSchema,
   orderSchema,
@@ -29,6 +26,7 @@ import {
   userSchema,
 } from '@/models/Schema';
 import { AppConfig } from '@/utils/AppConfig';
+import { getBaseUrl } from '@/utils/Helpers';
 
 import { getUserArtCredits } from '../design/creditsActions';
 
@@ -44,6 +42,8 @@ type AkbankCreditFormResponse = {
   success: boolean;
   merchantOid?: string;
   redirectPath?: string;
+  akbankActionUrl?: string;
+  akbankFields?: Akbank3dPayRequestFields;
   error?: string;
 };
 
@@ -217,9 +217,7 @@ export async function createCreditPurchase(
     const successRedirectPath = `${localePath}/purchase-credits/success`;
     const failedRedirectPath = `${localePath}/purchase-credits/failed`;
 
-    // Amount: Akbank Payment API expects integer amount (kuruş)
-    const amount = totalAmount;
-    const amountTl = (amount / 100).toFixed(2);
+    const amountTl = (totalAmount / 100).toFixed(2);
     amountForLog = amountTl;
     const requestDateTime = formatAkbankDateTime();
     const randomNumber = getRandomNumberBase16(128);
@@ -230,11 +228,9 @@ export async function createCreditPurchase(
     const normalizedCvv = customerPayload?.cardCvv.replace(/\D/g, '') || '';
     const expireDate = formatAkbankCardExpireDate(customerPayload?.cardExpiry || '');
     const requestHeaders = await headers();
-    const ipAddress = sanitizeAkbankIpAddress(
-      requestHeaders.get('x-forwarded-for')?.split(',')[0]?.trim()
-      || requestHeaders.get('x-real-ip'),
-    );
-    ipAddressForLog = ipAddress;
+    ipAddressForLog = requestHeaders.get('x-forwarded-for')?.split(',')[0]?.trim()
+    || requestHeaders.get('x-real-ip')
+    || null;
     userAgentForLog = requestHeaders.get('user-agent') ?? null;
 
     const [[fallbackProduct], [fallbackSize], [fallbackFrame]] = await Promise.all([
@@ -284,144 +280,63 @@ export async function createCreditPurchase(
       shippingStatus: 'pending',
     });
 
-    const paymentRequest = {
-      version: '1.00' as const,
-      txnCode: '1000' as const,
-      requestDateTime,
-      randomNumber,
-      terminal: {
-        merchantSafeId: Env.AKBANK_MERCHANT_SAFE_ID,
-        terminalSafeId: Env.AKBANK_TERMINAL_SAFE_ID,
-      },
-      card: {
-        cardNumber: normalizedCardNumber,
-        cvv2: normalizedCvv,
-        expireDate,
-      },
-      reward: {
-        ccbRewardAmount: 0,
-        pcbRewardAmount: 0,
-        xcbRewardAmount: 0,
-      },
-      transaction: {
-        amount,
-        currencyCode: 949 as const,
-        motoInd: 0 as const,
-        installCount: 1 as const,
-      },
-      customer: {
-        emailAddress: billingEmail,
-        ipAddress,
-      },
-    };
+    const callbackBaseUrl = `${getBaseUrl()}/api/akbank/return`;
+    const okUrl = `${callbackBaseUrl}?flow=credit&redirect=${encodeURIComponent(successRedirectPath)}&fail_redirect=${encodeURIComponent(failedRedirectPath)}`;
+    const failUrl = `${callbackBaseUrl}?flow=credit&redirect=${encodeURIComponent(successRedirectPath)}&fail_redirect=${encodeURIComponent(failedRedirectPath)}`;
 
-    const requestHash = createAkbankPaymentApiAuthHash(paymentRequest);
+    const akbankFields = createAkbank3dPayRequestFields({
+      paymentModel: '3D_PAY',
+      txnCode: '3000',
+      merchantSafeId: process.env.AKBANK_MERCHANT_SAFE_ID || '',
+      terminalSafeId: process.env.AKBANK_TERMINAL_SAFE_ID || '',
+      orderId: merchantOid,
+      lang: locale === 'tr' ? 'TR' : 'EN',
+      amount: amountTl,
+      ccbRewardAmount: '0.00',
+      pcbRewardAmount: '0.00',
+      xcbRewardAmount: '0.00',
+      currencyCode: '949',
+      installCount: '1',
+      okUrl,
+      failUrl,
+      emailAddress: billingEmail,
+      mobilePhone: '',
+      homePhone: '',
+      workPhone: '',
+      subMerchantId: '',
+      b2bIdentityNumber: '',
+      creditCard: normalizedCardNumber,
+      expiredDate: expireDate,
+      cvv: normalizedCvv,
+      cardHolderName: customerPayload?.cardHolderName || '',
+      randomNumber,
+      requestDateTime,
+    });
 
     await db.insert(paymentLogsSchema).values({
       merchantOid,
       status: 'OUTGOING_REQUEST',
-      totalAmount: amount,
-      hash: requestHash,
-      paymentType: 'akbank_payment_api',
+      totalAmount: amountTl,
+      hash: akbankFields.hash,
+      paymentType: 'akbank_3d_pay',
       failedReasonCode: null,
       failedReasonMsg: null,
       currency: 'TRY',
       paymentAmount: amountTl,
       rawPayload: JSON.stringify({
-        ...paymentRequest,
-        card: {
-          cardNumber: maskCardNumber(normalizedCardNumber),
-          cvv2: '***',
-          expireDate,
-        },
-        cardHolderName: customerPayload?.cardHolderName || null,
+        ...akbankFields,
+        creditCard: maskCardNumber(normalizedCardNumber),
+        cvv: '***',
       }),
-      ipAddress,
+      ipAddress: ipAddressForLog,
       userAgent: userAgentForLog,
     });
-
-    const paymentResponse = await chargeAkbankPaymentApi(paymentRequest);
-    const approved = isAkbankPaymentApproved(paymentResponse);
-    const responseAmount = paymentResponse.transaction?.amount;
-    const responseAmountKurus = typeof responseAmount === 'number'
-      ? Math.round(responseAmount * 100)
-      : totalAmount;
-
-    await db.insert(paymentLogsSchema).values({
-      merchantOid,
-      status: paymentResponse.responseCode ?? null,
-      totalAmount: typeof responseAmount === 'number'
-        ? (responseAmount / 100).toFixed(2)
-        : amountTl,
-      hash: null,
-      paymentType: 'akbank_payment_api',
-      failedReasonCode: paymentResponse.responseCode ?? null,
-      failedReasonMsg: paymentResponse.responseMessage ?? paymentResponse.hostMessage ?? null,
-      currency: 'TRY',
-      paymentAmount: typeof responseAmount === 'number'
-        ? (responseAmount / 100).toFixed(2)
-        : amountTl,
-      rawPayload: JSON.stringify(paymentResponse),
-      ipAddress,
-      userAgent: userAgentForLog,
-    });
-
-    if (!approved) {
-      await db
-        .update(orderSchema)
-        .set({
-          paymentStatus: 'failed',
-          paymentType: 'akbank_payment_api',
-          failedReasonCode: paymentResponse.responseCode ?? null,
-          failedReasonMsg: getAkbankPaymentErrorMessage(paymentResponse),
-          updatedAt: new Date(),
-        })
-        .where(eq(orderSchema.merchantOid, merchantOid));
-
-      return {
-        success: false,
-        merchantOid,
-        redirectPath: failedRedirectPath,
-        error: getAkbankPaymentErrorMessage(paymentResponse),
-      };
-    }
-
-    await db
-      .update(orderSchema)
-      .set({
-        paymentStatus: 'success',
-        totalAmount: responseAmountKurus,
-        paymentType: 'akbank_payment_api',
-        paidAt: new Date(),
-        shippingStatus: 'delivered',
-        failedReasonCode: null,
-        failedReasonMsg: null,
-        updatedAt: new Date(),
-      })
-      .where(eq(orderSchema.merchantOid, merchantOid));
-
-    const [currentDbUser] = await db
-      .select({ artCredits: userSchema.artCredits })
-      .from(userSchema)
-      .where(eq(userSchema.id, userId))
-      .limit(1);
-
-    if (currentDbUser) {
-      await db
-        .update(userSchema)
-        .set({ artCredits: currentDbUser.artCredits + creditAmount })
-        .where(eq(userSchema.id, userId));
-    } else {
-      await db.insert(userSchema).values({
-        id: userId,
-        artCredits: creditAmount,
-      });
-    }
 
     return {
       success: true,
       merchantOid,
-      redirectPath: successRedirectPath,
+      akbankActionUrl: getSecurePayActionUrl(),
+      akbankFields,
     };
   } catch (error) {
     console.error('Credit purchase error:', error);
@@ -436,7 +351,7 @@ export async function createCreditPurchase(
         status: 'REQUEST_ERROR',
         totalAmount: amountForLog,
         hash: null,
-        paymentType: 'akbank_payment_api',
+        paymentType: 'akbank_3d_pay',
         failedReasonCode: 'REQUEST_ERROR',
         failedReasonMsg: errorMessage,
         currency: 'TRY',
@@ -454,7 +369,7 @@ export async function createCreditPurchase(
         .update(orderSchema)
         .set({
           paymentStatus: 'failed',
-          paymentType: 'akbank_payment_api',
+          paymentType: 'akbank_3d_pay',
           failedReasonCode: 'REQUEST_ERROR',
           failedReasonMsg: errorMessage,
           updatedAt: new Date(),

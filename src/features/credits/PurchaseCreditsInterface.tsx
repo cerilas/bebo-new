@@ -4,7 +4,7 @@ import { useAuth, useUser } from '@clerk/nextjs';
 import { AlertCircle, CreditCard, Info, Shield, Sparkles, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { type City, type District, getCities, getDistricts } from '@/features/checkout/geliverActions';
 import { Footer } from '@/templates/Footer';
@@ -28,6 +28,9 @@ export function PurchaseCreditsInterface() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentCredits, setCurrentCredits] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
+  const [akbankActionUrl, setAkbankActionUrl] = useState<string | null>(null);
+  const [akbankFields, setAkbankFields] = useState<Record<string, string> | null>(null);
+  const akbankFormRef = useRef<HTMLFormElement>(null);
   const [customerName, setCustomerName] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
@@ -55,6 +58,12 @@ export function PurchaseCreditsInterface() {
     }
     return undefined;
   }, [error]);
+
+  useEffect(() => {
+    if (akbankActionUrl && akbankFields && akbankFormRef.current) {
+      akbankFormRef.current.submit();
+    }
+  }, [akbankActionUrl, akbankFields]);
 
   useEffect(() => {
     const fullName = user?.fullName || `${user?.firstName || ''} ${user?.lastName || ''}`.trim();
@@ -328,6 +337,12 @@ export function PurchaseCreditsInterface() {
         cardCvv: normalizedCvv,
       });
 
+      if (result.success && result.akbankActionUrl && result.akbankFields) {
+        setAkbankActionUrl(result.akbankActionUrl);
+        setAkbankFields(result.akbankFields as Record<string, string>);
+        return;
+      }
+
       if (result.redirectPath) {
         const params = new URLSearchParams();
 
@@ -399,6 +414,14 @@ export function PurchaseCreditsInterface() {
               </button>
             </div>
           </div>
+        )}
+
+        {akbankActionUrl && akbankFields && (
+          <form ref={akbankFormRef} action={akbankActionUrl} method="POST" className="hidden">
+            {Object.entries(akbankFields).map(([key, value]) => (
+              <input key={key} type="hidden" name={key} value={value} />
+            ))}
+          </form>
         )}
 
         {/* Header */}

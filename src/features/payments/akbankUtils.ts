@@ -8,6 +8,8 @@ import { Env } from '@/libs/Env';
 export const AKBANK_GATEWAYS = {
   testPayHosting: 'https://virtualpospaymentgatewaypre.akbank.com/payhosting',
   prodPayHosting: 'https://virtualpospaymentgateway.akbank.com/payhosting',
+  testSecurePay: 'https://virtualpospaymentgatewaypre.akbank.com/securepay',
+  prodSecurePay: 'https://virtualpospaymentgateway.akbank.com/securepay',
   testPaymentApi: 'https://apipre.akbank.com/api/v1/payment/virtualpos/transaction/process',
   prodPaymentApi: 'https://api.akbank.com/api/v1/payment/virtualpos/transaction/process',
 } as const;
@@ -56,6 +58,36 @@ export type AkbankPayHostingRequestFields = {
   walletProgramData: string;
   mobileAssignedId: string;
   mobileDeviceType: string;
+  hash: string;
+};
+
+export type Akbank3dPayRequestFields = {
+  paymentModel: '3D_PAY';
+  txnCode: '3000';
+  merchantSafeId: string;
+  terminalSafeId: string;
+  orderId: string;
+  lang: 'TR' | 'EN';
+  amount: string;
+  ccbRewardAmount: string;
+  pcbRewardAmount: string;
+  xcbRewardAmount: string;
+  currencyCode: '949';
+  installCount: '1';
+  okUrl: string;
+  failUrl: string;
+  emailAddress: string;
+  mobilePhone: string;
+  homePhone: string;
+  workPhone: string;
+  subMerchantId: string;
+  b2bIdentityNumber: string;
+  creditCard: string;
+  expiredDate: string;
+  cvv: string;
+  cardHolderName: string;
+  randomNumber: string;
+  requestDateTime: string;
   hash: string;
 };
 
@@ -168,6 +200,12 @@ export const getPayHostingActionUrl = (): string => {
   return Env.AKBANK_ENV === 'prod'
     ? AKBANK_GATEWAYS.prodPayHosting
     : AKBANK_GATEWAYS.testPayHosting;
+};
+
+export const getSecurePayActionUrl = (): string => {
+  return Env.AKBANK_ENV === 'prod'
+    ? AKBANK_GATEWAYS.prodSecurePay
+    : AKBANK_GATEWAYS.testSecurePay;
 };
 
 export const getAkbankPaymentApiUrl = (): string => {
@@ -293,6 +331,50 @@ export const chargeAkbankPaymentApi = async (
   }
 
   return data;
+};
+
+export const build3dPayHashInput = (
+  fields: Omit<Akbank3dPayRequestFields, 'hash'>,
+): string => {
+  return [
+    fields.paymentModel,
+    fields.txnCode,
+    fields.merchantSafeId,
+    fields.terminalSafeId,
+    fields.orderId,
+    fields.lang,
+    fields.amount,
+    fields.ccbRewardAmount,
+    fields.pcbRewardAmount,
+    fields.xcbRewardAmount,
+    fields.currencyCode,
+    fields.installCount,
+    fields.okUrl,
+    fields.failUrl,
+    fields.emailAddress,
+    fields.mobilePhone,
+    fields.homePhone,
+    fields.workPhone,
+    fields.subMerchantId,
+    fields.b2bIdentityNumber,
+    fields.creditCard,
+    fields.expiredDate,
+    fields.cvv,
+    fields.cardHolderName,
+    fields.randomNumber,
+    fields.requestDateTime,
+  ].join('');
+};
+
+export const createAkbank3dPayRequestFields = (
+  fields: Omit<Akbank3dPayRequestFields, 'hash'>,
+  secretKey: string = Env.AKBANK_SECRET_KEY,
+): Akbank3dPayRequestFields => {
+  const hash = hashToString(build3dPayHashInput(fields), secretKey);
+  return {
+    ...fields,
+    hash,
+  };
 };
 
 /**

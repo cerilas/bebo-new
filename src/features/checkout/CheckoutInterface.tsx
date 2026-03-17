@@ -4,7 +4,7 @@ import { useUser } from '@clerk/nextjs';
 import { AlertCircle, ArrowLeft, ChevronDown, CreditCard, Loader2, Package, Shield, X } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { MockupPreview } from '@/components/MockupPreview';
 import { ProtectedImage } from '@/components/ProtectedImage';
@@ -54,6 +54,9 @@ export function CheckoutInterface({
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [akbankActionUrl, setAkbankActionUrl] = useState<string | null>(null);
+  const [akbankFields, setAkbankFields] = useState<Record<string, string> | null>(null);
+  const akbankFormRef = useRef<HTMLFormElement>(null);
 
   // Hata mesajını otomatik temizle
   useEffect(() => {
@@ -63,6 +66,12 @@ export function CheckoutInterface({
     }
     return undefined;
   }, [error]);
+
+  useEffect(() => {
+    if (akbankActionUrl && akbankFields && akbankFormRef.current) {
+      akbankFormRef.current.submit();
+    }
+  }, [akbankActionUrl, akbankFields]);
 
   // Form state
   const [customerName, setCustomerName] = useState('');
@@ -290,6 +299,12 @@ export function CheckoutInterface({
         locale,
       });
 
+      if (result.success && result.akbankActionUrl && result.akbankFields) {
+        setAkbankActionUrl(result.akbankActionUrl);
+        setAkbankFields(result.akbankFields as Record<string, string>);
+        return;
+      }
+
       if (result.redirectPath) {
         const params = new URLSearchParams();
 
@@ -365,6 +380,14 @@ export function CheckoutInterface({
             </button>
           </div>
         </div>
+      )}
+
+      {akbankActionUrl && akbankFields && (
+        <form ref={akbankFormRef} action={akbankActionUrl} method="POST" className="hidden">
+          {Object.entries(akbankFields).map(([key, value]) => (
+            <input key={key} type="hidden" name={key} value={value} />
+          ))}
+        </form>
       )}
 
       {/* Header */}

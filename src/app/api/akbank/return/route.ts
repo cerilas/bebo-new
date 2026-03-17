@@ -74,7 +74,7 @@ async function finalizeOrder(
     status: payload.responseCode ?? null,
     totalAmount: payload.amount ?? null,
     hash: payload.hash ?? null,
-    paymentType: payload.txnCode ?? null,
+    paymentType: 'akbank_3d_pay',
     failedReasonCode: payload.responseCode ?? null,
     failedReasonMsg: payload.responseMessage ?? null,
     currency: payload.currencyCode ?? null,
@@ -126,7 +126,7 @@ async function finalizeOrder(
         .set({
           paymentStatus: 'success',
           totalAmount: toKurus(payload.amount) ?? order.totalAmount,
-          paymentType: 'akbank_payhosting',
+          paymentType: 'akbank_3d_pay',
           paidAt: new Date(),
           shippingStatus: order.orderType === 'credit' ? null : 'preparing',
           updatedAt: new Date(),
@@ -201,6 +201,7 @@ export async function POST(request: NextRequest) {
   // The `redirect` param is the locale-aware path set by our action
   // (e.g. "/en/checkout/success" or "/purchase-credits/failed").
   const redirectParam = request.nextUrl.searchParams.get('redirect');
+  const failRedirectParam = request.nextUrl.searchParams.get('fail_redirect');
   const flow = request.nextUrl.searchParams.get('flow') ?? 'product';
 
   const defaultSuccessPath
@@ -210,9 +211,11 @@ export async function POST(request: NextRequest) {
     ? '/purchase-credits/failed'
     : '/checkout/failed';
 
+  const resolvedFailurePath = failRedirectParam ?? defaultFailurePath;
+
   const redirectUrl = result.success
     ? toRedirectUrl(request, defaultSuccessPath, result.merchantOid)
-    : toRedirectUrl(request, defaultFailurePath, result.merchantOid);
+    : toRedirectUrl(request, resolvedFailurePath, result.merchantOid);
 
   return NextResponse.redirect(redirectUrl, { status: 303 });
 }

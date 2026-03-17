@@ -10,17 +10,36 @@ import { savePublicImageBuffer } from '@/features/design/assetStorage';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
+type FileLike = {
+  type: string;
+  size: number;
+  arrayBuffer: () => Promise<ArrayBuffer>;
+};
+
+const isFileLike = (value: unknown): value is FileLike => {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  const candidate = value as Partial<FileLike>;
+  return typeof candidate.arrayBuffer === 'function'
+    && typeof candidate.type === 'string'
+    && typeof candidate.size === 'number';
+};
+
 export async function POST(request: Request) {
   try {
     const { userId } = await auth();
-    if (!userId) {
+    const effectiveUserId = userId ?? (process.env.NODE_ENV === 'development' ? 'local-dev' : null);
+
+    if (!effectiveUserId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const formData = await request.formData();
     const image = formData.get('image');
 
-    if (!(image instanceof File)) {
+    if (!isFileLike(image)) {
       return NextResponse.json({ error: 'Image file is required' }, { status: 400 });
     }
 
@@ -45,7 +64,7 @@ export async function POST(request: Request) {
       .webp({ quality: 82 })
       .toBuffer();
 
-    const basePrefix = `${userId}-${randomUUID().slice(0, 8)}`;
+    const basePrefix = `${effectiveUserId}-${randomUUID().slice(0, 8)}`;
 
     const imageAsset = await savePublicImageBuffer({
       scope: 'uploads',

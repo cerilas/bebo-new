@@ -42,6 +42,9 @@ export default function middleware(
   return clerkMiddleware(async (auth, req) => {
     const { userId } = await auth();
     const pathname = req.nextUrl.pathname;
+    const isApiPath = pathname.startsWith('/api/')
+      || pathname === '/api'
+      || AllLocales.some(locale => pathname.startsWith(`/${locale}/api/`) || pathname === `/${locale}/api`);
     const isSignRoute = req.nextUrl.pathname.includes('/sign-in') || req.nextUrl.pathname.includes('/sign-up');
     const isPaymentResultRoute = /\/(?:checkout|purchase-credits)\/(?:success|failed)$/.test(pathname);
 
@@ -54,7 +57,15 @@ export default function middleware(
       return NextResponse.next();
     }
 
+    if (process.env.NODE_ENV === 'development' && pathname === '/api/design/upload-image') {
+      return NextResponse.next();
+    }
+
     if (isProtectedRoute(req) && !userId) {
+      if (isApiPath) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+
       const pathSegments = req.nextUrl.pathname.split('/');
       const localeCandidate = pathSegments[1];
       const locale = AllLocales.includes(localeCandidate as any) ? `/${localeCandidate}` : '';

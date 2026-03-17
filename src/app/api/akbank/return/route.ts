@@ -2,6 +2,7 @@ import { eq } from 'drizzle-orm';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
+import { renderFinalOrderProductImage } from '@/features/orders/finalProductRender';
 import {
   chargeAkbank3dModelPaymentApi,
   formatAkbankDateTime,
@@ -13,8 +14,9 @@ import {
 } from '@/features/payments/akbankUtils';
 import { db } from '@/libs/DB';
 import { Env } from '@/libs/Env';
-import { generatedImageSchema, orderSchema, paymentLogsSchema, userSchema } from '@/models/Schema';
+import { generatedImageSchema, orderSchema, paymentLogsSchema, productFrameSchema, userSchema } from '@/models/Schema';
 import { getBaseUrl } from '@/utils/Helpers';
+import { parseMockupConfig, validateMockupType } from '@/utils/mockupUtils';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -237,6 +239,65 @@ async function finalizeOrder(
           updatedAt: new Date(),
         })
         .where(eq(orderSchema.merchantOid, merchantOid));
+
+      if (order.orderType !== 'credit' && order.imageUrl) {
+        try {
+          const [frame] = await db
+            .select({
+              mockupTemplate: productFrameSchema.mockupTemplate,
+              mockupTemplateVertical: productFrameSchema.mockupTemplateVertical,
+              mockupConfig: productFrameSchema.mockupConfig,
+              mockupConfigVertical: productFrameSchema.mockupConfigVertical,
+            })
+            .from(productFrameSchema)
+            .where(eq(productFrameSchema.id, order.productFrameId))
+            .limit(1);
+
+          const isPortrait = order.orientation === 'portrait';
+          const chosenTemplate = isPortrait
+            ? (frame?.mockupTemplateVertical || frame?.mockupTemplate || null)
+            : (frame?.mockupTemplate || frame?.mockupTemplateVertical || null);
+
+          const chosenConfigRaw = isPortrait
+            ? (frame?.mockupConfigVertical || frame?.mockupConfig || null)
+            : (frame?.mockupConfig || frame?.mockupConfigVertical || null);
+
+          const mockupConfig = parseMockupConfig(chosenConfigRaw);
+          const mockupType = validateMockupType(mockupConfig.type || 'frame');
+
+          const parsedTransform = order.imageTransform
+            ? JSON.parse(order.imageTransform) as { x?: number; y?: number; scale?: number }
+            : null;
+
+          const finalProductImageUrl = await renderFinalOrderProductImage({
+            imageUrl: order.imageUrl,
+            generationId: order.generationId,
+            mockupTemplate: chosenTemplate,
+            mockupType,
+            mockupConfig,
+            imageTransform: parsedTransform
+              ? {
+                  x: parsedTransform.x ?? 0,
+                  y: parsedTransform.y ?? 0,
+                  scale: parsedTransform.scale ?? 1,
+                }
+              : null,
+          });
+
+          await db
+            .update(orderSchema)
+            .set({
+              finalProductImageUrl,
+              updatedAt: new Date(),
+            })
+            .where(eq(orderSchema.merchantOid, merchantOid));
+        } catch (renderError) {
+          console.error('Final product image render failed:', {
+            merchantOid,
+            renderError,
+          });
+        }
+      }
 
       if (order.orderType === 'credit' && order.creditAmount) {
         const [currentUser] = await db

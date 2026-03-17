@@ -12,7 +12,6 @@ export async function uploadImageNative(imageFile: File): Promise<{
   error?: string;
 }> {
   try {
-    // Create FormData
     const formData = new FormData();
     formData.append('image', imageFile);
 
@@ -21,27 +20,18 @@ export async function uploadImageNative(imageFile: File): Promise<{
       body: formData,
     });
 
+    const responseData = await response.json().catch(() => null) as UploadImageResponse | { error?: string } | null;
+
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Upload error response:', errorText);
-      throw new Error(`Upload failed with status ${response.status}: ${errorText}`);
+      const errorMessage = responseData && 'error' in responseData && responseData.error
+        ? responseData.error
+        : `Upload failed with status ${response.status}`;
+      throw new Error(errorMessage);
     }
 
-    const responseText = await response.text();
-    console.log('Upload response:', responseText);
+    const data = responseData as UploadImageResponse | null;
 
-    // Try to parse as JSON
-    let data: UploadImageResponse;
-    try {
-      data = JSON.parse(responseText);
-    } catch {
-      console.error('Failed to parse response as JSON:', responseText);
-      throw new Error('API yanıtı JSON formatında değil');
-    }
-
-    // Check if image_url exists
-    if (!data.image_url) {
-      console.error('Response data:', data);
+    if (!data || !data.image_url) {
       throw new Error('API yanıtında image_url bulunamadı');
     }
 

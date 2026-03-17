@@ -1,6 +1,6 @@
 import type { Buffer } from 'node:buffer';
 import { randomUUID } from 'node:crypto';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 // Uploads are stored outside of `public/` so they persist across builds.
@@ -9,6 +9,33 @@ import path from 'node:path';
 const UPLOADS_ROOT = process.env.UPLOAD_DIR
   ? path.resolve(process.env.UPLOAD_DIR)
   : path.join(process.cwd(), 'uploads');
+
+/**
+ * Given a /api/files/... URL, reads the file from disk and returns a base64 data URL.
+ * This allows OpenAI vision API to receive the image even on localhost or private servers.
+ */
+export const toBase64DataUrl = async (fileUrl: string): Promise<string | null> => {
+  try {
+    const prefix = '/api/files/';
+    if (!fileUrl.startsWith(prefix)) {
+      return null; // not a local file, caller should use the URL directly
+    }
+    const relativePath = fileUrl.slice(prefix.length);
+    const absolutePath = path.join(UPLOADS_ROOT, ...relativePath.split('/'));
+    const buffer = await readFile(absolutePath);
+    const ext = path.extname(absolutePath).slice(1).toLowerCase();
+    const mimeMap: Record<string, string> = {
+      webp: 'image/webp',
+      jpg: 'image/jpeg',
+      jpeg: 'image/jpeg',
+      png: 'image/png',
+    };
+    const mime = mimeMap[ext] ?? 'image/webp';
+    return `data:${mime};base64,${buffer.toString('base64')}`;
+  } catch {
+    return null;
+  }
+};
 
 type SavePublicImageInput = {
   scope: 'ai' | 'uploads';

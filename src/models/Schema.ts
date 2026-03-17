@@ -182,6 +182,7 @@ export const orderSchema = pgTable('order', {
   userId: text('user_id').notNull(), // Clerk user ID
   generationId: varchar('generation_id', { length: 255 }).notNull(), // Generated image ID
   imageUrl: text('image_url'), // Görselin URL'i
+  finalProductImageUrl: text('final_product_image_url'), // Sipariş anındaki çerçeveli final ürün görseli
   productId: integer('product_id').notNull().references(() => productSchema.id, { onDelete: 'restrict' }),
   productSizeId: integer('product_size_id').notNull().references(() => productSizeSchema.id, { onDelete: 'restrict' }),
   productFrameId: integer('product_frame_id').notNull().references(() => productFrameSchema.id, { onDelete: 'restrict' }),

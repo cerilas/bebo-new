@@ -8,8 +8,9 @@ import { and, desc, eq } from 'drizzle-orm';
 import { getProductIdsFromSlugs } from '@/features/products/productActions';
 import { db } from '@/libs/DB';
 import { generatedImageSchema, siteSettingsSchema } from '@/models/Schema';
+import { getBaseUrl } from '@/utils/Helpers';
 
-import { savePublicImageBuffer } from './assetStorage';
+import { savePublicImageBuffer, toBase64DataUrl } from './assetStorage';
 import { getOpenAIClient, getOpenAIImageModel, getOpenAITextModel } from './openaiClient';
 
 export type ChatRequest = {
@@ -44,6 +45,11 @@ type NativeAssistantDecision = {
   improved_generation_prompt?: string;
 };
 
+type ChatHistoryItem = {
+  role: 'user' | 'assistant';
+  content: string;
+};
+
 const DEFAULT_AI_DESIGN_SYSTEM_PROMPT = `You are the AI visual design assistant of birebiro.com.
 
 Your personality:
@@ -56,8 +62,9 @@ Default conversation language is Turkish, unless the user writes in another lang
 You are given runtime values in plain text format:
 
 User Prompt: ...
-User uploaded this image: ...
 User image generation intent: true/false
+
+If the user has attached an image, it will be provided directly as a vision input — you CAN see it and should analyze its colors, style, composition, and subject to enrich your response and generation prompt.
 
 "User image generation intent" indicates whether the user clicked the image generation button on the interface.
 
@@ -88,13 +95,14 @@ Rules for fields:
 - If user_generation_intent is true, this field MUST be non-empty.
 - If user_generation_intent is false, this field MUST be empty string.
 - Use User Prompt as base.
-- If uploaded image exists, incorporate it as reference.
+- If an image was provided (vision input), analyze its colors, style, mood, subject, and composition, then incorporate those visual details into the prompt.
 - If prompt is vague, still produce meaningful creative prompt when generation is intended.
 
 Additional strict rules:
 - Return ONLY JSON object with exactly these 3 fields.
 - No markdown, no backticks, no extra keys.
 - Stay on art/interior/design scope only.
+- Use recent conversation history and previous generation context to resolve follow-up edits (e.g. “yazının rengini kırmızı yap”).
 - Keep response compact (single-line JSON preferred).`;
 
 const GENERATION_MODE_REQUIRED_MESSAGE = 'Görsel oluşturma modunda değilsiniz. Sağ üstteki “Görsel Oluştur” butonuna tıklamalısınız. Şu anda ilham modundayım.';
@@ -298,6 +306,7 @@ export async function sendChatMessage(params: {
   imagePromptUrl?: string;
   isGenerateMode: boolean;
   chatSessionId: string;
+  chatHistory?: ChatHistoryItem[];
   productSlug?: string;
   sizeSlug?: string;
   frameSlug?: string;
@@ -345,6 +354,69 @@ export async function sendChatMessage(params: {
     const openai = getOpenAIClient();
     const systemPrompt = await getAiDesignSystemPrompt();
 
+    const [latestGeneration] = await db
+      .select({
+        improvedPrompt: generatedImageSchema.improvedPrompt,
+        textPrompt: generatedImageSchema.textPrompt,
+        imageUrl: generatedImageSchema.imageUrl,
+        uploadedImageUrl: generatedImageSchema.uploadedImageUrl,
+      })
+      .from(generatedImageSchema)
+      .where(
+        and(
+          eq(generatedImageSchema.userId, user.id),
+          eq(generatedImageSchema.chatSessionId, requestBody.chatSessionId),
+        ),
+      )
+      .orderBy(desc(generatedImageSchema.createdAt))
+      .limit(1);
+
+    const baseUrl = getBaseUrl();
+    // Convert local file to base64 so OpenAI can read it regardless of environment
+    const imageBase64 = requestBody.imagePromptUrl
+      ? await toBase64DataUrl(requestBody.imagePromptUrl)
+      : null;
+    // Fallback: if not a local file, use the absolute URL
+    const fullImageUrl = imageBase64
+      ?? (requestBody.imagePromptUrl
+        ? (requestBody.imagePromptUrl.startsWith('http')
+            ? requestBody.imagePromptUrl
+            : `${baseUrl}${requestBody.imagePromptUrl}`)
+        : null);
+
+    const historyText = (params.chatHistory ?? [])
+      .slice(-10)
+      .map(item => `${item.role === 'user' ? 'User' : 'Assistant'}: ${item.content}`)
+      .join('\n');
+
+    const previousGenerationContext = latestGeneration
+      ? `Last generated user prompt: ${latestGeneration.textPrompt}
+Last generated improved prompt: ${latestGeneration.improvedPrompt || ''}
+Last generated image URL: ${latestGeneration.imageUrl}
+Last uploaded reference image URL: ${latestGeneration.uploadedImageUrl || ''}`
+      : 'No previous generation context.';
+
+    const textContent = `User Prompt: ${requestBody.textPrompt}
+User image generation intent: ${params.isGenerateMode}
+Product slug: ${requestBody.productSlug}
+Size slug: ${requestBody.sizeSlug}
+Frame slug: ${requestBody.frameSlug}
+Frame orientation: ${params.orientationSlug || 'landscape'}
+Frame physical dimensions: ${sizeDimensions || 'unknown'}cm
+
+Recent chat history:
+${historyText || 'No chat history.'}
+
+Previous generation context:
+${previousGenerationContext}`;
+
+    const userMessageContent = fullImageUrl
+      ? [
+          { type: 'text' as const, text: textContent },
+          { type: 'image_url' as const, image_url: { url: fullImageUrl, detail: 'low' as const } },
+        ]
+      : textContent;
+
     const completion = await openai.chat.completions.create({
       model: getOpenAITextModel(),
       temperature: 0.7,
@@ -356,14 +428,7 @@ export async function sendChatMessage(params: {
         },
         {
           role: 'user',
-          content: `User Prompt: ${requestBody.textPrompt}
-User uploaded this image: ${requestBody.imagePromptUrl || ''}
-User image generation intent: ${params.isGenerateMode}
-Product slug: ${requestBody.productSlug}
-Size slug: ${requestBody.sizeSlug}
-Frame slug: ${requestBody.frameSlug}
-Frame orientation: ${params.orientationSlug || 'landscape'}
-Frame physical dimensions: ${sizeDimensions || 'unknown'}cm`,
+          content: userMessageContent,
         },
       ],
     });

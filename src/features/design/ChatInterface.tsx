@@ -189,6 +189,13 @@ export function ChatInterface({
     }
   }, []);
 
+  // Reset textarea height when input is cleared
+  useEffect(() => {
+    if (!inputValue && inputRef.current) {
+      inputRef.current.style.height = '48px';
+    }
+  }, [inputValue]);
+
   const handleSendMessage = async () => {
     if (!inputValue.trim() || !user) {
       return;
@@ -222,12 +229,20 @@ export function ChatInterface({
     setIsSending(true);
 
     try {
+      const recentChatHistory = messages
+        .slice(-12)
+        .map(message => ({
+          role: message.role,
+          content: message.content,
+        }));
+
       // Call API
       const result = await sendChatMessage({
         textPrompt: currentInput,
         imagePromptUrl: currentImageUrl,
         isGenerateMode,
         chatSessionId,
+        chatHistory: recentChatHistory,
         productSlug,
         sizeSlug,
         frameSlug,
@@ -655,7 +670,7 @@ export function ChatInterface({
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           {/* Chat Area - Takes 2/3 on large screens */}
           <div className="lg:col-span-2">
-            <div className="flex h-[600px] flex-col rounded-xl border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800">
+            <div className="flex h-[420px] flex-col rounded-xl border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800">
               {/* Messages */}
               <div
                 ref={messagesContainerRef}
@@ -761,12 +776,16 @@ export function ChatInterface({
                   <textarea
                     ref={inputRef}
                     value={inputValue}
-                    onChange={e => setInputValue(e.target.value)}
+                    onChange={(e) => {
+                      setInputValue(e.target.value);
+                      e.target.style.height = '48px';
+                      e.target.style.height = `${e.target.scrollHeight}px`;
+                    }}
                     onKeyDown={handleKeyDown}
                     placeholder={isGeneratingImage ? t('wait_for_generation') : (isGenerateMode ? t('placeholder_generate') : t('placeholder_inspiration'))}
-                    rows={2}
+                    rows={1}
                     disabled={isSending || isGeneratingImage}
-                    className="flex-1 resize-none rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+                    className="max-h-[88px] min-h-12 flex-1 resize-none overflow-y-auto rounded-xl border border-gray-300 bg-white px-4 py-3.5 text-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
                   />
                   <button
                     type="button"
@@ -863,49 +882,42 @@ export function ChatInterface({
             </div>
 
             {/* User Upload Section */}
-            <div className="mt-6 rounded-xl border border-gray-200 bg-white p-6 shadow-lg dark:border-gray-700 dark:bg-gray-800">
-              <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-gray-800 dark:text-white">
-                <Upload className="size-5 text-green-500" />
-                {t('upload_own_image')}
-              </h2>
+            <div className="mt-4">
+              <input
+                ref={userUploadFileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleUserImageUpload}
+                className="hidden"
+              />
 
               {!userUploadedImageUrl
                 ? (
-                    <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 p-6 dark:border-gray-600">
-                      <input
-                        ref={userUploadFileInputRef}
-                        type="file"
-                        accept="image/*"
-                        onChange={handleUserImageUpload}
-                        className="hidden"
-                      />
-                      <Upload className="mb-3 size-12 text-gray-400" />
-                      <p className="mb-2 text-sm text-gray-600 dark:text-gray-300">
-                        {t('upload_description')}
-                      </p>
+                    <div className="flex items-center justify-between rounded-lg border border-gray-200 bg-white px-4 py-2.5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+                      <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                        <Upload className="size-4 text-green-500" />
+                        <span>{t('upload_own_image')}</span>
+                      </div>
                       <button
                         type="button"
                         onClick={() => userUploadFileInputRef.current?.click()}
                         disabled={isUploadingUserImage}
-                        className="flex items-center gap-2 rounded-lg bg-green-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-green-600 disabled:opacity-50"
+                        className="flex items-center gap-1.5 rounded-md bg-green-500 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-green-600 disabled:opacity-50"
                       >
                         {isUploadingUserImage
                           ? (
                               <>
-                                <Loader2 className="size-4 animate-spin" />
+                                <Loader2 className="size-3.5 animate-spin" />
                                 {t('uploading')}
                               </>
                             )
                           : (
                               <>
-                                <Upload className="size-4" />
+                                <Upload className="size-3.5" />
                                 {t('select_image')}
                               </>
                             )}
                       </button>
-                      <p className="mt-2 text-xs text-gray-500">
-                        {t('max_file_size')}
-                      </p>
                     </div>
                   )
                 : (
@@ -963,13 +975,6 @@ export function ChatInterface({
                           {t('remove')}
                         </button>
                       </div>
-                      <input
-                        ref={userUploadFileInputRef}
-                        type="file"
-                        accept="image/*"
-                        onChange={handleUserImageUpload}
-                        className="hidden"
-                      />
                     </div>
                   )}
             </div>

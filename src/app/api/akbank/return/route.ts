@@ -2,7 +2,15 @@ import { eq } from 'drizzle-orm';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
-import { verifyResponseHash } from '@/features/payments/akbankUtils';
+import {
+  chargeAkbank3dModelPaymentApi,
+  formatAkbankDateTime,
+  getAkbankPaymentErrorMessage,
+  getRandomNumberBase16,
+  isAkbankPaymentApproved,
+  mapAkbankErrorToUserMessage,
+  verifyResponseHash,
+} from '@/features/payments/akbankUtils';
 import { db } from '@/libs/DB';
 import { Env } from '@/libs/Env';
 import { generatedImageSchema, orderSchema, paymentLogsSchema, userSchema } from '@/models/Schema';
@@ -36,6 +44,14 @@ const toKurus = (amount?: string): number | undefined => {
   }
   const n = Number.parseFloat(amount.replace(',', '.'));
   return Number.isFinite(n) ? Math.round(n * 100) : undefined;
+};
+
+const toInteger = (value?: string, fallback = 0): number => {
+  if (!value) {
+    return fallback;
+  }
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) ? parsed : fallback;
 };
 
 /**
@@ -103,24 +119,113 @@ async function finalizeOrder(
     return { success: false, merchantOid };
   }
 
-  // --- Hash & approval check ---
+  // --- 3D hash & approval check ---
   const hashValid = verifyResponseHash(payload, Env.AKBANK_SECRET_KEY);
-  const isApproved = payload.responseCode === 'VPS-0000';
-  const success = hashValid && isApproved;
+  const is3dApproved = payload.responseCode === 'VPS-0000' && payload.mdStatus === '1';
+  const secureFieldsPresent = Boolean(
+    payload.secureId
+    && payload.secureData
+    && payload.secureMd
+    && payload.secureEcomInd,
+  );
+  const threeDSuccess = hashValid && is3dApproved && secureFieldsPresent;
 
   console.log('AKBANK return callback', {
     merchantOid,
     responseCode: payload.responseCode,
     responseMessage: payload.responseMessage,
     hashValid,
-    isApproved,
-    success,
+    is3dApproved,
+    secureFieldsPresent,
+    threeDSuccess,
     orderType: order.orderType,
   });
 
-  if (success) {
-    // Idempotent: skip if already marked success (e.g. duplicate callback)
-    if (order.paymentStatus !== 'success') {
+  if (threeDSuccess) {
+    // Idempotent: duplicate callbacks must not trigger a second provision call.
+    if (order.paymentStatus === 'success') {
+      return { success: true, merchantOid, orderType: order.orderType };
+    }
+
+    try {
+      const provisionRequest = {
+        version: '1.00' as const,
+        txnCode: '1000' as const,
+        requestDateTime: formatAkbankDateTime(),
+        randomNumber: getRandomNumberBase16(128),
+        terminal: {
+          merchantSafeId: payload.merchantSafeId ?? Env.AKBANK_MERCHANT_SAFE_ID,
+          terminalSafeId: payload.terminalSafeId ?? Env.AKBANK_TERMINAL_SAFE_ID,
+        },
+        order: {
+          orderId: merchantOid,
+        },
+        transaction: {
+          amount: payload.amount ?? '0.00',
+          currencyCode: 949 as const,
+          motoInd: 0 as const,
+          installCount: Math.max(1, toInteger(payload.installCount, 1)),
+        },
+        secureTransaction: {
+          secureId: payload.secureId!,
+          secureEcomInd: payload.secureEcomInd!,
+          secureData: payload.secureData!,
+          secureMd: payload.secureMd!,
+        },
+      };
+
+      console.log('AKBANK 3D Provision Request', {
+        merchantOid,
+        payload: JSON.stringify(provisionRequest),
+        params: {
+          secureId: payload.secureId?.slice(0, 20),
+          secureData: payload.secureData?.slice(0, 20),
+          secureMd: payload.secureMd?.slice(0, 20),
+          secureEcomInd: payload.secureEcomInd,
+          amount: payload.amount,
+          installCount: payload.installCount,
+        },
+      });
+
+      const provisionResponse = await chargeAkbank3dModelPaymentApi(provisionRequest);
+      const provisionApproved = isAkbankPaymentApproved(provisionResponse);
+
+      await db.insert(paymentLogsSchema).values({
+        merchantOid,
+        status: provisionResponse.responseCode ?? null,
+        totalAmount: payload.amount ?? null,
+        hash: null,
+        paymentType: 'akbank_3d_provision',
+        failedReasonCode: provisionApproved ? null : provisionResponse.responseCode ?? null,
+        failedReasonMsg: provisionApproved ? null : getAkbankPaymentErrorMessage(provisionResponse),
+        currency: payload.currencyCode ?? '949',
+        paymentAmount: payload.amount ?? null,
+        rawPayload: JSON.stringify({
+          request: provisionRequest,
+          response: provisionResponse,
+        }),
+        ipAddress:
+          request.headers.get('x-forwarded-for')
+          ?? request.headers.get('x-real-ip')
+          ?? null,
+        userAgent: request.headers.get('user-agent') ?? null,
+      });
+
+      if (!provisionApproved) {
+        const userFriendlyError = mapAkbankErrorToUserMessage(provisionResponse.hostMessage);
+        await db
+          .update(orderSchema)
+          .set({
+            paymentStatus: 'failed',
+            failedReasonCode: provisionResponse.responseCode ?? 'PROVISION_FAILED',
+            failedReasonMsg: userFriendlyError,
+            updatedAt: new Date(),
+          })
+          .where(eq(orderSchema.merchantOid, merchantOid));
+
+        return { success: false, merchantOid, orderType: order.orderType };
+      }
+
       await db
         .update(orderSchema)
         .set({
@@ -134,7 +239,6 @@ async function finalizeOrder(
         .where(eq(orderSchema.merchantOid, merchantOid));
 
       if (order.orderType === 'credit' && order.creditAmount) {
-        // Credit purchase: add credits to the user's balance
         const [currentUser] = await db
           .select({ artCredits: userSchema.artCredits })
           .from(userSchema)
@@ -153,12 +257,55 @@ async function finalizeOrder(
           });
         }
       } else if (order.generationId) {
-        // Product purchase: mark the generated image as selected
         await db
           .update(generatedImageSchema)
           .set({ isSelected: true })
           .where(eq(generatedImageSchema.generationId, order.generationId));
       }
+    } catch (error) {
+      const errorMessage = error instanceof Error
+        ? error.message
+        : 'Akbank provizyon çağrısı başarısız';
+
+      const userFriendlyError = 'Ödeme işleminde teknik bir hata oluştu. Lütfen daha sonra tekrar deneyin.';
+
+      console.error('AKBANK 3D model provision error', {
+        merchantOid,
+        error,
+      });
+
+      await db.insert(paymentLogsSchema).values({
+        merchantOid,
+        status: 'PROVISION_ERROR',
+        totalAmount: payload.amount ?? null,
+        hash: null,
+        paymentType: 'akbank_3d_provision',
+        failedReasonCode: 'PROVISION_ERROR',
+        failedReasonMsg: errorMessage,
+        currency: payload.currencyCode ?? '949',
+        paymentAmount: payload.amount ?? null,
+        rawPayload: JSON.stringify({
+          requestPayload: payload,
+          error: errorMessage,
+        }),
+        ipAddress:
+          request.headers.get('x-forwarded-for')
+          ?? request.headers.get('x-real-ip')
+          ?? null,
+        userAgent: request.headers.get('user-agent') ?? null,
+      });
+
+      await db
+        .update(orderSchema)
+        .set({
+          paymentStatus: 'failed',
+          failedReasonCode: 'PROVISION_ERROR',
+          failedReasonMsg: userFriendlyError,
+          updatedAt: new Date(),
+        })
+        .where(eq(orderSchema.merchantOid, merchantOid));
+
+      return { success: false, merchantOid, orderType: order.orderType };
     }
 
     return { success: true, merchantOid, orderType: order.orderType };

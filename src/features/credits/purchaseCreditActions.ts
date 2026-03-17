@@ -285,7 +285,7 @@ export async function createCreditPurchase(
     const failUrl = `${callbackBaseUrl}?flow=credit&redirect=${encodeURIComponent(successRedirectPath)}&fail_redirect=${encodeURIComponent(failedRedirectPath)}`;
 
     const akbankFields = createAkbank3dPayRequestFields({
-      paymentModel: '3D_PAY',
+      paymentModel: '3D',
       txnCode: '3000',
       merchantSafeId: process.env.AKBANK_MERCHANT_SAFE_ID || '',
       terminalSafeId: process.env.AKBANK_TERMINAL_SAFE_ID || '',

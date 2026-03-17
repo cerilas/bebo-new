@@ -393,7 +393,7 @@ export function PurchaseCreditsInterface() {
       <Navbar />
 
       {/* Main Content */}
-      <div className="mx-auto max-w-4xl px-4 pb-40 pt-14 sm:pb-44 sm:pt-16">
+      <div className="mx-auto max-w-4xl px-4 pb-40 pt-24 sm:pb-44 sm:pt-28">
         {/* Error Notification */}
         {error && (
           <div className="fixed inset-x-4 top-24 z-[100] flex justify-center sm:inset-x-0">
@@ -425,11 +425,13 @@ export function PurchaseCreditsInterface() {
         )}
 
         {/* Header */}
-        <div className="mb-8 text-center">
-          <h1 className="mb-2 text-3xl font-bold text-gray-900 dark:text-gray-100">
+        <div className="mb-12 text-center">
+          <h1 className="mb-3 text-4xl font-bold text-gray-900 dark:text-gray-100">
             {t('page_title')}
           </h1>
-          <p className="text-gray-600 dark:text-gray-400">{t('page_description')}</p>
+          <p className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-lg text-transparent dark:from-purple-400 dark:to-pink-400">
+            {t('page_description')}
+          </p>
         </div>
 
         {isLoaded && !userId && (

@@ -359,7 +359,7 @@ export function CheckoutInterface({
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8">
+    <div className="mx-auto max-w-7xl px-4 pb-8 pt-24 sm:pt-28">
       {/* Error Notification */}
       {error && (
         <div className="fixed inset-x-4 top-24 z-[100] flex justify-center sm:inset-x-0">

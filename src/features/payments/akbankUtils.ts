@@ -62,7 +62,7 @@ export type AkbankPayHostingRequestFields = {
 };
 
 export type Akbank3dPayRequestFields = {
-  paymentModel: '3D_PAY';
+  paymentModel: '3D';
   txnCode: '3000';
   merchantSafeId: string;
   terminalSafeId: string;
@@ -119,6 +119,32 @@ export type AkbankPaymentApiRequest = {
   customer: {
     emailAddress: string;
     ipAddress: string;
+  };
+};
+
+export type Akbank3dModelPaymentApiRequest = {
+  version: '1.00';
+  txnCode: '1000';
+  requestDateTime: string;
+  randomNumber: string;
+  terminal: {
+    merchantSafeId: string;
+    terminalSafeId: string;
+  };
+  order: {
+    orderId: string;
+  };
+  transaction: {
+    amount: string;
+    currencyCode: 949;
+    motoInd: 0;
+    installCount: number;
+  };
+  secureTransaction: {
+    secureId: string;
+    secureEcomInd: string;
+    secureData: string;
+    secureMd: string;
   };
 };
 
@@ -264,6 +290,54 @@ export const isAkbankPaymentApproved = (response: AkbankPaymentApiResponse): boo
   return response.responseCode === 'VPS-0000';
 };
 
+/**
+ * Maps Akbank host error codes to user-friendly Turkish messages.
+ * Examples: "051 YETERSIZ BAKIYE" → "Kartınızda yeterli bakiye bulunmamaktadır."
+ */
+export const mapAkbankErrorToUserMessage = (hostMessage?: string): string => {
+  if (!hostMessage) {
+    return 'Ödeme işlemi başarısız oldu. Lütfen tekrar deneyin.';
+  }
+
+  // Extract error code (e.g., "051", "55") from messages like "051 YETERSIZ BAKIYE"
+  const codeMatch = hostMessage.match(/^(\d+)\s+/);
+  const code = codeMatch?.[1];
+
+  // Common Akbank host error codes → user-friendly messages
+  const errorMap: Record<string, string> = {
+    '051': 'Kartınızda yeterli bakiye bulunmamaktadır.',
+    '55': 'İşlem güvenlik kontrolünden geçemedi. Lütfen tekrar deneyin.',
+    '56': 'Kart kullanıcısı tarafında problem tespit edildi. Lütfen bankanızla iletişime geçin.',
+    '57': 'İşlem izin verilmemektedir. Lütfen bankanızla iletişime geçin.',
+    '91': 'Verici banka geçici olarak hizmet verememektedir. Lütfen daha sonra tekrar deneyin.',
+    '92': 'Ağ hatası nedeniyle işlem tamamlanamadı. Lütfen tekrar deneyin.',
+  };
+
+  if (code && errorMap[code]) {
+    return errorMap[code];
+  }
+
+  // Fallback: remove code prefix and show message as-is
+  if (code) {
+    const messageOnly = hostMessage.replace(/^\d+\s+/, '').trim();
+    if (messageOnly) {
+      // Common Turkish bank messages
+      if (messageOnly.includes('YETERSIZ')) {
+        return 'Kartınızda yeterli bakiye bulunmamaktadır.';
+      }
+      if (messageOnly.includes('GÜVENLİK') || messageOnly.includes('CEP')) {
+        return 'İşlem güvenlik kontrolünden geçemedi. Lütfen tekrar deneyin.';
+      }
+      if (messageOnly.includes('İZİN')) {
+        return 'Bu işlem izin verilmemektedir. Lütfen bankanızla iletişime geçin.';
+      }
+      return messageOnly;
+    }
+  }
+
+  return 'Ödeme işlemi başarısız oldu. Lütfen tekrar deneyin.';
+};
+
 export const getAkbankPaymentErrorMessage = (response: AkbankPaymentApiResponse): string => {
   return response.hostMessage || response.responseMessage || 'Akbank ödeme işlemi başarısız oldu';
 };
@@ -327,6 +401,67 @@ export const chargeAkbankPaymentApi = async (
 
     throw new Error(
       `AKBANK_HTTP_${response.status} ${akbankCode}: ${akbankMessage} | body=${rawSnippet}`,
+    );
+  }
+
+  return data;
+};
+
+export const chargeAkbank3dModelPaymentApi = async (
+  payload: Akbank3dModelPaymentApiRequest,
+): Promise<AkbankPaymentApiResponse> => {
+  const serializedPayload = JSON.stringify(payload);
+  const authHash = hashToString(serializedPayload, Env.AKBANK_SECRET_KEY);
+
+  console.log('AKBANK 3D model Payment API request', {
+    url: getAkbankPaymentApiUrl(),
+    authHashLength: authHash.length,
+    payload,
+  });
+
+  const response = await fetch(getAkbankPaymentApiUrl(), {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'auth-hash': authHash,
+    },
+    cache: 'no-store',
+    body: serializedPayload,
+  });
+
+  const rawText = await response.text();
+  let data: AkbankPaymentApiResponse;
+
+  try {
+    data = JSON.parse(rawText) as AkbankPaymentApiResponse;
+  } catch (error) {
+    console.error('AKBANK 3D model Payment API non-JSON response', {
+      status: response.status,
+      body: rawText,
+      error,
+    });
+    throw new Error(
+      `AKBANK_INVALID_RESPONSE_${response.status}: ${rawText.slice(0, 300) || 'empty body'}`,
+    );
+  }
+
+  if (!response.ok) {
+    const akbankCode = data.responseCode || data.hostResponseCode || `HTTP_${response.status}`;
+    const akbankMessage = getAkbankPaymentErrorMessage(data);
+
+    console.error('AKBANK 3D model Payment API HTTP error', {
+      status: response.status,
+      responseCode: data.responseCode,
+      responseMessage: data.responseMessage,
+      hostResponseCode: data.hostResponseCode,
+      hostMessage: data.hostMessage,
+      fullResponse: data,
+      body: rawText,
+    });
+
+    throw new Error(
+      `AKBANK_HTTP_${response.status} ${akbankCode}: ${akbankMessage}`,
     );
   }
 

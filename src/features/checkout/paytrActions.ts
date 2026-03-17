@@ -2,19 +2,20 @@
 
 import { auth } from '@clerk/nextjs/server';
 import { eq } from 'drizzle-orm';
+import { headers } from 'next/headers';
 
 import {
-  type AkbankPayHostingRequestFields,
-  buildPayHostingHashInput,
+  chargeAkbankPaymentApi,
+  formatAkbankCardExpireDate,
   formatAkbankDateTime,
-  getPayHostingActionUrl,
+  getAkbankPaymentErrorMessage,
   getRandomNumberBase16,
-  hashToString,
+  isAkbankPaymentApproved,
+  maskCardNumber,
 } from '@/features/payments/akbankUtils';
 import { db } from '@/libs/DB';
 import { Env } from '@/libs/Env';
-import { orderSchema } from '@/models/Schema';
-import { getBaseUrl } from '@/utils/Helpers';
+import { generatedImageSchema, orderSchema, paymentLogsSchema } from '@/models/Schema';
 
 export type ProductAkbankRequest = {
   generationId: string;
@@ -38,22 +39,25 @@ export type ProductAkbankRequest = {
   taxOffice?: string;
   companyAddress?: string;
   paymentType?: 'card';
+  cardHolderName: string;
+  cardNumber: string;
+  cardExpiry: string;
+  cardCvv: string;
   orientation?: 'landscape' | 'portrait';
   imageTransform?: { x: number; y: number; scale: number };
   locale?: string;
 };
 
-export type AkbankFormResponse = {
+export type AkbankPaymentActionResponse = {
   success: boolean;
-  actionUrl?: string;
-  fields?: AkbankPayHostingRequestFields;
   merchantOid?: string;
+  redirectPath?: string;
   error?: string;
 };
 
-export async function getAkbankPayHostingForm(
+export async function processAkbankProductPayment(
   request: ProductAkbankRequest,
-): Promise<AkbankFormResponse> {
+): Promise<AkbankPaymentActionResponse> {
   try {
     const { userId } = await auth();
 
@@ -63,62 +67,22 @@ export async function getAkbankPayHostingForm(
 
     // Build a unique order ID: BRB + timestamp + 4 random digits
     const merchantOid = `BRB${Date.now()}${String(Math.floor(Math.random() * 10000)).padStart(4, '0')}`;
-
-    const appUrl = getBaseUrl();
     const localePrefix = request.locale && request.locale !== 'tr' ? `/${request.locale}` : '';
-
-    // okUrl / failUrl: Akbank will POST the response body here.
-    // We use a single handler endpoint; the `flow` param lets the handler pick
-    // the right redirect after processing.
-    const okUrl = `${appUrl}/api/akbank/return?flow=product&redirect=${encodeURIComponent(`${localePrefix}/checkout/success`)}`;
-    const failUrl = `${appUrl}/api/akbank/return?flow=product&redirect=${encodeURIComponent(`${localePrefix}/checkout/failed`)}`;
+    const successRedirectPath = `${localePrefix}/checkout/success`;
+    const failedRedirectPath = `${localePrefix}/checkout/failed`;
 
     // Amount: kuruş → TL with 2 decimal places (e.g. 14999 → "149.99")
     const amount = (request.paymentAmount / 100).toFixed(2);
     const requestDateTime = formatAkbankDateTime();
-    const randomNumber = getRandomNumberBase16(128); // 128-char lowercase hex
+    const randomNumber = getRandomNumberBase16(128);
+    const normalizedCardNumber = request.cardNumber.replace(/\D/g, '');
+    const normalizedCvv = request.cardCvv.replace(/\D/g, '');
+    const expireDate = formatAkbankCardExpireDate(request.cardExpiry);
+    const requestHeaders = await headers();
+    const ipAddress = requestHeaders.get('x-forwarded-for')?.split(',')[0]?.trim()
+      || requestHeaders.get('x-real-ip')
+      || '127.0.0.1';
 
-    const lang: 'TR' | 'EN'
-      = (request.locale ?? 'tr').toUpperCase() === 'EN' ? 'EN' : 'TR';
-
-    const plainFields: Omit<AkbankPayHostingRequestFields, 'hash'> = {
-      paymentModel: 'PAY_HOSTING',
-      txnCode: '1000',
-      merchantSafeId: Env.AKBANK_MERCHANT_SAFE_ID,
-      terminalSafeId: Env.AKBANK_TERMINAL_SAFE_ID,
-      orderId: merchantOid,
-      lang,
-      amount,
-      ccbRewardAmount: '0.00',
-      pcbRewardAmount: '0.00',
-      xcbRewardAmount: '0.00',
-      currencyCode: '949',
-      installCount: '1',
-      okUrl,
-      failUrl,
-      emailAddress: request.customerEmail,
-      mobilePhone: '', // empty avoids VPS-3001 pattern validation
-      homePhone: '',
-      workPhone: '',
-      randomNumber,
-      requestDateTime,
-      b2bIdentityNumber: '',
-      merchantData: '',
-      merchantBranchNo: '',
-      mobileEci: '',
-      walletProgramData: '',
-      mobileAssignedId: '',
-      mobileDeviceType: '',
-    };
-
-    const hash = hashToString(
-      buildPayHostingHashInput(plainFields),
-      Env.AKBANK_SECRET_KEY,
-    );
-
-    const fields: AkbankPayHostingRequestFields = { ...plainFields, hash };
-
-    // Persist the pending order before redirecting to Akbank
     await db.insert(orderSchema).values({
       userId,
       generationId: request.generationId,
@@ -151,22 +115,137 @@ export async function getAkbankPayHostingForm(
         : null,
     });
 
+    const paymentRequest = {
+      version: '1.00' as const,
+      txnCode: '1000' as const,
+      randomNumber,
+      requestDateTime,
+      terminal: {
+        merchantSafeId: Env.AKBANK_MERCHANT_SAFE_ID,
+        terminalSafeId: Env.AKBANK_TERMINAL_SAFE_ID,
+      },
+      card: {
+        cardNumber: normalizedCardNumber,
+        cvv2: normalizedCvv,
+        expireDate,
+      },
+      order: {
+        orderId: merchantOid,
+      },
+      reward: {
+        ccbRewardAmount: '0.00',
+        pcbRewardAmount: '0.00',
+        xcbRewardAmount: '0.00',
+      },
+      transaction: {
+        amount,
+        currencyCode: 949 as const,
+        motoInd: 0 as const,
+        installCount: 1 as const,
+      },
+      customer: {
+        emailAddress: request.customerEmail,
+        ipAddress,
+      },
+    };
+
+    await db.insert(paymentLogsSchema).values({
+      merchantOid,
+      status: 'OUTGOING_REQUEST',
+      totalAmount: amount,
+      hash: null,
+      paymentType: 'akbank_payment_api',
+      failedReasonCode: null,
+      failedReasonMsg: null,
+      currency: 'TRY',
+      paymentAmount: amount,
+      rawPayload: JSON.stringify({
+        ...paymentRequest,
+        card: {
+          cardNumber: maskCardNumber(normalizedCardNumber),
+          cvv2: '***',
+          expireDate,
+        },
+        cardHolderName: request.cardHolderName,
+      }),
+      ipAddress,
+      userAgent: requestHeaders.get('user-agent') ?? null,
+    });
+
     console.log('AKBANK product payment initiated', {
       merchantOid,
       amount,
-      txnCode: plainFields.txnCode,
-      okUrl,
-      failUrl,
+      txnCode: paymentRequest.txnCode,
     });
+
+    const paymentResponse = await chargeAkbankPaymentApi(paymentRequest);
+    const approved = isAkbankPaymentApproved(paymentResponse);
+    const responseAmount = paymentResponse.transaction?.amount;
+    const responseAmountKurus = typeof responseAmount === 'number'
+      ? Math.round(responseAmount * 100)
+      : request.paymentAmount;
+
+    await db.insert(paymentLogsSchema).values({
+      merchantOid,
+      status: paymentResponse.responseCode ?? null,
+      totalAmount: typeof responseAmount === 'number' ? responseAmount.toFixed(2) : amount,
+      hash: null,
+      paymentType: 'akbank_payment_api',
+      failedReasonCode: paymentResponse.responseCode ?? null,
+      failedReasonMsg: paymentResponse.responseMessage ?? paymentResponse.hostMessage ?? null,
+      currency: 'TRY',
+      paymentAmount: typeof responseAmount === 'number' ? responseAmount.toFixed(2) : amount,
+      rawPayload: JSON.stringify(paymentResponse),
+      ipAddress,
+      userAgent: requestHeaders.get('user-agent') ?? null,
+    });
+
+    if (!approved) {
+      await db
+        .update(orderSchema)
+        .set({
+          paymentStatus: 'failed',
+          paymentType: 'akbank_payment_api',
+          failedReasonCode: paymentResponse.responseCode ?? null,
+          failedReasonMsg: getAkbankPaymentErrorMessage(paymentResponse),
+          updatedAt: new Date(),
+        })
+        .where(eq(orderSchema.merchantOid, merchantOid));
+
+      return {
+        success: false,
+        merchantOid,
+        redirectPath: failedRedirectPath,
+        error: getAkbankPaymentErrorMessage(paymentResponse),
+      };
+    }
+
+    await db
+      .update(orderSchema)
+      .set({
+        paymentStatus: 'success',
+        totalAmount: responseAmountKurus,
+        paymentType: 'akbank_payment_api',
+        paidAt: new Date(),
+        shippingStatus: 'preparing',
+        failedReasonCode: null,
+        failedReasonMsg: null,
+        updatedAt: new Date(),
+      })
+      .where(eq(orderSchema.merchantOid, merchantOid));
+
+    await db
+      .update(generatedImageSchema)
+      .set({ isSelected: true })
+      .where(eq(generatedImageSchema.generationId, request.generationId));
 
     return {
       success: true,
-      actionUrl: getPayHostingActionUrl(),
-      fields,
       merchantOid,
+      redirectPath: successRedirectPath,
     };
   } catch (error) {
-    console.error('AKBANK payment form creation error:', error);
+    console.error('AKBANK product payment error:', error);
     return { success: false, error: 'Ödeme işlemi başlatılamadı' };
   }
 }

@@ -4,20 +4,21 @@ import { Buffer } from 'node:buffer';
 
 import { auth, currentUser } from '@clerk/nextjs/server';
 import { eq } from 'drizzle-orm';
+import { headers } from 'next/headers';
 
 import {
-  type AkbankPayHostingRequestFields,
-  buildPayHostingHashInput,
+  chargeAkbankPaymentApi,
+  formatAkbankCardExpireDate,
   formatAkbankDateTime,
-  getPayHostingActionUrl,
+  getAkbankPaymentErrorMessage,
   getRandomNumberBase16,
-  hashToString,
+  isAkbankPaymentApproved,
+  maskCardNumber,
 } from '@/features/payments/akbankUtils';
 import { db } from '@/libs/DB';
 import { Env } from '@/libs/Env';
 import { artCreditSettingsSchema, orderSchema, paymentLogsSchema, userSchema } from '@/models/Schema';
 import { AppConfig } from '@/utils/AppConfig';
-import { getBaseUrl } from '@/utils/Helpers';
 
 import { getUserArtCredits } from '../design/creditsActions';
 
@@ -31,9 +32,8 @@ export type CreditSettings = {
 
 type AkbankCreditFormResponse = {
   success: boolean;
-  actionUrl?: string;
-  fields?: AkbankPayHostingRequestFields;
   merchantOid?: string;
+  redirectPath?: string;
   error?: string;
 };
 
@@ -52,6 +52,10 @@ export type CreditPurchaseCustomerPayload = {
   taxOffice?: string;
   companyAddress?: string;
   paymentType?: 'card';
+  cardHolderName: string;
+  cardNumber: string;
+  cardExpiry: string;
+  cardCvv: string;
 };
 
 export async function getCreditSettings(): Promise<CreditSettings | null> {
@@ -193,96 +197,24 @@ export async function createCreditPurchase(
       .padStart(4, '0');
     const merchantOid = `CRD${Date.now()}${randomPart}${userIdHash}`;
 
-    const appUrl = getBaseUrl();
     const localePath = locale !== AppConfig.defaultLocale ? `/${locale}` : '';
-
-    // okUrl / failUrl: Akbank POSTs the response body here.
-    // Keep them clean – avoid result/locale params that are redundant for the POST handler.
-    const okUrl = `${appUrl}/api/akbank/return?flow=credit&redirect=${encodeURIComponent(`${localePath}/purchase-credits/success`)}`;
-    const failUrl = `${appUrl}/api/akbank/return?flow=credit&redirect=${encodeURIComponent(`${localePath}/purchase-credits/failed`)}`;
+    const successRedirectPath = `${localePath}/purchase-credits/success`;
+    const failedRedirectPath = `${localePath}/purchase-credits/failed`;
 
     // Amount: kuruş → TL with 2 decimal places
     const amount = (totalAmount / 100).toFixed(2);
     const requestDateTime = formatAkbankDateTime();
-    const randomNumber = getRandomNumberBase16(128); // 128-char lowercase hex
-
-    const lang: 'TR' | 'EN' = locale.toUpperCase() === 'EN' ? 'EN' : 'TR';
+    const randomNumber = getRandomNumberBase16(128);
 
     const billingEmail = customerPayload?.customerEmail || userEmail;
-
-    const plainFields: Omit<AkbankPayHostingRequestFields, 'hash'> = {
-      paymentModel: 'PAY_HOSTING',
-      txnCode: '1000',
-      merchantSafeId: Env.AKBANK_MERCHANT_SAFE_ID,
-      terminalSafeId: Env.AKBANK_TERMINAL_SAFE_ID,
-      orderId: merchantOid,
-      lang,
-      amount,
-      ccbRewardAmount: '0.00',
-      pcbRewardAmount: '0.00',
-      xcbRewardAmount: '0.00',
-      currencyCode: '949',
-      installCount: '1',
-      okUrl,
-      failUrl,
-      emailAddress: billingEmail,
-      mobilePhone: '', // empty avoids VPS-3001 pattern validation
-      homePhone: '',
-      workPhone: '',
-      randomNumber,
-      requestDateTime,
-      b2bIdentityNumber: '',
-      merchantData: '',
-      merchantBranchNo: '',
-      mobileEci: '',
-      walletProgramData: '',
-      mobileAssignedId: '',
-      mobileDeviceType: '',
-    };
-
-    const hashInputStr = buildPayHostingHashInput(plainFields);
-    const hash = hashToString(
-      hashInputStr,
-      Env.AKBANK_SECRET_KEY,
-    );
-
-    const fields: AkbankPayHostingRequestFields = { ...plainFields, hash };
-
     const customerName = customerPayload?.customerName || userEmail.split('@')[0] || 'Birebiro Kullanıcısı';
-
-    // ── DEBUG LOGGING ──
-    const sk = Env.AKBANK_SECRET_KEY;
-    console.log('═══ AKBANK FULL REQUEST DEBUG ═══');
-    console.log(`  SECRET_KEY: len=${sk.length} first8=${sk.slice(0, 8)} last8=${sk.slice(-8)}`);
-    console.log(`  HASH_INPUT: len=${hashInputStr.length}`);
-    console.log(`  HASH_INPUT: ${hashInputStr}`);
-    for (const [k, v] of Object.entries(fields)) {
-      console.log(`  ${k}: ${JSON.stringify(v).slice(0, 200)}`);
-    }
-    console.log('═══ END AKBANK DEBUG ═══');
-
-    // Save full outgoing request to payment_logs for DB-level debugging
-    await db.insert(paymentLogsSchema).values({
-      merchantOid,
-      status: 'OUTGOING_REQUEST',
-      totalAmount: amount,
-      hash,
-      paymentType: 'akbank_payhosting',
-      failedReasonCode: null,
-      failedReasonMsg: null,
-      currency: 'TRY',
-      paymentAmount: amount,
-      rawPayload: JSON.stringify({
-        _type: 'outgoing_request',
-        secretKeyLen: Env.AKBANK_SECRET_KEY.length,
-        secretKeyFirst8: Env.AKBANK_SECRET_KEY.slice(0, 8),
-        secretKeyLast8: Env.AKBANK_SECRET_KEY.slice(-8),
-        hashInput: hashInputStr,
-        allFields: fields,
-      }),
-      ipAddress: null,
-      userAgent: null,
-    });
+    const normalizedCardNumber = customerPayload?.cardNumber.replace(/\D/g, '') || '';
+    const normalizedCvv = customerPayload?.cardCvv.replace(/\D/g, '') || '';
+    const expireDate = formatAkbankCardExpireDate(customerPayload?.cardExpiry || '');
+    const requestHeaders = await headers();
+    const ipAddress = requestHeaders.get('x-forwarded-for')?.split(',')[0]?.trim()
+      || requestHeaders.get('x-real-ip')
+      || '127.0.0.1';
 
     await db.insert(orderSchema).values({
       userId,
@@ -316,11 +248,141 @@ export async function createCreditPurchase(
       shippingStatus: null,
     });
 
+    const paymentRequest = {
+      version: '1.00' as const,
+      txnCode: '1000' as const,
+      requestDateTime,
+      randomNumber,
+      terminal: {
+        merchantSafeId: Env.AKBANK_MERCHANT_SAFE_ID,
+        terminalSafeId: Env.AKBANK_TERMINAL_SAFE_ID,
+      },
+      card: {
+        cardNumber: normalizedCardNumber,
+        cvv2: normalizedCvv,
+        expireDate,
+      },
+      order: {
+        orderId: merchantOid,
+      },
+      reward: {
+        ccbRewardAmount: '0.00',
+        pcbRewardAmount: '0.00',
+        xcbRewardAmount: '0.00',
+      },
+      transaction: {
+        amount,
+        currencyCode: 949 as const,
+        motoInd: 0 as const,
+        installCount: 1 as const,
+      },
+      customer: {
+        emailAddress: billingEmail,
+        ipAddress,
+      },
+    };
+
+    await db.insert(paymentLogsSchema).values({
+      merchantOid,
+      status: 'OUTGOING_REQUEST',
+      totalAmount: amount,
+      hash: null,
+      paymentType: 'akbank_payment_api',
+      failedReasonCode: null,
+      failedReasonMsg: null,
+      currency: 'TRY',
+      paymentAmount: amount,
+      rawPayload: JSON.stringify({
+        ...paymentRequest,
+        card: {
+          cardNumber: maskCardNumber(normalizedCardNumber),
+          cvv2: '***',
+          expireDate,
+        },
+        cardHolderName: customerPayload?.cardHolderName || null,
+      }),
+      ipAddress,
+      userAgent: requestHeaders.get('user-agent') ?? null,
+    });
+
+    const paymentResponse = await chargeAkbankPaymentApi(paymentRequest);
+    const approved = isAkbankPaymentApproved(paymentResponse);
+    const responseAmount = paymentResponse.transaction?.amount;
+    const responseAmountKurus = typeof responseAmount === 'number'
+      ? Math.round(responseAmount * 100)
+      : totalAmount;
+
+    await db.insert(paymentLogsSchema).values({
+      merchantOid,
+      status: paymentResponse.responseCode ?? null,
+      totalAmount: typeof responseAmount === 'number' ? responseAmount.toFixed(2) : amount,
+      hash: null,
+      paymentType: 'akbank_payment_api',
+      failedReasonCode: paymentResponse.responseCode ?? null,
+      failedReasonMsg: paymentResponse.responseMessage ?? paymentResponse.hostMessage ?? null,
+      currency: 'TRY',
+      paymentAmount: typeof responseAmount === 'number' ? responseAmount.toFixed(2) : amount,
+      rawPayload: JSON.stringify(paymentResponse),
+      ipAddress,
+      userAgent: requestHeaders.get('user-agent') ?? null,
+    });
+
+    if (!approved) {
+      await db
+        .update(orderSchema)
+        .set({
+          paymentStatus: 'failed',
+          paymentType: 'akbank_payment_api',
+          failedReasonCode: paymentResponse.responseCode ?? null,
+          failedReasonMsg: getAkbankPaymentErrorMessage(paymentResponse),
+          updatedAt: new Date(),
+        })
+        .where(eq(orderSchema.merchantOid, merchantOid));
+
+      return {
+        success: false,
+        merchantOid,
+        redirectPath: failedRedirectPath,
+        error: getAkbankPaymentErrorMessage(paymentResponse),
+      };
+    }
+
+    await db
+      .update(orderSchema)
+      .set({
+        paymentStatus: 'success',
+        totalAmount: responseAmountKurus,
+        paymentType: 'akbank_payment_api',
+        paidAt: new Date(),
+        shippingStatus: null,
+        failedReasonCode: null,
+        failedReasonMsg: null,
+        updatedAt: new Date(),
+      })
+      .where(eq(orderSchema.merchantOid, merchantOid));
+
+    const [currentDbUser] = await db
+      .select({ artCredits: userSchema.artCredits })
+      .from(userSchema)
+      .where(eq(userSchema.id, userId))
+      .limit(1);
+
+    if (currentDbUser) {
+      await db
+        .update(userSchema)
+        .set({ artCredits: currentDbUser.artCredits + creditAmount })
+        .where(eq(userSchema.id, userId));
+    } else {
+      await db.insert(userSchema).values({
+        id: userId,
+        artCredits: creditAmount,
+      });
+    }
+
     return {
       success: true,
-      actionUrl: getPayHostingActionUrl(),
-      fields,
       merchantOid,
+      redirectPath: successRedirectPath,
     };
   } catch (error) {
     console.error('Credit purchase error:', error);

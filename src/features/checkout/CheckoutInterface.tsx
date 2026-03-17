@@ -4,17 +4,16 @@ import { useUser } from '@clerk/nextjs';
 import { AlertCircle, ArrowLeft, ChevronDown, CreditCard, Loader2, Package, Shield, X } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { MockupPreview } from '@/components/MockupPreview';
 import { ProtectedImage } from '@/components/ProtectedImage';
 import { type City, type District, getCities, getDistricts } from '@/features/checkout/geliverActions';
 import { type GeneratedImageResponse, getGeneratedImage, getUserGeneratedImages } from '@/features/design/chatActions';
 import { getProductPricing, type ProductPriceData } from '@/features/design/productPriceActions';
-import type { AkbankPayHostingRequestFields } from '@/features/payments/akbankUtils';
 import { parseMockupConfig } from '@/utils/mockupUtils';
 
-import { getAkbankPayHostingForm } from './paytrActions';
+import { processAkbankProductPayment } from './paytrActions';
 
 type CheckoutInterfaceProps = {
   locale: string;
@@ -54,10 +53,7 @@ export function CheckoutInterface({
   const [priceData, setPriceData] = useState<ProductPriceData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [akbankActionUrl, setAkbankActionUrl] = useState<string | null>(null);
-  const [akbankFields, setAkbankFields] = useState<AkbankPayHostingRequestFields | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const akbankFormRef = useRef<HTMLFormElement>(null);
 
   // Hata mesajını otomatik temizle
   useEffect(() => {
@@ -190,13 +186,6 @@ export function CheckoutInterface({
     }
   }, [user]);
 
-  // AKBANK form hazır olduğunda otomatik submit et
-  useEffect(() => {
-    if (akbankActionUrl && akbankFields && akbankFormRef.current) {
-      akbankFormRef.current.submit();
-    }
-  }, [akbankActionUrl, akbankFields]);
-
   // Ödeme işlemini başlat
   const handleCompletePayment = async () => {
     setError(null);
@@ -271,7 +260,7 @@ export function CheckoutInterface({
       const cityName = selectedCity?.name || customerCity;
       const districtName = selectedDistrict?.name || customerDistrict;
 
-      const result = await getAkbankPayHostingForm({
+      const result = await processAkbankProductPayment({
         generationId,
         imageUrl: imageData.image_url,
         productId: priceData.productId,
@@ -292,14 +281,20 @@ export function CheckoutInterface({
         taxOffice: wantsCorporateInvoice ? taxOffice : undefined,
         companyAddress: wantsCorporateInvoice ? companyAddress : undefined,
         paymentType: 'card',
+        cardHolderName,
+        cardNumber: normalizedCardNumber,
+        cardExpiry,
+        cardCvv: normalizedCvv,
         orientation,
         imageTransform: propImageTransform, // Görsel konumlandırma/crop bilgisi
         locale,
       });
 
-      if (result.success && result.actionUrl && result.fields) {
-        setAkbankActionUrl(result.actionUrl);
-        setAkbankFields(result.fields);
+      if (result.redirectPath) {
+        const redirectUrl = result.merchantOid
+          ? `${result.redirectPath}?merchant_oid=${encodeURIComponent(result.merchantOid)}`
+          : result.redirectPath;
+        router.push(redirectUrl);
       } else {
         setError(result.error || 'Ödeme işlemi başlatılamadı');
         setIsProcessing(false);
@@ -385,355 +380,324 @@ export function CheckoutInterface({
         {/* Sol: Form ve Ödeme */}
         <div className="space-y-6">
           {/* Müşteri Bilgileri */}
-          {!akbankFields && (
-            <>
-              <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-lg dark:border-gray-700 dark:bg-gray-800">
-                <h2 className="mb-4 flex items-center gap-2 text-xl font-semibold text-gray-900 dark:text-white">
-                  <Package className="size-6 text-purple-600" />
-                  {t('customer_information')}
-                </h2>
+          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-lg dark:border-gray-700 dark:bg-gray-800">
+            <h2 className="mb-4 flex items-center gap-2 text-xl font-semibold text-gray-900 dark:text-white">
+              <Package className="size-6 text-purple-600" />
+              {t('customer_information')}
+            </h2>
 
-                <div className="space-y-4">
+            <div className="space-y-4">
+              <div>
+                <label htmlFor="customer-name" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  {t('full_name')}
+                </label>
+                <input
+                  id="customer-name"
+                  type="text"
+                  value={customerName}
+                  onChange={e => setCustomerName(e.target.value)}
+                  placeholder={t('full_name_placeholder')}
+                  className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="customer-email" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  {t('email')}
+                </label>
+                <input
+                  id="customer-email"
+                  type="email"
+                  value={customerEmail}
+                  onChange={e => setCustomerEmail(e.target.value)}
+                  placeholder={t('email_placeholder')}
+                  className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="customer-phone" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  {t('phone')}
+                </label>
+                <input
+                  id="customer-phone"
+                  type="tel"
+                  value={customerPhone}
+                  onChange={e => setCustomerPhone(e.target.value)}
+                  placeholder={t('phone_placeholder')}
+                  className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <label htmlFor="customer-city" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    İl
+                  </label>
+                  <div className="relative">
+                    <select
+                      id="customer-city"
+                      value={customerCity}
+                      onChange={(e) => {
+                        const selectedCode = e.target.value;
+                        setCustomerCity(selectedCode);
+                        setCustomerDistrict('');
+                      }}
+                      className="w-full appearance-none rounded-lg border border-gray-300 px-4 py-2 pr-10 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                    >
+                      <option value="">İl Seçiniz</option>
+                      {cities.map(city => (
+                        <option key={city.cityCode} value={city.cityCode}>
+                          {city.name}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-gray-500" />
+                  </div>
+                </div>
+
+                <div>
+                  <label htmlFor="customer-district" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    İlçe
+                  </label>
+                  <div className="relative">
+                    <select
+                      id="customer-district"
+                      value={customerDistrict}
+                      onChange={e => setCustomerDistrict(e.target.value)}
+                      disabled={!customerCity}
+                      className="w-full appearance-none rounded-lg border border-gray-300 px-4 py-2 pr-10 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                    >
+                      <option value="">İlçe Seçiniz</option>
+                      {districts.map(district => (
+                        <option key={district.districtID} value={district.districtID.toString()}>
+                          {district.name}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-gray-500" />
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="customer-address" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  {t('address')}
+                </label>
+                <textarea
+                  id="customer-address"
+                  value={customerAddress}
+                  onChange={e => setCustomerAddress(e.target.value)}
+                  placeholder={t('address_placeholder')}
+                  rows={3}
+                  className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+
+              <div className="border-t border-gray-200 pt-4 dark:border-gray-700">
+                <label className="flex cursor-pointer items-center gap-3">
+                  <input
+                    type="checkbox"
+                    checked={wantsCorporateInvoice}
+                    onChange={e => setWantsCorporateInvoice(e.target.checked)}
+                    className="size-5 rounded border-gray-300 text-purple-600 focus:ring-2 focus:ring-purple-500/20"
+                  />
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Kurumsal Fatura İstiyorum
+                  </span>
+                </label>
+              </div>
+
+              {wantsCorporateInvoice && (
+                <div className="space-y-4 rounded-lg bg-purple-50 p-4 dark:bg-purple-900/10">
+                  <h3 className="font-semibold text-gray-900 dark:text-white">
+                    Kurumsal Fatura Bilgileri
+                  </h3>
+
                   <div>
-                    <label htmlFor="customer-name" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                      {t('full_name')}
+                    <label htmlFor="company-name" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Ünvan (Şirket Adı)
                     </label>
                     <input
-                      id="customer-name"
+                      id="company-name"
                       type="text"
-                      value={customerName}
-                      onChange={e => setCustomerName(e.target.value)}
-                      placeholder={t('full_name_placeholder')}
-                      className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-                    />
-                  </div>
-
-                  <div>
-                    <label htmlFor="customer-email" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                      {t('email')}
-                    </label>
-                    <input
-                      id="customer-email"
-                      type="email"
-                      value={customerEmail}
-                      onChange={e => setCustomerEmail(e.target.value)}
-                      placeholder={t('email_placeholder')}
-                      className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-                    />
-                  </div>
-
-                  <div>
-                    <label htmlFor="customer-phone" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                      {t('phone')}
-                    </label>
-                    <input
-                      id="customer-phone"
-                      type="tel"
-                      value={customerPhone}
-                      onChange={e => setCustomerPhone(e.target.value)}
-                      placeholder={t('phone_placeholder')}
+                      value={companyName}
+                      onChange={e => setCompanyName(e.target.value)}
+                      placeholder="Örn: ABC Teknoloji A.Ş."
                       className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                     />
                   </div>
 
                   <div className="grid gap-4 md:grid-cols-2">
                     <div>
-                      <label htmlFor="customer-city" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                        İl
+                      <label htmlFor="tax-number" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Vergi Kimlik No
                       </label>
-                      <div className="relative">
-                        <select
-                          id="customer-city"
-                          value={customerCity} // This will now hold the cityCode (plate number)
-                          onChange={(e) => {
-                            const selectedCode = e.target.value;
-                            setCustomerCity(selectedCode);
-                            // Reset district when city changes
-                            setCustomerDistrict('');
-                            // Find city name for display if needed, but we store code as value
-                          }}
-                          className="w-full appearance-none rounded-lg border border-gray-300 px-4 py-2 pr-10 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-                        >
-                          <option value="">İl Seçiniz</option>
-                          {cities.map(city => (
-                            <option key={city.cityCode} value={city.cityCode}>
-                              {city.name}
-                            </option>
-                          ))}
-                        </select>
-                        <ChevronDown className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-gray-500" />
-                      </div>
+                      <input
+                        id="tax-number"
+                        type="text"
+                        value={taxNumber}
+                        onChange={e => setTaxNumber(e.target.value)}
+                        placeholder="10 haneli numara"
+                        maxLength={10}
+                        className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                      />
                     </div>
 
                     <div>
-                      <label htmlFor="customer-district" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                        İlçe
+                      <label htmlFor="tax-office" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Vergi Dairesi
                       </label>
-                      <div className="relative">
-                        <select
-                          id="customer-district"
-                          value={customerDistrict} // This will now hold the districtId
-                          onChange={e => setCustomerDistrict(e.target.value)}
-                          disabled={!customerCity}
-                          className="w-full appearance-none rounded-lg border border-gray-300 px-4 py-2 pr-10 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-                        >
-                          <option value="">İlçe Seçiniz</option>
-                          {districts.map(district => (
-                            <option key={district.districtID} value={district.districtID.toString()}>
-                              {district.name}
-                            </option>
-                          ))}
-                        </select>
-                        <ChevronDown className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-gray-500" />
-                      </div>
+                      <input
+                        id="tax-office"
+                        type="text"
+                        value={taxOffice}
+                        onChange={e => setTaxOffice(e.target.value)}
+                        placeholder="Örn: Kadıköy"
+                        className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                      />
                     </div>
                   </div>
 
                   <div>
-                    <label htmlFor="customer-address" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                      {t('address')}
+                    <label htmlFor="company-address" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Şirket Adresi
                     </label>
                     <textarea
-                      id="customer-address"
-                      value={customerAddress}
-                      onChange={e => setCustomerAddress(e.target.value)}
-                      placeholder={t('address_placeholder')}
+                      id="company-address"
+                      value={companyAddress}
+                      onChange={e => setCompanyAddress(e.target.value)}
+                      placeholder="Şirket fatura adresini giriniz"
                       rows={3}
                       className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                     />
                   </div>
+                </div>
+              )}
 
-                  {/* Kurumsal Fatura Seçeneği */}
-                  <div className="border-t border-gray-200 pt-4 dark:border-gray-700">
-                    <label className="flex cursor-pointer items-center gap-3">
-                      <input
-                        type="checkbox"
-                        checked={wantsCorporateInvoice}
-                        onChange={e => setWantsCorporateInvoice(e.target.checked)}
-                        className="size-5 rounded border-gray-300 text-purple-600 focus:ring-2 focus:ring-purple-500/20"
-                      />
-                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                        Kurumsal Fatura İstiyorum
-                      </span>
-                    </label>
+              <div className="border-t border-gray-200 pt-4 dark:border-gray-700">
+                <h3 className="mb-3 text-base font-semibold text-gray-900 dark:text-white">
+                  {locale === 'en' ? 'Payment Method' : locale === 'fr' ? 'Mode de paiement' : 'Ödeme Yöntemi'}
+                </h3>
+
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod('card')}
+                  className={`w-full rounded-lg border-2 p-4 text-left transition-all ${paymentMethod === 'card'
+                    ? 'border-purple-600 bg-purple-50 dark:border-purple-400 dark:bg-purple-900/20'
+                    : 'border-gray-200 hover:border-purple-300 dark:border-gray-700 dark:hover:border-purple-500'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <CreditCard className="size-5 text-purple-600 dark:text-purple-400" />
+                    <div>
+                      <p className="font-medium text-gray-900 dark:text-white">
+                        {locale === 'en' ? 'Credit / Debit Card' : locale === 'fr' ? 'Carte de crédit / débit' : 'Kredi / Banka Kartı'}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        {locale === 'en' ? 'Enter your card details securely' : locale === 'fr' ? 'Saisissez vos informations de carte en toute sécurité' : 'Kart bilgilerinizi güvenle girin'}
+                      </p>
+                    </div>
                   </div>
+                </button>
 
-                  {/* Kurumsal Fatura Formu */}
-                  {wantsCorporateInvoice && (
-                    <div className="space-y-4 rounded-lg bg-purple-50 p-4 dark:bg-purple-900/10">
-                      <h3 className="font-semibold text-gray-900 dark:text-white">
-                        Kurumsal Fatura Bilgileri
-                      </h3>
-
+                <div
+                  className={`grid transition-all duration-300 ease-in-out ${paymentMethod === 'card'
+                    ? 'mt-3 grid-rows-[1fr] opacity-100'
+                    : 'grid-rows-[0fr] opacity-0'
+                  }`}
+                >
+                  <div className="overflow-hidden">
+                    <div className="space-y-4 rounded-lg border border-purple-200 bg-purple-50/70 p-4 dark:border-purple-900/40 dark:bg-purple-900/10">
                       <div>
-                        <label htmlFor="company-name" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                          Ünvan (Şirket Adı)
+                        <label htmlFor="card-holder-name" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                          {locale === 'en' ? 'Card Holder Name' : locale === 'fr' ? 'Nom du titulaire' : 'Kart Üzerindeki İsim'}
                         </label>
                         <input
-                          id="company-name"
+                          id="card-holder-name"
                           type="text"
-                          value={companyName}
-                          onChange={e => setCompanyName(e.target.value)}
-                          placeholder="Örn: ABC Teknoloji A.Ş."
+                          value={cardHolderName}
+                          onChange={e => setCardHolderName(e.target.value)}
+                          placeholder={locale === 'en' ? 'e.g. JOHN DOE' : locale === 'fr' ? 'ex. JEAN DUPONT' : 'Örn: AHMET YILMAZ'}
+                          className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                        />
+                      </div>
+
+                      <div>
+                        <label htmlFor="card-number" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                          {locale === 'en' ? 'Card Number' : locale === 'fr' ? 'Numéro de carte' : 'Kart Numarası'}
+                        </label>
+                        <input
+                          id="card-number"
+                          type="text"
+                          inputMode="numeric"
+                          value={cardNumber}
+                          onChange={(e) => {
+                            const digitsOnly = e.target.value.replace(/\D/g, '').slice(0, 19);
+                            const formatted = digitsOnly.replace(/(.{4})/g, '$1 ').trim();
+                            setCardNumber(formatted);
+                          }}
+                          placeholder="0000 0000 0000 0000"
                           className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                         />
                       </div>
 
                       <div className="grid gap-4 md:grid-cols-2">
                         <div>
-                          <label htmlFor="tax-number" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                            Vergi Kimlik No
+                          <label htmlFor="card-expiry" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                            {locale === 'en' ? 'Expiry Date' : locale === 'fr' ? 'Date d\'expiration' : 'Son Kullanma Tarihi'}
                           </label>
                           <input
-                            id="tax-number"
+                            id="card-expiry"
                             type="text"
-                            value={taxNumber}
-                            onChange={e => setTaxNumber(e.target.value)}
-                            placeholder="10 haneli numara"
-                            maxLength={10}
+                            inputMode="numeric"
+                            value={cardExpiry}
+                            onChange={(e) => {
+                              const digitsOnly = e.target.value.replace(/\D/g, '').slice(0, 4);
+                              const formatted = digitsOnly.length > 2
+                                ? `${digitsOnly.slice(0, 2)}/${digitsOnly.slice(2)}`
+                                : digitsOnly;
+                              setCardExpiry(formatted);
+                            }}
+                            placeholder="MM/YY"
                             className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                           />
                         </div>
 
                         <div>
-                          <label htmlFor="tax-office" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                            Vergi Dairesi
+                          <label htmlFor="card-cvv" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                            CVV
                           </label>
                           <input
-                            id="tax-office"
-                            type="text"
-                            value={taxOffice}
-                            onChange={e => setTaxOffice(e.target.value)}
-                            placeholder="Örn: Kadıköy"
+                            id="card-cvv"
+                            type="password"
+                            inputMode="numeric"
+                            value={cardCvv}
+                            onChange={e => setCardCvv(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                            placeholder="123"
                             className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                           />
-                        </div>
-                      </div>
-
-                      <div>
-                        <label htmlFor="company-address" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                          Şirket Adresi
-                        </label>
-                        <textarea
-                          id="company-address"
-                          value={companyAddress}
-                          onChange={e => setCompanyAddress(e.target.value)}
-                          placeholder="Şirket fatura adresini giriniz"
-                          rows={3}
-                          className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="border-t border-gray-200 pt-4 dark:border-gray-700">
-                    <h3 className="mb-3 text-base font-semibold text-gray-900 dark:text-white">
-                      {locale === 'en' ? 'Payment Method' : locale === 'fr' ? 'Mode de paiement' : 'Ödeme Yöntemi'}
-                    </h3>
-
-                    <button
-                      type="button"
-                      onClick={() => setPaymentMethod('card')}
-                      className={`w-full rounded-lg border-2 p-4 text-left transition-all ${paymentMethod === 'card'
-                        ? 'border-purple-600 bg-purple-50 dark:border-purple-400 dark:bg-purple-900/20'
-                        : 'border-gray-200 hover:border-purple-300 dark:border-gray-700 dark:hover:border-purple-500'
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <CreditCard className="size-5 text-purple-600 dark:text-purple-400" />
-                        <div>
-                          <p className="font-medium text-gray-900 dark:text-white">
-                            {locale === 'en' ? 'Credit / Debit Card' : locale === 'fr' ? 'Carte de crédit / débit' : 'Kredi / Banka Kartı'}
-                          </p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">
-                            {locale === 'en' ? 'Enter your card details securely' : locale === 'fr' ? 'Saisissez vos informations de carte en toute sécurité' : 'Kart bilgilerinizi güvenle girin'}
-                          </p>
-                        </div>
-                      </div>
-                    </button>
-
-                    <div
-                      className={`grid transition-all duration-300 ease-in-out ${paymentMethod === 'card'
-                        ? 'mt-3 grid-rows-[1fr] opacity-100'
-                        : 'grid-rows-[0fr] opacity-0'
-                      }`}
-                    >
-                      <div className="overflow-hidden">
-                        <div className="space-y-4 rounded-lg border border-purple-200 bg-purple-50/70 p-4 dark:border-purple-900/40 dark:bg-purple-900/10">
-                          <div>
-                            <label htmlFor="card-holder-name" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                              {locale === 'en' ? 'Card Holder Name' : locale === 'fr' ? 'Nom du titulaire' : 'Kart Üzerindeki İsim'}
-                            </label>
-                            <input
-                              id="card-holder-name"
-                              type="text"
-                              value={cardHolderName}
-                              onChange={e => setCardHolderName(e.target.value)}
-                              placeholder={locale === 'en' ? 'e.g. JOHN DOE' : locale === 'fr' ? 'ex. JEAN DUPONT' : 'Örn: AHMET YILMAZ'}
-                              className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-                            />
-                          </div>
-
-                          <div>
-                            <label htmlFor="card-number" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                              {locale === 'en' ? 'Card Number' : locale === 'fr' ? 'Numéro de carte' : 'Kart Numarası'}
-                            </label>
-                            <input
-                              id="card-number"
-                              type="text"
-                              inputMode="numeric"
-                              value={cardNumber}
-                              onChange={(e) => {
-                                const digitsOnly = e.target.value.replace(/\D/g, '').slice(0, 19);
-                                const formatted = digitsOnly.replace(/(.{4})/g, '$1 ').trim();
-                                setCardNumber(formatted);
-                              }}
-                              placeholder="0000 0000 0000 0000"
-                              className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-                            />
-                          </div>
-
-                          <div className="grid gap-4 md:grid-cols-2">
-                            <div>
-                              <label htmlFor="card-expiry" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                {locale === 'en' ? 'Expiry Date' : locale === 'fr' ? 'Date d\'expiration' : 'Son Kullanma Tarihi'}
-                              </label>
-                              <input
-                                id="card-expiry"
-                                type="text"
-                                inputMode="numeric"
-                                value={cardExpiry}
-                                onChange={(e) => {
-                                  const digitsOnly = e.target.value.replace(/\D/g, '').slice(0, 4);
-                                  const formatted = digitsOnly.length > 2
-                                    ? `${digitsOnly.slice(0, 2)}/${digitsOnly.slice(2)}`
-                                    : digitsOnly;
-                                  setCardExpiry(formatted);
-                                }}
-                                placeholder="MM/YY"
-                                className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-                              />
-                            </div>
-
-                            <div>
-                              <label htmlFor="card-cvv" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                CVV
-                              </label>
-                              <input
-                                id="card-cvv"
-                                type="password"
-                                inputMode="numeric"
-                                value={cardCvv}
-                                onChange={e => setCardCvv(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                                placeholder="123"
-                                className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-                              />
-                            </div>
-                          </div>
                         </div>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
-
-              {/* Güvenli Ödeme Bildirimi */}
-              <div className="flex items-center gap-3 rounded-lg bg-green-50 p-4 dark:bg-green-900/20">
-                <Shield className="size-6 text-green-600 dark:text-green-400" />
-                <div>
-                  <p className="font-semibold text-green-900 dark:text-green-100">
-                    {t('secure_payment')}
-                  </p>
-                  <p className="text-sm text-green-700 dark:text-green-300">
-                    {t('secure_payment_info')}
-                  </p>
-                </div>
-              </div>
-            </>
-          )}
-
-          {akbankFields && akbankActionUrl && (
-            <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-lg dark:border-gray-700 dark:bg-gray-800">
-              <h2 className="mb-6 flex items-center gap-2 text-xl font-semibold text-gray-900 dark:text-white">
-                <CreditCard className="size-6 text-purple-600" />
-                {t('payment_form')}
-              </h2>
-              <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
-                AKBANK güvenli ödeme ekranına yönlendiriliyorsunuz...
-              </p>
-              <form ref={akbankFormRef} action={akbankActionUrl} method="POST">
-                {Object.entries(akbankFields).map(([key, value]) => (
-                  <input key={key} type="hidden" name={key} value={value} />
-                ))}
-                <button
-                  type="submit"
-                  className="rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 px-5 py-2.5 text-sm font-semibold text-white"
-                >
-                  Ödeme ekranına git
-                </button>
-              </form>
             </div>
-          )}
+          </div>
+
+          {/* Güvenli Ödeme Bildirimi */}
+          <div className="flex items-center gap-3 rounded-lg bg-green-50 p-4 dark:bg-green-900/20">
+            <Shield className="size-6 text-green-600 dark:text-green-400" />
+            <div>
+              <p className="font-semibold text-green-900 dark:text-green-100">
+                {t('secure_payment')}
+              </p>
+              <p className="text-sm text-green-700 dark:text-green-300">
+                {t('secure_payment_info')}
+              </p>
+            </div>
+          </div>
         </div>
 
         {/* Sağ: Sipariş Özeti */}
@@ -839,29 +803,26 @@ export function CheckoutInterface({
               </span>
             </div>
 
-            {/* Ödeme Butonu - Sadece token yokken göster */}
-            {!akbankFields && (
-              <button
-                type="button"
-                onClick={handleCompletePayment}
-                disabled={isProcessing}
-                className="mt-6 flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 px-6 py-4 text-lg font-semibold text-white transition-all hover:from-purple-700 hover:to-pink-700 disabled:opacity-50"
-              >
-                {isProcessing
-                  ? (
-                      <>
-                        <Loader2 className="size-5 animate-spin" />
-                        {t('processing_payment')}
-                      </>
-                    )
-                  : (
-                      <>
-                        <CreditCard className="size-5" />
-                        {t('complete_payment')}
-                      </>
-                    )}
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={handleCompletePayment}
+              disabled={isProcessing}
+              className="mt-6 flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 px-6 py-4 text-lg font-semibold text-white transition-all hover:from-purple-700 hover:to-pink-700 disabled:opacity-50"
+            >
+              {isProcessing
+                ? (
+                    <>
+                      <Loader2 className="size-5 animate-spin" />
+                      {t('processing_payment')}
+                    </>
+                  )
+                : (
+                    <>
+                      <CreditCard className="size-5" />
+                      {t('complete_payment')}
+                    </>
+                  )}
+            </button>
           </div>
         </div>
       </div>

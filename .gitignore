@@ -52,3 +52,7 @@ local
 
 # vercel
 .vercel
+
+# Uploaded files
+uploads/*
+!uploads/.gitkeep

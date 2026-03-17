@@ -16,17 +16,21 @@ if (process.env.NEXT_PHASE === PHASE_PRODUCTION_BUILD) {
   drizzle = null as any;
 } else if (process.env.DATABASE_URL) {
   // Production/Development with real PostgreSQL
+  // Use global singleton to prevent multiple pool instances during hot reload
+  const globalWithPg = globalThis as unknown as { pgPool: Pool; pgDrizzle: any };
 
-  console.log('🔌 Connecting to PostgreSQL database...');
-  const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    max: 10, // Max clients in the pool
-    idleTimeoutMillis: 30000,
-  });
+  if (!globalWithPg.pgPool) {
+    console.log('🔌 Connecting to PostgreSQL database...');
+    globalWithPg.pgPool = new Pool({
+      connectionString: process.env.DATABASE_URL,
+      max: 10, // Max clients in the pool
+      idleTimeoutMillis: 30000,
+    });
+    globalWithPg.pgDrizzle = drizzlePg(globalWithPg.pgPool, { schema });
+    console.log('✅ Connected to PostgreSQL');
+  }
 
-  console.log('✅ Connected to PostgreSQL');
-
-  drizzle = drizzlePg(pool, { schema });
+  drizzle = globalWithPg.pgDrizzle;
 
   // Migrations should be run manually or during deployment, not at runtime
   // to avoid timeouts and "cold start" issues

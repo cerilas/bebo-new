@@ -84,6 +84,7 @@ export async function getProductIdsFromSlugs(params: {
   let productId: number | null = null;
   let sizeId: number | null = null;
   let frameId: number | null = null;
+  let sizeDimensions: string | null = null;
 
   // Get product ID
   if (params.productSlug) {
@@ -95,14 +96,15 @@ export async function getProductIdsFromSlugs(params: {
     productId = product?.id || null;
   }
 
-  // Get size ID
+  // Get size ID + dimensions
   if (params.sizeSlug && productId) {
     const [size] = await db
-      .select({ id: productSizeSchema.id })
+      .select({ id: productSizeSchema.id, dimensions: productSizeSchema.dimensions })
       .from(productSizeSchema)
       .where(eq(productSizeSchema.slug, params.sizeSlug))
       .limit(1);
     sizeId = size?.id || null;
+    sizeDimensions = size?.dimensions || null;
   }
 
   // Get frame ID
@@ -119,6 +121,7 @@ export async function getProductIdsFromSlugs(params: {
     productId,
     sizeId,
     frameId,
+    sizeDimensions, // e.g. "30x40" — physical cm dimensions from product_size table
   };
 }
 

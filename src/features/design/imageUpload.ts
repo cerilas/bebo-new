@@ -6,7 +6,7 @@ export type UploadImageResponse = {
   thumb_url: string;
 };
 
-export async function uploadImageToN8n(imageFile: File): Promise<{
+export async function uploadImageNative(imageFile: File): Promise<{
   success: boolean;
   imageUrl?: string;
   error?: string;
@@ -16,8 +16,7 @@ export async function uploadImageToN8n(imageFile: File): Promise<{
     const formData = new FormData();
     formData.append('image', imageFile);
 
-    const n8nUrl = `${process.env.N8N_WEBHOOK_URL || 'https://n8n-production-14b9.up.railway.app'}${process.env.N8N_WEBHOOK_UPLOAD_IMAGE || '/webhook/upload-image'}`;
-    const response = await fetch(n8nUrl, {
+    const response = await fetch('/api/design/upload-image', {
       method: 'POST',
       body: formData,
     });
@@ -35,7 +34,7 @@ export async function uploadImageToN8n(imageFile: File): Promise<{
     let data: UploadImageResponse;
     try {
       data = JSON.parse(responseText);
-    } catch (parseError) {
+    } catch {
       console.error('Failed to parse response as JSON:', responseText);
       throw new Error('API yanıtı JSON formatında değil');
     }

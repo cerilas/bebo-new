@@ -14,7 +14,7 @@ import getCroppedImg from '@/utils/cropImage';
 import { type GeneratedImageResponse, getGeneratedImage, getUserGeneratedImages, sendChatMessage } from './chatActions';
 import { generateChatSessionId } from './chatUtils';
 import { decrementArtCredits, getUserArtCredits } from './creditsActions';
-import { uploadImageToN8n } from './imageUpload';
+import { uploadImageNative } from './imageUpload';
 
 type Message = {
   id: string;
@@ -231,6 +231,7 @@ export function ChatInterface({
         productSlug,
         sizeSlug,
         frameSlug,
+        orientationSlug,
       });
 
       if (!result.success || !result.data) {
@@ -394,8 +395,8 @@ export function ChatInterface({
     setIsUploading(true);
 
     try {
-      // Upload to n8n webhook
-      const uploadResult = await uploadImageToN8n(file);
+      // Upload image to native backend endpoint
+      const uploadResult = await uploadImageNative(file);
 
       console.log('Upload result:', uploadResult); // Debug log
 
@@ -483,8 +484,8 @@ export function ChatInterface({
       const blob = await response.blob();
       const file = new File([blob], 'cropped-image.jpg', { type: 'image/jpeg' });
 
-      // Upload to n8n webhook
-      const uploadResult = await uploadImageToN8n(file);
+      // Upload image to native backend endpoint
+      const uploadResult = await uploadImageNative(file);
 
       if (uploadResult.success && uploadResult.imageUrl) {
         setUserUploadedImageUrl(uploadResult.imageUrl);

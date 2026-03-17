@@ -34,7 +34,12 @@ export type SiteSettings = {
   site_description?: string;
   site_keywords?: string;
   copyright_text?: string;
+
+  // AI
+  ai_design_system_prompt?: string;
 };
+
+const AI_DESIGN_SYSTEM_PROMPT_KEY = 'ai_design_system_prompt';
 
 /**
  * Tüm public site ayarlarını getir
@@ -130,4 +135,70 @@ export async function getSocialLinks() {
  */
 export async function getCompanyInfo() {
   return getSettingsByCategory('company');
+}
+
+export async function getAiDesignSystemPromptSetting(): Promise<string | null> {
+  try {
+    const [setting] = await db
+      .select({ value: siteSettingsSchema.value })
+      .from(siteSettingsSchema)
+      .where(eq(siteSettingsSchema.key, AI_DESIGN_SYSTEM_PROMPT_KEY))
+      .limit(1);
+
+    return setting?.value ?? null;
+  } catch (error) {
+    console.error('Error fetching AI design system prompt setting:', error);
+    return null;
+  }
+}
+
+export async function upsertAiDesignSystemPrompt(prompt: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const cleanPrompt = prompt.trim();
+
+    if (!cleanPrompt) {
+      return {
+        success: false,
+        error: 'Prompt boş olamaz.',
+      };
+    }
+
+    const [existing] = await db
+      .select({ id: siteSettingsSchema.id })
+      .from(siteSettingsSchema)
+      .where(eq(siteSettingsSchema.key, AI_DESIGN_SYSTEM_PROMPT_KEY))
+      .limit(1);
+
+    if (existing) {
+      await db
+        .update(siteSettingsSchema)
+        .set({
+          value: cleanPrompt,
+          category: 'ai',
+          valueType: 'text',
+          label: 'AI Design System Prompt',
+          description: 'Sohbet + görsel üretim system prompt metni',
+          isPublic: false,
+        })
+        .where(eq(siteSettingsSchema.id, existing.id));
+    } else {
+      await db.insert(siteSettingsSchema).values({
+        key: AI_DESIGN_SYSTEM_PROMPT_KEY,
+        value: cleanPrompt,
+        category: 'ai',
+        valueType: 'text',
+        label: 'AI Design System Prompt',
+        description: 'Sohbet + görsel üretim system prompt metni',
+        isPublic: false,
+      });
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error upserting AI design system prompt setting:', error);
+    return {
+      success: false,
+      error: 'AI prompt ayarı güncellenemedi.',
+    };
+  }
 }

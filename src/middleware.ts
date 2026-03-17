@@ -16,6 +16,8 @@ const intlMiddleware = createMiddleware({
 
 const isPublicApiRoute = createRouteMatcher([
   '/api/akbank/(.*)', // Akbank callback + test endpoint (no auth needed)
+  '/api/files/(.*)', // Uploaded user assets - publicly accessible
+  '/api/health', // Railway health check
 ]);
 
 const isProtectedRoute = createRouteMatcher([

@@ -291,9 +291,18 @@ export function CheckoutInterface({
       });
 
       if (result.redirectPath) {
-        const redirectUrl = result.merchantOid
-          ? `${result.redirectPath}?merchant_oid=${encodeURIComponent(result.merchantOid)}`
-          : result.redirectPath;
+        const params = new URLSearchParams();
+
+        if (result.merchantOid) {
+          params.set('merchant_oid', result.merchantOid);
+        }
+
+        if (!result.success && result.error) {
+          params.set('reason', result.error);
+        }
+
+        const query = params.toString();
+        const redirectUrl = query ? `${result.redirectPath}?${query}` : result.redirectPath;
         router.push(redirectUrl);
       } else {
         setError(result.error || 'Ödeme işlemi başlatılamadı');

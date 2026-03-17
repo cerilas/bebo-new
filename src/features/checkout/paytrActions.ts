@@ -6,12 +6,14 @@ import { headers } from 'next/headers';
 
 import {
   chargeAkbankPaymentApi,
+  createAkbankPaymentApiAuthHash,
   formatAkbankCardExpireDate,
   formatAkbankDateTime,
   getAkbankPaymentErrorMessage,
   getRandomNumberBase16,
   isAkbankPaymentApproved,
   maskCardNumber,
+  sanitizeAkbankIpAddress,
 } from '@/features/payments/akbankUtils';
 import { db } from '@/libs/DB';
 import { Env } from '@/libs/Env';
@@ -71,17 +73,19 @@ export async function processAkbankProductPayment(
     const successRedirectPath = `${localePrefix}/checkout/success`;
     const failedRedirectPath = `${localePrefix}/checkout/failed`;
 
-    // Amount: kuruş → TL with 2 decimal places (e.g. 14999 → "149.99")
-    const amount = (request.paymentAmount / 100).toFixed(2);
+    // Amount: Akbank Payment API expects integer amount (kuruş)
+    const amount = request.paymentAmount;
+    const amountTl = (amount / 100).toFixed(2);
     const requestDateTime = formatAkbankDateTime();
     const randomNumber = getRandomNumberBase16(128);
     const normalizedCardNumber = request.cardNumber.replace(/\D/g, '');
     const normalizedCvv = request.cardCvv.replace(/\D/g, '');
     const expireDate = formatAkbankCardExpireDate(request.cardExpiry);
     const requestHeaders = await headers();
-    const ipAddress = requestHeaders.get('x-forwarded-for')?.split(',')[0]?.trim()
-      || requestHeaders.get('x-real-ip')
-      || '127.0.0.1';
+    const ipAddress = sanitizeAkbankIpAddress(
+      requestHeaders.get('x-forwarded-for')?.split(',')[0]?.trim()
+      || requestHeaders.get('x-real-ip'),
+    );
 
     await db.insert(orderSchema).values({
       userId,
@@ -129,13 +133,10 @@ export async function processAkbankProductPayment(
         cvv2: normalizedCvv,
         expireDate,
       },
-      order: {
-        orderId: merchantOid,
-      },
       reward: {
-        ccbRewardAmount: '0.00',
-        pcbRewardAmount: '0.00',
-        xcbRewardAmount: '0.00',
+        ccbRewardAmount: 0,
+        pcbRewardAmount: 0,
+        xcbRewardAmount: 0,
       },
       transaction: {
         amount,
@@ -149,16 +150,18 @@ export async function processAkbankProductPayment(
       },
     };
 
+    const requestHash = createAkbankPaymentApiAuthHash(paymentRequest);
+
     await db.insert(paymentLogsSchema).values({
       merchantOid,
       status: 'OUTGOING_REQUEST',
       totalAmount: amount,
-      hash: null,
+      hash: requestHash,
       paymentType: 'akbank_payment_api',
       failedReasonCode: null,
       failedReasonMsg: null,
       currency: 'TRY',
-      paymentAmount: amount,
+      paymentAmount: amountTl,
       rawPayload: JSON.stringify({
         ...paymentRequest,
         card: {
@@ -188,13 +191,17 @@ export async function processAkbankProductPayment(
     await db.insert(paymentLogsSchema).values({
       merchantOid,
       status: paymentResponse.responseCode ?? null,
-      totalAmount: typeof responseAmount === 'number' ? responseAmount.toFixed(2) : amount,
+      totalAmount: typeof responseAmount === 'number'
+        ? (responseAmount / 100).toFixed(2)
+        : amountTl,
       hash: null,
       paymentType: 'akbank_payment_api',
       failedReasonCode: paymentResponse.responseCode ?? null,
       failedReasonMsg: paymentResponse.responseMessage ?? paymentResponse.hostMessage ?? null,
       currency: 'TRY',
-      paymentAmount: typeof responseAmount === 'number' ? responseAmount.toFixed(2) : amount,
+      paymentAmount: typeof responseAmount === 'number'
+        ? (responseAmount / 100).toFixed(2)
+        : amountTl,
       rawPayload: JSON.stringify(paymentResponse),
       ipAddress,
       userAgent: requestHeaders.get('user-agent') ?? null,

@@ -11,6 +11,10 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default async function PurchaseCreditsFailedPage() {
-  return <PurchaseCreditsFailure />;
+export default async function PurchaseCreditsFailedPage(props: {
+  searchParams: Promise<{ reason?: string }>;
+}) {
+  const searchParams = await props.searchParams;
+
+  return <PurchaseCreditsFailure reason={searchParams.reason} />;
 }

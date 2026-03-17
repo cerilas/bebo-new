@@ -19,7 +19,7 @@ export async function generateMetadata(props: { params: Promise<{ locale: string
 
 export default async function CheckoutFailedPage(props: {
   params: Promise<{ locale: string }>;
-  searchParams: Promise<{ merchant_oid?: string }>;
+  searchParams: Promise<{ merchant_oid?: string; reason?: string }>;
 }) {
   const { locale } = await props.params;
   const searchParams = await props.searchParams;
@@ -28,6 +28,27 @@ export default async function CheckoutFailedPage(props: {
     namespace: 'CheckoutFailed',
   });
   const merchantOid = searchParams.merchant_oid;
+  const rawReason = searchParams.reason;
+
+  const getReadableReason = (reason?: string) => {
+    if (!reason) {
+      return null;
+    }
+
+    const normalized = reason.toLocaleLowerCase('tr-TR');
+
+    if (normalized.includes('kart numarası') || normalized.includes('card number')) {
+      return locale === 'en'
+        ? 'Card number is invalid. Please check your card details and try again.'
+        : locale === 'fr'
+          ? 'Le numéro de carte est invalide. Veuillez vérifier vos informations de carte et réessayer.'
+          : 'Kart numarası geçersiz. Lütfen kart bilgilerinizi kontrol ederek tekrar deneyin.';
+    }
+
+    return reason;
+  };
+
+  const readableReason = getReadableReason(rawReason);
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-16">
@@ -43,6 +64,13 @@ export default async function CheckoutFailedPage(props: {
         <p className="mb-8 text-lg text-gray-600 dark:text-gray-400">
           {t('failed_description')}
         </p>
+
+        {readableReason && (
+          <div className="mb-8 rounded-lg border border-red-200 bg-red-50 p-4 text-left dark:border-red-900/60 dark:bg-red-900/20">
+            <p className="text-sm font-semibold text-red-700 dark:text-red-300">Ödeme Hata Detayı</p>
+            <p className="mt-1 text-sm text-red-700 dark:text-red-300">{readableReason}</p>
+          </div>
+        )}
 
         {merchantOid && (
           <div className="mb-8 rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800">

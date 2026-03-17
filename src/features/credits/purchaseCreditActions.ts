@@ -8,16 +8,26 @@ import { headers } from 'next/headers';
 
 import {
   chargeAkbankPaymentApi,
+  createAkbankPaymentApiAuthHash,
   formatAkbankCardExpireDate,
   formatAkbankDateTime,
   getAkbankPaymentErrorMessage,
   getRandomNumberBase16,
   isAkbankPaymentApproved,
   maskCardNumber,
+  sanitizeAkbankIpAddress,
 } from '@/features/payments/akbankUtils';
 import { db } from '@/libs/DB';
 import { Env } from '@/libs/Env';
-import { artCreditSettingsSchema, orderSchema, paymentLogsSchema, userSchema } from '@/models/Schema';
+import {
+  artCreditSettingsSchema,
+  orderSchema,
+  paymentLogsSchema,
+  productFrameSchema,
+  productSchema,
+  productSizeSchema,
+  userSchema,
+} from '@/models/Schema';
 import { AppConfig } from '@/utils/AppConfig';
 
 import { getUserArtCredits } from '../design/creditsActions';
@@ -110,6 +120,11 @@ export async function createCreditPurchase(
   locale: string = 'tr',
   customerPayload?: CreditPurchaseCustomerPayload,
 ): Promise<AkbankCreditFormResponse> {
+  let merchantOidForLog: string | null = null;
+  let ipAddressForLog: string | null = null;
+  let userAgentForLog: string | null = null;
+  let amountForLog: string | null = null;
+
   try {
     const { userId, sessionClaims } = await auth();
 
@@ -196,13 +211,16 @@ export async function createCreditPurchase(
       .toString()
       .padStart(4, '0');
     const merchantOid = `CRD${Date.now()}${randomPart}${userIdHash}`;
+    merchantOidForLog = merchantOid;
 
     const localePath = locale !== AppConfig.defaultLocale ? `/${locale}` : '';
     const successRedirectPath = `${localePath}/purchase-credits/success`;
     const failedRedirectPath = `${localePath}/purchase-credits/failed`;
 
-    // Amount: kuruş → TL with 2 decimal places
-    const amount = (totalAmount / 100).toFixed(2);
+    // Amount: Akbank Payment API expects integer amount (kuruş)
+    const amount = totalAmount;
+    const amountTl = (amount / 100).toFixed(2);
+    amountForLog = amountTl;
     const requestDateTime = formatAkbankDateTime();
     const randomNumber = getRandomNumberBase16(128);
 
@@ -212,9 +230,27 @@ export async function createCreditPurchase(
     const normalizedCvv = customerPayload?.cardCvv.replace(/\D/g, '') || '';
     const expireDate = formatAkbankCardExpireDate(customerPayload?.cardExpiry || '');
     const requestHeaders = await headers();
-    const ipAddress = requestHeaders.get('x-forwarded-for')?.split(',')[0]?.trim()
-      || requestHeaders.get('x-real-ip')
-      || '127.0.0.1';
+    const ipAddress = sanitizeAkbankIpAddress(
+      requestHeaders.get('x-forwarded-for')?.split(',')[0]?.trim()
+      || requestHeaders.get('x-real-ip'),
+    );
+    ipAddressForLog = ipAddress;
+    userAgentForLog = requestHeaders.get('user-agent') ?? null;
+
+    const [[fallbackProduct], [fallbackSize], [fallbackFrame]] = await Promise.all([
+      db.select({ id: productSchema.id }).from(productSchema).limit(1),
+      db.select({ id: productSizeSchema.id }).from(productSizeSchema).limit(1),
+      db.select({ id: productFrameSchema.id }).from(productFrameSchema).limit(1),
+    ]);
+
+    if (!fallbackProduct || !fallbackSize || !fallbackFrame) {
+      return {
+        success: false,
+        error: 'Kredi siparişi için gerekli ürün referansları bulunamadı',
+      };
+    }
+
+    const creditGenerationId = `credit-${merchantOid}`;
 
     await db.insert(orderSchema).values({
       userId,
@@ -240,12 +276,12 @@ export async function createCreditPurchase(
       paymentType: customerPayload?.paymentType ?? 'card',
       orderType: 'credit',
       creditAmount,
-      generationId: null,
+      generationId: creditGenerationId,
       imageUrl: null,
-      productId: null,
-      productSizeId: null,
-      productFrameId: null,
-      shippingStatus: null,
+      productId: fallbackProduct.id,
+      productSizeId: fallbackSize.id,
+      productFrameId: fallbackFrame.id,
+      shippingStatus: 'pending',
     });
 
     const paymentRequest = {
@@ -262,13 +298,10 @@ export async function createCreditPurchase(
         cvv2: normalizedCvv,
         expireDate,
       },
-      order: {
-        orderId: merchantOid,
-      },
       reward: {
-        ccbRewardAmount: '0.00',
-        pcbRewardAmount: '0.00',
-        xcbRewardAmount: '0.00',
+        ccbRewardAmount: 0,
+        pcbRewardAmount: 0,
+        xcbRewardAmount: 0,
       },
       transaction: {
         amount,
@@ -282,16 +315,18 @@ export async function createCreditPurchase(
       },
     };
 
+    const requestHash = createAkbankPaymentApiAuthHash(paymentRequest);
+
     await db.insert(paymentLogsSchema).values({
       merchantOid,
       status: 'OUTGOING_REQUEST',
       totalAmount: amount,
-      hash: null,
+      hash: requestHash,
       paymentType: 'akbank_payment_api',
       failedReasonCode: null,
       failedReasonMsg: null,
       currency: 'TRY',
-      paymentAmount: amount,
+      paymentAmount: amountTl,
       rawPayload: JSON.stringify({
         ...paymentRequest,
         card: {
@@ -302,7 +337,7 @@ export async function createCreditPurchase(
         cardHolderName: customerPayload?.cardHolderName || null,
       }),
       ipAddress,
-      userAgent: requestHeaders.get('user-agent') ?? null,
+      userAgent: userAgentForLog,
     });
 
     const paymentResponse = await chargeAkbankPaymentApi(paymentRequest);
@@ -315,16 +350,20 @@ export async function createCreditPurchase(
     await db.insert(paymentLogsSchema).values({
       merchantOid,
       status: paymentResponse.responseCode ?? null,
-      totalAmount: typeof responseAmount === 'number' ? responseAmount.toFixed(2) : amount,
+      totalAmount: typeof responseAmount === 'number'
+        ? (responseAmount / 100).toFixed(2)
+        : amountTl,
       hash: null,
       paymentType: 'akbank_payment_api',
       failedReasonCode: paymentResponse.responseCode ?? null,
       failedReasonMsg: paymentResponse.responseMessage ?? paymentResponse.hostMessage ?? null,
       currency: 'TRY',
-      paymentAmount: typeof responseAmount === 'number' ? responseAmount.toFixed(2) : amount,
+      paymentAmount: typeof responseAmount === 'number'
+        ? (responseAmount / 100).toFixed(2)
+        : amountTl,
       rawPayload: JSON.stringify(paymentResponse),
       ipAddress,
-      userAgent: requestHeaders.get('user-agent') ?? null,
+      userAgent: userAgentForLog,
     });
 
     if (!approved) {
@@ -354,7 +393,7 @@ export async function createCreditPurchase(
         totalAmount: responseAmountKurus,
         paymentType: 'akbank_payment_api',
         paidAt: new Date(),
-        shippingStatus: null,
+        shippingStatus: 'delivered',
         failedReasonCode: null,
         failedReasonMsg: null,
         updatedAt: new Date(),
@@ -386,9 +425,46 @@ export async function createCreditPurchase(
     };
   } catch (error) {
     console.error('Credit purchase error:', error);
+
+    const errorMessage = error instanceof Error
+      ? error.message
+      : 'Bir hata oluştu. Lütfen tekrar deneyin.';
+
+    if (merchantOidForLog) {
+      await db.insert(paymentLogsSchema).values({
+        merchantOid: merchantOidForLog,
+        status: 'REQUEST_ERROR',
+        totalAmount: amountForLog,
+        hash: null,
+        paymentType: 'akbank_payment_api',
+        failedReasonCode: 'REQUEST_ERROR',
+        failedReasonMsg: errorMessage,
+        currency: 'TRY',
+        paymentAmount: amountForLog,
+        rawPayload: JSON.stringify({
+          errorName: error instanceof Error ? error.name : 'UnknownError',
+          errorMessage,
+          errorStack: error instanceof Error ? error.stack ?? null : null,
+        }),
+        ipAddress: ipAddressForLog,
+        userAgent: userAgentForLog,
+      });
+
+      await db
+        .update(orderSchema)
+        .set({
+          paymentStatus: 'failed',
+          paymentType: 'akbank_payment_api',
+          failedReasonCode: 'REQUEST_ERROR',
+          failedReasonMsg: errorMessage,
+          updatedAt: new Date(),
+        })
+        .where(eq(orderSchema.merchantOid, merchantOidForLog));
+    }
+
     return {
       success: false,
-      error: 'Bir hata oluştu. Lütfen tekrar deneyin.',
+      error: errorMessage,
     };
   }
 }

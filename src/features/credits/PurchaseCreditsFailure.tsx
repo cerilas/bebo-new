@@ -7,9 +7,29 @@ import { useTranslations } from 'next-intl';
 import { Footer } from '@/templates/Footer';
 import { Navbar } from '@/templates/Navbar';
 
-export function PurchaseCreditsFailure() {
+type PurchaseCreditsFailureProps = {
+  reason?: string;
+};
+
+export function PurchaseCreditsFailure({ reason }: PurchaseCreditsFailureProps) {
   const t = useTranslations('PurchaseCredits');
   const router = useRouter();
+
+  const getReadableReason = (value?: string) => {
+    if (!value) {
+      return null;
+    }
+
+    const normalized = value.toLocaleLowerCase('tr-TR');
+
+    if (normalized.includes('kart numarası') || normalized.includes('card number')) {
+      return 'Kart numarası geçersiz. Lütfen kart bilgilerinizi kontrol ederek tekrar deneyin.';
+    }
+
+    return value;
+  };
+
+  const readableReason = getReadableReason(reason);
 
   return (
     <>
@@ -33,6 +53,13 @@ export function PurchaseCreditsFailure() {
           <p className="mb-8 text-gray-600 dark:text-gray-400">
             {t('failed_message')}
           </p>
+
+          {readableReason && (
+            <div className="mb-8 rounded-lg border border-red-200 bg-red-50 p-4 text-left dark:border-red-900/60 dark:bg-red-900/20">
+              <p className="text-sm font-semibold text-red-700 dark:text-red-300">Ödeme Hata Detayı</p>
+              <p className="mt-1 text-sm text-red-700 dark:text-red-300">{readableReason}</p>
+            </div>
+          )}
 
           {/* Buttons */}
           <div className="flex flex-col gap-3">

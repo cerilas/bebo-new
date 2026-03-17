@@ -8,8 +8,8 @@ import { Env } from '@/libs/Env';
 export const AKBANK_GATEWAYS = {
   testPayHosting: 'https://virtualpospaymentgatewaypre.akbank.com/payhosting',
   prodPayHosting: 'https://virtualpospaymentgateway.akbank.com/payhosting',
-  testPaymentApi: 'https://virtualpospaymentgatewaypre.akbank.com/api/v1/payment',
-  prodPaymentApi: 'https://virtualpospaymentgateway.akbank.com/api/v1/payment',
+  testPaymentApi: 'https://apipre.akbank.com/api/v1/payment/virtualpos/transaction/process',
+  prodPaymentApi: 'https://api.akbank.com/api/v1/payment/virtualpos/transaction/process',
 } as const;
 
 // ------------------------------------------------------------------
@@ -73,16 +73,13 @@ export type AkbankPaymentApiRequest = {
     cvv2: string;
     expireDate: string;
   };
-  order: {
-    orderId: string;
-  };
   reward: {
-    ccbRewardAmount: string;
-    pcbRewardAmount: string;
-    xcbRewardAmount: string;
+    ccbRewardAmount: number;
+    pcbRewardAmount: number;
+    xcbRewardAmount: number;
   };
   transaction: {
-    amount: string;
+    amount: number;
     currencyCode: 949;
     motoInd: 0;
     installCount: 1;
@@ -199,6 +196,32 @@ export const maskCardNumber = (cardNumber: string): string => {
   return `${'*'.repeat(Math.max(0, digits.length - 4))}${digits.slice(-4)}`;
 };
 
+const PRIVATE_IP_PATTERNS = [
+  /^127\./,
+  /^10\./,
+  /^192\.168\./,
+  /^172\.(1[6-9]|2\d|3[01])\./,
+  /^::1$/,
+] as const;
+
+export const sanitizeAkbankIpAddress = (ipAddress?: string | null): string => {
+  if (!ipAddress) {
+    return '1.1.1.1';
+  }
+
+  const normalized = ipAddress.replace(/^::ffff:/, '').trim();
+
+  if (!normalized) {
+    return '1.1.1.1';
+  }
+
+  if (PRIVATE_IP_PATTERNS.some(pattern => pattern.test(normalized))) {
+    return '1.1.1.1';
+  }
+
+  return normalized;
+};
+
 export const isAkbankPaymentApproved = (response: AkbankPaymentApiResponse): boolean => {
   return response.responseCode === 'VPS-0000';
 };
@@ -207,17 +230,34 @@ export const getAkbankPaymentErrorMessage = (response: AkbankPaymentApiResponse)
   return response.hostMessage || response.responseMessage || 'Akbank ödeme işlemi başarısız oldu';
 };
 
+export const serializeAkbankPaymentApiRequest = (
+  payload: AkbankPaymentApiRequest,
+): string => {
+  return JSON.stringify(payload);
+};
+
+export const createAkbankPaymentApiAuthHash = (
+  payload: AkbankPaymentApiRequest,
+  secretKey: string = Env.AKBANK_SECRET_KEY,
+): string => {
+  return hashToString(serializeAkbankPaymentApiRequest(payload), secretKey);
+};
+
 export const chargeAkbankPaymentApi = async (
   payload: AkbankPaymentApiRequest,
 ): Promise<AkbankPaymentApiResponse> => {
+  const serializedPayload = serializeAkbankPaymentApiRequest(payload);
+  const authHash = createAkbankPaymentApiAuthHash(payload);
+
   const response = await fetch(getAkbankPaymentApiUrl(), {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
+      'auth-hash': authHash,
     },
     cache: 'no-store',
-    body: JSON.stringify(payload),
+    body: serializedPayload,
   });
 
   const rawText = await response.text();
@@ -231,15 +271,25 @@ export const chargeAkbankPaymentApi = async (
       body: rawText.slice(0, 1000),
       error,
     });
-    throw new Error(`AKBANK Payment API invalid response (${response.status})`);
+    throw new Error(
+      `AKBANK_INVALID_RESPONSE_${response.status}: ${rawText.slice(0, 300) || 'empty body'}`,
+    );
   }
 
   if (!response.ok) {
+    const akbankCode = data.responseCode || data.hostResponseCode || `HTTP_${response.status}`;
+    const akbankMessage = getAkbankPaymentErrorMessage(data);
+    const rawSnippet = rawText.slice(0, 300) || 'empty body';
+
     console.error('AKBANK Payment API HTTP error', {
       status: response.status,
       data,
+      body: rawText.slice(0, 1000),
     });
-    throw new Error(getAkbankPaymentErrorMessage(data));
+
+    throw new Error(
+      `AKBANK_HTTP_${response.status} ${akbankCode}: ${akbankMessage} | body=${rawSnippet}`,
+    );
   }
 
   return data;

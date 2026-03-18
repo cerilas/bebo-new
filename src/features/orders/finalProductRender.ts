@@ -45,7 +45,13 @@ const downloadUrlAsBuffer = async (url: string): Promise<Buffer> => {
 
 const resolveAssetBuffer = async (urlOrPath: string): Promise<Buffer> => {
   if (urlOrPath.startsWith('/api/files/')) {
-    return loadFromApiFilesPath(urlOrPath);
+    try {
+      return await loadFromApiFilesPath(urlOrPath);
+    } catch (fsError) {
+      // Filesystem read failed — fall back to HTTP download
+      console.warn('resolveAssetBuffer: filesystem read failed for', urlOrPath, fsError instanceof Error ? fsError.message : fsError);
+      return downloadUrlAsBuffer(`${getBaseUrl()}${urlOrPath}`);
+    }
   }
 
   if (urlOrPath.startsWith('/')) {

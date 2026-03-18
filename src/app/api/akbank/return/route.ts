@@ -242,6 +242,15 @@ async function finalizeOrder(
 
       if (order.orderType !== 'credit' && order.imageUrl) {
         try {
+          console.log('Final render: starting', {
+            merchantOid,
+            imageUrl: order.imageUrl,
+            generationId: order.generationId,
+            productFrameId: order.productFrameId,
+            orientation: order.orientation,
+            imageTransform: order.imageTransform,
+          });
+
           const [frame] = await db
             .select({
               mockupTemplate: productFrameSchema.mockupTemplate,
@@ -252,6 +261,15 @@ async function finalizeOrder(
             .from(productFrameSchema)
             .where(eq(productFrameSchema.id, order.productFrameId))
             .limit(1);
+
+          console.log('Final render: frame data', {
+            merchantOid,
+            frameFound: !!frame,
+            mockupTemplate: frame?.mockupTemplate ? 'SET' : 'NULL',
+            mockupTemplateVertical: frame?.mockupTemplateVertical ? 'SET' : 'NULL',
+            mockupConfig: frame?.mockupConfig ? 'SET' : 'NULL',
+            mockupConfigVertical: frame?.mockupConfigVertical ? 'SET' : 'NULL',
+          });
 
           const isPortrait = order.orientation === 'portrait';
           const chosenTemplate = isPortrait
@@ -264,6 +282,14 @@ async function finalizeOrder(
 
           const mockupConfig = parseMockupConfig(chosenConfigRaw);
           const mockupType = validateMockupType(mockupConfig.type || 'frame');
+
+          console.log('Final render: resolved config', {
+            merchantOid,
+            isPortrait,
+            chosenTemplate: chosenTemplate ? chosenTemplate.substring(0, 80) : 'NULL',
+            mockupType,
+            mockupConfig,
+          });
 
           const parsedTransform = order.imageTransform
             ? JSON.parse(order.imageTransform) as { x?: number; y?: number; scale?: number }
@@ -284,6 +310,11 @@ async function finalizeOrder(
               : null,
           });
 
+          console.log('Final render: SUCCESS', {
+            merchantOid,
+            finalProductImageUrl,
+          });
+
           await db
             .update(orderSchema)
             .set({
@@ -292,9 +323,14 @@ async function finalizeOrder(
             })
             .where(eq(orderSchema.merchantOid, merchantOid));
         } catch (renderError) {
-          console.error('Final product image render failed:', {
+          console.error('Final product image render FAILED:', {
             merchantOid,
-            renderError,
+            imageUrl: order.imageUrl,
+            generationId: order.generationId,
+            productFrameId: order.productFrameId,
+            orientation: order.orientation,
+            error: renderError instanceof Error ? renderError.message : String(renderError),
+            stack: renderError instanceof Error ? renderError.stack : undefined,
           });
         }
       }

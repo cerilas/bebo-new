@@ -8,9 +8,24 @@ import { NextResponse } from 'next/server';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-const UPLOADS_ROOT = process.env.UPLOAD_DIR
+const PRIMARY_ROOT = process.env.UPLOAD_DIR
   ? path.resolve(process.env.UPLOAD_DIR)
   : path.join(process.cwd(), 'uploads');
+
+const TMP_FALLBACK_ROOT = '/tmp/uploads';
+
+// Search both primary and /tmp fallback for the file
+function findFile(joinedPath: string): string | null {
+  const primaryPath = path.join(PRIMARY_ROOT, joinedPath);
+  if (existsSync(primaryPath)) {
+    return primaryPath;
+  }
+  const tmpPath = path.join(TMP_FALLBACK_ROOT, joinedPath);
+  if (existsSync(tmpPath)) {
+    return tmpPath;
+  }
+  return null;
+}
 
 const MIME_TYPES: Record<string, string> = {
   webp: 'image/webp',
@@ -38,15 +53,16 @@ export async function GET(
       .filter(Boolean)
       .join('/');
 
-    const absolutePath = path.join(UPLOADS_ROOT, joinedPath);
-
-    // Ensure the resolved path is inside UPLOADS_ROOT
-    if (!absolutePath.startsWith(UPLOADS_ROOT + path.sep) && absolutePath !== UPLOADS_ROOT) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    const absolutePath = findFile(joinedPath);
+    if (!absolutePath) {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 });
     }
 
-    if (!existsSync(absolutePath)) {
-      return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    // Ensure the resolved path is inside one of the allowed roots
+    const isInsidePrimary = absolutePath.startsWith(PRIMARY_ROOT + path.sep) || absolutePath === PRIMARY_ROOT;
+    const isInsideTmp = absolutePath.startsWith(TMP_FALLBACK_ROOT + path.sep) || absolutePath === TMP_FALLBACK_ROOT;
+    if (!isInsidePrimary && !isInsideTmp) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const fileStat = await stat(absolutePath);

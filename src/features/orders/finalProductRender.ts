@@ -4,7 +4,7 @@ import path from 'node:path';
 
 import sharp from 'sharp';
 
-import { savePublicImageBuffer } from '@/features/design/assetStorage';
+import { getUploadsRoot, savePublicImageBuffer } from '@/features/design/assetStorage';
 import { getBaseUrl } from '@/utils/Helpers';
 import type { MockupConfig, MockupType } from '@/utils/mockupUtils';
 
@@ -23,16 +23,10 @@ type RenderOrderProductImageInput = {
   imageTransform?: ImageTransform | null;
 };
 
-const getUploadsRoot = (): string => {
-  if (process.env.UPLOAD_DIR) {
-    return path.resolve(process.env.UPLOAD_DIR);
-  }
-  return path.join(process.cwd(), 'uploads');
-};
-
 const loadFromApiFilesPath = async (apiPath: string): Promise<Buffer> => {
   const relativePath = apiPath.replace(/^\/api\/files\//, '');
-  const absolutePath = path.join(getUploadsRoot(), ...relativePath.split('/'));
+  const uploadsRoot = await getUploadsRoot();
+  const absolutePath = path.join(uploadsRoot, ...relativePath.split('/'));
   return readFile(absolutePath);
 };
 

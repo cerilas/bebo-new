@@ -18,6 +18,7 @@ const isPublicApiRoute = createRouteMatcher([
   '/api/akbank/(.*)', // Akbank callback + test endpoint (no auth needed)
   '/api/files/(.*)', // Uploaded user assets - publicly accessible
   '/api/health', // Railway health check
+  '/api/debug/(.*)', // Debug/diagnostic endpoints (self-protected by key)
 ]);
 
 const isProtectedRoute = createRouteMatcher([

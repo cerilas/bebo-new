@@ -33,6 +33,15 @@ export const Footer = () => {
       return;
     }
 
+    // Mobilde dinamik footer offset hesaplamasını devre dışı bırak
+    // (scroll takılma sorunlarına neden oluyordu)
+    if (window.innerWidth < 768) {
+      if (footerOffset !== 0) {
+        setFooterOffset(0);
+      }
+      return;
+    }
+
     const rect = footerEl.getBoundingClientRect();
     const naturalTop = rect.top - footerOffset;
     const requiredOffset = Math.max(0, Math.ceil(window.innerHeight - naturalTop + 8));

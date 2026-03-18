@@ -3,7 +3,6 @@ import { randomUUID } from 'node:crypto';
 
 import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
-import sharp from 'sharp';
 
 import { savePublicImageBuffer } from '@/features/design/assetStorage';
 
@@ -53,30 +52,51 @@ export async function POST(request: Request) {
 
     const inputBuffer = Buffer.from(await image.arrayBuffer());
 
-    const normalizedBuffer = await sharp(inputBuffer)
-      .rotate()
-      .resize({ width: 2048, height: 2048, fit: 'inside', withoutEnlargement: true })
-      .webp({ quality: 90 })
-      .toBuffer();
+    // Dynamic import: if sharp fails (platform binary issue), fall back to raw buffer
+    let normalizedBuffer: Buffer;
+    let thumbBuffer: Buffer;
+    let sharpExtension: 'webp' | 'png' | 'jpg' = 'webp';
 
-    const thumbBuffer = await sharp(normalizedBuffer)
-      .resize({ width: 512, height: 512, fit: 'inside', withoutEnlargement: true })
-      .webp({ quality: 82 })
-      .toBuffer();
+    try {
+      const sharp = (await import('sharp')).default;
+      normalizedBuffer = await sharp(inputBuffer)
+        .rotate()
+        .resize({ width: 2048, height: 2048, fit: 'inside', withoutEnlargement: true })
+        .webp({ quality: 90 })
+        .toBuffer();
+      thumbBuffer = await sharp(normalizedBuffer)
+        .resize({ width: 512, height: 512, fit: 'inside', withoutEnlargement: true })
+        .webp({ quality: 82 })
+        .toBuffer();
+      sharpExtension = 'webp';
+      console.log('[upload] sharp processed successfully');
+    } catch (sharpErr) {
+      console.warn('[upload] sharp failed, using raw buffer fallback:', sharpErr instanceof Error ? sharpErr.message : sharpErr);
+      normalizedBuffer = inputBuffer;
+      thumbBuffer = inputBuffer;
+      // Detect extension from mime type
+      if (image.type === 'image/png') {
+        sharpExtension = 'png';
+      } else if (image.type === 'image/jpeg' || image.type === 'image/jpg') {
+        sharpExtension = 'jpg';
+      } else {
+        sharpExtension = 'jpg';
+      }
+    }
 
     const basePrefix = `${effectiveUserId}-${randomUUID().slice(0, 8)}`;
 
     const imageAsset = await savePublicImageBuffer({
       scope: 'uploads',
       filePrefix: `${basePrefix}-image`,
-      extension: 'webp',
+      extension: sharpExtension,
       buffer: normalizedBuffer,
     });
 
     const thumbAsset = await savePublicImageBuffer({
       scope: 'uploads',
       filePrefix: `${basePrefix}-thumb`,
-      extension: 'webp',
+      extension: sharpExtension,
       buffer: thumbBuffer,
     });
 

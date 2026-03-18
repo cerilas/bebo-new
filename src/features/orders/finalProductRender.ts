@@ -2,8 +2,6 @@ import { Buffer } from 'node:buffer';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 
-import sharp from 'sharp';
-
 import { getUploadsRoot, savePublicImageBuffer } from '@/features/design/assetStorage';
 import { getBaseUrl } from '@/utils/Helpers';
 import type { MockupConfig, MockupType } from '@/utils/mockupUtils';
@@ -72,6 +70,7 @@ const parsePositive = (value: number, fallback: number): number => {
 export const renderFinalOrderProductImage = async (
   input: RenderOrderProductImageInput,
 ): Promise<string> => {
+  const sharp = (await import('sharp')).default;
   const imageBuffer = await resolveAssetBuffer(input.imageUrl);
 
   // If no mockup template exists, persist normalized original image as final output.

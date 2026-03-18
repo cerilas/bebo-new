@@ -1174,6 +1174,32 @@ export function ChatInterface({
               <div>
                 <h2 className="text-xl font-semibold text-gray-800 dark:text-white">
                   {t('crop_image')}
+                  {(() => {
+                    // Show frame dimensions in header
+                    if (sizeSlug && productFullData?.sizes) {
+                      const sel = productFullData.sizes.find((s: any) => s.slug === sizeSlug);
+                      if (sel?.dimensions) {
+                        const cleaned = String(sel.dimensions).toLowerCase().replace(/cm/g, '').replace(/\s/g, '');
+                        const parts = cleaned.split('x').map(Number);
+                        if (parts.length === 2 && parts.every((n: number) => Number.isFinite(n) && n > 0)) {
+                          const smaller = Math.min(parts[0]!, parts[1]!);
+                          const larger = Math.max(parts[0]!, parts[1]!);
+                          const w = orientationSlug === 'portrait' ? smaller : larger;
+                          const h = orientationSlug === 'portrait' ? larger : smaller;
+                          return ` (${w}x${h}cm)`;
+                        }
+                      }
+                    }
+                    // Fallback: show ratio
+                    const r = cropAspectRatio;
+                    if (r > 1) {
+                      return ` (${Math.round(r * 100) / 100}:1 ${orientationSlug === 'portrait' ? 'Dikey' : 'Yatay'})`;
+                    }
+                    if (r < 1) {
+                      return ` (1:${Math.round((1 / r) * 100) / 100} ${orientationSlug === 'portrait' ? 'Dikey' : 'Yatay'})`;
+                    }
+                    return ' (1:1)';
+                  })()}
                 </h2>
                 {orientationSlug && (
                   <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">

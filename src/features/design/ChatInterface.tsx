@@ -71,7 +71,9 @@ export function ChatInterface({
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [isCropModalOpen, setIsCropModalOpen] = useState(false);
-  const [cropAspectRatio, setCropAspectRatio] = useState<number>(1920 / 1080); // Default aspect ratio
+  const [cropAspectRatio, setCropAspectRatio] = useState<number>(
+    orientationSlug === 'portrait' ? 1080 / 1920 : 1920 / 1080,
+  ); // Orientation-aware default
   const [error, setError] = useState<string | null>(null);
 
   // Hata mesajını otomatik temizle
@@ -135,7 +137,7 @@ export function ChatInterface({
     loadHistoryImages();
   }, [user]);
 
-  // Load product details and calculate crop aspect ratio
+  // Load product details and calculate crop aspect ratio from size dimensions + orientation
   useEffect(() => {
     async function loadProductDetails() {
       if (!productSlug) {
@@ -146,22 +148,53 @@ export function ChatInterface({
         const productData = await getProductDetails(productSlug, locale);
         setProductFullData(productData);
 
-        if (productData?.imageDimensions) {
-          // Parse dimensions like "1920x1080" and calculate aspect ratio
-          const [width, height] = productData.imageDimensions.split('x').map(Number);
+        // 1) Try to derive aspect ratio from the selected size's physical dimensions + orientation
+        let ratioSet = false;
+        if (sizeSlug && productData?.sizes) {
+          const selectedSize = productData.sizes.find((s: any) => s.slug === sizeSlug);
+          if (selectedSize?.dimensions) {
+            // Parse physical dimensions like "30x40", "30X40", "30cm x 40cm"
+            const cleaned = String(selectedSize.dimensions).toLowerCase().replace(/cm/g, '').replace(/\s/g, '');
+            const parts = cleaned.split('x').map(Number);
+            if (parts.length === 2 && parts.every((n: number) => Number.isFinite(n) && n > 0)) {
+              const [a, b] = parts as [number, number];
+              const smaller = Math.min(a, b);
+              const larger = Math.max(a, b);
+              // Apply orientation: landscape → wider, portrait → taller
+              const frameW = orientationSlug === 'portrait' ? smaller : larger;
+              const frameH = orientationSlug === 'portrait' ? larger : smaller;
+              setCropAspectRatio(frameW / frameH);
+              ratioSet = true;
+            }
+          }
+        }
 
+        // 2) Fallback: use product's base imageDimensions (e.g. "1920x1080")
+        if (!ratioSet && productData?.imageDimensions) {
+          const [width, height] = productData.imageDimensions.split('x').map(Number);
           if (width && height && height !== 0) {
-            setCropAspectRatio(width / height);
+            // Respect orientation even for fallback
+            if (orientationSlug === 'portrait' && width > height) {
+              setCropAspectRatio(height / width); // Flip to portrait
+            } else if (orientationSlug === 'landscape' && height > width) {
+              setCropAspectRatio(height / width); // Flip to landscape
+            } else {
+              setCropAspectRatio(width / height);
+            }
           }
         }
       } catch (error) {
         console.error('Failed to load product details:', error);
-        // Keep default aspect ratio (1920/1080) if loading fails
+        // Fallback: use orientation-aware default
+        if (orientationSlug === 'portrait') {
+          setCropAspectRatio(1080 / 1920); // ~0.5625 portrait
+        }
+        // else keep default 1920/1080 landscape
       }
     }
 
     loadProductDetails();
-  }, [productSlug, locale]);
+  }, [productSlug, locale, sizeSlug, orientationSlug]);
 
   // Set initial image if provided via URL parameter
   useEffect(() => {
@@ -1138,9 +1171,16 @@ export function ChatInterface({
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 p-4" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}>
           <div className="relative w-full max-w-4xl rounded-2xl bg-white p-6 dark:bg-gray-800">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-gray-800 dark:text-white">
-                {t('crop_image')}
-              </h2>
+              <div>
+                <h2 className="text-xl font-semibold text-gray-800 dark:text-white">
+                  {t('crop_image')}
+                </h2>
+                {orientationSlug && (
+                  <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                    {orientationSlug === 'portrait' ? '↕ Dikey (Portrait)' : '↔ Yatay (Landscape)'}
+                  </p>
+                )}
+              </div>
               <button
                 type="button"
                 onClick={() => {

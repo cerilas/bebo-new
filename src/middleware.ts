@@ -62,6 +62,11 @@ export default function middleware(
       return NextResponse.next();
     }
 
+    // Authenticated API requests: skip intlMiddleware (locale routing breaks API routes)
+    if (isApiPath && userId) {
+      return NextResponse.next();
+    }
+
     if (isProtectedRoute(req) && !userId) {
       if (isApiPath) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

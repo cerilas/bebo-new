@@ -47,11 +47,11 @@ export function MockupEditor({
   const imageAreaRef = useRef<HTMLDivElement>(null);
   const [mockupDimensions, setMockupDimensions] = useState<{ width: number; height: number } | null>(null);
 
-  // Transform state - başlangıçta 1.5x zoom ile başla ki hareket alanı olsun
+  // Transform state - başlangıçta 1x zoom ile başla (tam sığdır)
   const [transform, setTransform] = useState<ImageTransform>({
     x: 0,
     y: 0,
-    scale: 1.5,
+    scale: 1,
   });
 
   // Drag state
@@ -157,7 +157,7 @@ export function MockupEditor({
 
   // Reset to default crop position
   const handleReset = useCallback(() => {
-    setTransform({ x: 0, y: 0, scale: 1.5 });
+    setTransform({ x: 0, y: 0, scale: 1 });
   }, []);
 
   // Handle save

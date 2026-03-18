@@ -25,7 +25,7 @@ export default withSentryConfig(
       poweredByHeader: false,
       reactStrictMode: true,
       experimental: {
-        serverComponentsExternalPackages: ['@electric-sql/pglite'],
+        serverComponentsExternalPackages: ['@electric-sql/pglite', 'sharp'],
       },
       images: {
         remotePatterns: [

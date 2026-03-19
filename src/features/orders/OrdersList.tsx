@@ -93,21 +93,21 @@ export function OrdersList({ initialOrders }: OrdersListProps) {
                         className="rounded-lg object-cover"
                       />
                     )
-                  : order.imageUrl
-                    ? (
-                        <ProtectedImage
-                          src={order.imageUrl}
-                          alt={order.productName || 'Ürün'}
-                          width={150}
-                          height={150}
-                          className="rounded-lg object-cover"
-                        />
-                      )
-                    : (
-                        <div className="flex size-[150px] items-center justify-center rounded-lg bg-muted dark:bg-slate-800">
-                          <Package className="size-12 text-muted-foreground" />
-                        </div>
-                      )}
+                  : (order.finalProductImageUrl || order.imageUrl)
+                      ? (
+                          <ProtectedImage
+                            src={order.finalProductImageUrl || order.imageUrl!}
+                            alt={order.productName || 'Ürün'}
+                            width={150}
+                            height={150}
+                            className="rounded-lg object-cover"
+                          />
+                        )
+                      : (
+                          <div className="flex size-[150px] items-center justify-center rounded-lg bg-muted dark:bg-slate-800">
+                            <Package className="size-12 text-muted-foreground" />
+                          </div>
+                        )}
               </div>
 
               {/* Sipariş Bilgileri */}

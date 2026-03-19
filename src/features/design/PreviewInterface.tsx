@@ -422,6 +422,13 @@ export function PreviewInterface({
                   <p className="text-sm text-gray-500 dark:text-gray-400">Boyut</p>
                   <p className="font-semibold text-gray-900 dark:text-white">
                     {priceData?.sizeName || tProducts(`size_${sizeSlug}`)}
+                    {priceData?.sizeDimensions && (
+                      <span className="ml-2 text-sm font-normal text-gray-500 dark:text-gray-400">
+                        (
+                        {priceData.sizeDimensions}
+                        cm)
+                      </span>
+                    )}
                   </p>
                 </div>
                 <p className="font-semibold text-gray-900 dark:text-white">

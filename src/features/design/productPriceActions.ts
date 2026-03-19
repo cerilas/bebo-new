@@ -10,6 +10,7 @@ export type ProductPriceData = {
   productName: string;
   sizeId: number; // Database ID
   sizeName: string;
+  sizeDimensions: string; // e.g. "30x40"
   sizePrice: number; // in cents
   frameId: number; // Database ID
   frameName: string;
@@ -86,6 +87,7 @@ export async function getProductPricing(
       productName: productData.name,
       sizeId: sizeData.id,
       sizeName: sizeData.name,
+      sizeDimensions: sizeData.dimensions,
       sizePrice: sizeData.priceAmount,
       frameId: frameData.id,
       frameName: frameData.name,

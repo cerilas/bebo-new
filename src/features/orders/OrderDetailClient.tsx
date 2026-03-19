@@ -115,6 +115,27 @@ export default function OrderDetailClient({ orderDetail }: OrderDetailClientProp
                     className="h-auto w-full object-contain"
                   />
                 </div>
+                <div className="mt-4 flex flex-wrap gap-3">
+                  {orderDetail.productName && (
+                    <span className="inline-flex items-center rounded-full bg-purple-100 px-3 py-1 text-sm font-medium text-purple-800 dark:bg-purple-900/30 dark:text-purple-300">
+                      {orderDetail.productName}
+                    </span>
+                  )}
+                  {(orderDetail.sizeName || orderDetail.sizeDimensions) && (
+                    <span className="inline-flex items-center rounded-full bg-blue-100 px-3 py-1 text-sm font-medium text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+                      📐
+                      {' '}
+                      {orderDetail.sizeName || orderDetail.sizeDimensions}
+                    </span>
+                  )}
+                  {orderDetail.frameName && (
+                    <span className="inline-flex items-center rounded-full bg-amber-100 px-3 py-1 text-sm font-medium text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
+                      🖼️
+                      {' '}
+                      {orderDetail.frameName}
+                    </span>
+                  )}
+                </div>
               </div>
             )}
 

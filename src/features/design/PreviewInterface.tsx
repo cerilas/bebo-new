@@ -426,7 +426,7 @@ export function PreviewInterface({
                       <span className="ml-2 text-sm font-normal text-gray-500 dark:text-gray-400">
                         (
                         {priceData.sizeDimensions}
-                        cm)
+                        )
                       </span>
                     )}
                   </p>

@@ -12,32 +12,30 @@ function normalizeAboutImageUrl(imageUrl?: string | null): string | null {
     return null;
   }
 
-  let normalizedPath = imageUrl.trim();
+  const trimmed = imageUrl.trim();
 
-  try {
-    if (normalizedPath.startsWith('http://') || normalizedPath.startsWith('https://')) {
-      const parsedUrl = new URL(normalizedPath);
-      normalizedPath = parsedUrl.pathname;
-    }
-  } catch {
-    return imageUrl;
+  // If it's an absolute URL (http/https), keep it as-is — it points to an external host
+  // (e.g. admin.birebiro.com). next/image handles it via remotePatterns.
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+    return trimmed;
   }
 
-  if (!normalizedPath.startsWith(FILES_PREFIX)) {
-    return imageUrl;
+  // Relative path: ensure it has the uploads/ scope prefix
+  if (!trimmed.startsWith(FILES_PREFIX)) {
+    return trimmed;
   }
 
-  const relativePath = normalizedPath.slice(FILES_PREFIX.length);
+  const relativePath = trimmed.slice(FILES_PREFIX.length);
   const segments = relativePath.split('/').filter(Boolean);
 
   if (segments.length === 0) {
-    return normalizedPath;
+    return trimmed;
   }
 
   const hasScopePrefix = segments[0] === 'uploads' || segments[0] === 'ai';
 
   if (hasScopePrefix) {
-    return normalizedPath;
+    return trimmed;
   }
 
   return `${FILES_PREFIX}uploads/${relativePath}`;

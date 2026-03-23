@@ -54,6 +54,11 @@ export default withSentryConfig(
             hostname: '**.amazonaws.com',
             pathname: '/**',
           },
+          {
+            protocol: 'https',
+            hostname: 'admin.birebiro.com',
+            pathname: '/**',
+          },
         ],
       },
     }),

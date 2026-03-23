@@ -45,7 +45,6 @@ export function PreviewInterface({
   const orientation: 'landscape' | 'portrait' = initialOrientation === 'portrait' ? 'portrait' : 'landscape';
   const [isEditing, setIsEditing] = useState(false);
   const [imageTransform, setImageTransform] = useState<ImageTransform>({ x: 0, y: 0, scale: 1 });
-  const [isLayoutAdjusted, setIsLayoutAdjusted] = useState(false);
 
   // Mockup varsa flip özelliğini aktif et
   const hasMockup = Boolean(priceData?.mockupTemplate);
@@ -167,10 +166,9 @@ export function PreviewInterface({
       params.set('orientation', orientation);
     }
 
-    // Image transform bilgisini ekle (crop/position)
-    if (imageTransform.x !== 0 || imageTransform.y !== 0 || imageTransform.scale !== 1) {
-      params.set('imageTransform', JSON.stringify(imageTransform));
-    }
+    // Image transform bilgisini her zaman ekle.
+    // Kullanıcı yerleşim yapmadıysa varsayılan olarak { x: 0, y: 0, scale: 1 } gönderilir.
+    params.set('imageTransform', JSON.stringify(imageTransform));
 
     router.push(`/checkout?${params.toString()}`);
   };
@@ -233,7 +231,6 @@ export function PreviewInterface({
                     onSave={(transform) => {
                       setImageTransform(transform);
                       setIsEditing(false);
-                      setIsLayoutAdjusted(true);
                     }}
                     onCancel={() => setIsEditing(false)}
                   />
@@ -443,23 +440,14 @@ export function PreviewInterface({
               <button
                 type="button"
                 onClick={handleContinueToCheckout}
-                disabled={hasMockup && !isLayoutAdjusted}
                 className={cn(
                   'flex w-full items-center justify-center gap-2 rounded-xl px-8 py-4 text-lg font-semibold text-white shadow-lg transition-all',
-                  hasMockup && !isLayoutAdjusted
-                    ? 'cursor-not-allowed bg-gray-400 opacity-60'
-                    : 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 hover:shadow-xl',
+                  'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 hover:shadow-xl',
                 )}
               >
                 <Check className="size-6" />
                 {t('continue_to_checkout')}
               </button>
-              {hasMockup && !isLayoutAdjusted && (
-                <div className="pointer-events-none absolute -top-10 left-1/2 -translate-x-1/2 rounded-lg bg-gray-800 px-3 py-2 text-sm text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 dark:bg-gray-700">
-                  Önce yerleşimi ayarlayın
-                  <div className="absolute -bottom-1 left-1/2 size-2 -translate-x-1/2 rotate-45 bg-gray-800 dark:bg-gray-700" />
-                </div>
-              )}
             </div>
 
             {/* Info Text */}

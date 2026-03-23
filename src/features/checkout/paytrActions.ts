@@ -57,6 +57,12 @@ export type AkbankPaymentActionResponse = {
   error?: string;
 };
 
+const DEFAULT_IMAGE_TRANSFORM = {
+  x: 0,
+  y: 0,
+  scale: 1,
+};
+
 export async function processAkbankProductPayment(
   request: ProductAkbankRequest,
 ): Promise<AkbankPaymentActionResponse> {
@@ -80,6 +86,7 @@ export async function processAkbankProductPayment(
     const normalizedCvv = request.cardCvv.replace(/\D/g, '');
     const expireDate = formatAkbankCardExpireDate(request.cardExpiry);
     const requestHeaders = await headers();
+    const imageTransform = request.imageTransform ?? DEFAULT_IMAGE_TRANSFORM;
 
     await db.insert(orderSchema).values({
       userId,
@@ -108,9 +115,7 @@ export async function processAkbankProductPayment(
       companyAddress: request.companyAddress,
       paymentType: request.paymentType ?? 'card',
       orientation: request.orientation ?? 'landscape',
-      imageTransform: request.imageTransform
-        ? JSON.stringify(request.imageTransform)
-        : null,
+      imageTransform: JSON.stringify(imageTransform),
     });
 
     const callbackBaseUrl = `${getBaseUrl()}/api/akbank/return`;

@@ -67,9 +67,92 @@ const DEFAULT_IMAGE_TRANSFORM = {
   scale: 1,
 };
 
+const normalizeLocale = (locale?: string): 'tr' | 'en' | 'fr' => {
+  if (locale === 'en' || locale === 'fr') {
+    return locale;
+  }
+  return 'tr';
+};
+
+const localizedText = (locale: 'tr' | 'en' | 'fr', tr: string, en: string, fr: string): string => {
+  if (locale === 'en') {
+    return en;
+  }
+  if (locale === 'fr') {
+    return fr;
+  }
+  return tr;
+};
+
+const mapPaymentInitErrorToUserMessage = (error: unknown, locale: 'tr' | 'en' | 'fr', debugCode: string): string => {
+  const message = error instanceof Error ? error.message : String(error);
+  const lowerMessage = message.toLowerCase();
+
+  if (lowerMessage.includes('akbank_merchant_safe_id')
+    || lowerMessage.includes('akbank_terminal_safe_id')
+    || lowerMessage.includes('akbank_secret_key')
+    || lowerMessage.includes('akbank_env')) {
+    return localizedText(
+      locale,
+      `Ödeme altyapısı yapılandırması eksik veya hatalı. Lütfen destek ekibiyle paylaşın. (Kod: ${debugCode})`,
+      `Payment infrastructure configuration is missing or invalid. Please share this with support. (Code: ${debugCode})`,
+      `La configuration de paiement est manquante ou invalide. Veuillez partager ceci avec le support. (Code : ${debugCode})`,
+    );
+  }
+
+  if (lowerMessage.includes('database')
+    || lowerMessage.includes('connect')
+    || lowerMessage.includes('timeout')
+    || lowerMessage.includes('econnrefused')
+    || lowerMessage.includes('enotfound')) {
+    return localizedText(
+      locale,
+      `Veritabanına bağlanılamadığı için ödeme başlatılamadı. Lütfen kısa süre sonra tekrar deneyin. (Kod: ${debugCode})`,
+      `Payment could not be started because the database connection failed. Please try again shortly. (Code: ${debugCode})`,
+      `Le paiement n'a pas pu démarrer en raison d'un problème de connexion à la base de données. Veuillez réessayer sous peu. (Code : ${debugCode})`,
+    );
+  }
+
+  if (lowerMessage.includes('duplicate key') || lowerMessage.includes('merchant_oid')) {
+    return localizedText(
+      locale,
+      `Sipariş numarası oluşturulurken çakışma oluştu. Lütfen tekrar deneyin. (Kod: ${debugCode})`,
+      `A conflict occurred while creating the order number. Please try again. (Code: ${debugCode})`,
+      `Un conflit est survenu lors de la création du numéro de commande. Veuillez réessayer. (Code : ${debugCode})`,
+    );
+  }
+
+  return localizedText(
+    locale,
+    `Ödeme işlemi başlatılamadı. Teknik detay: ${message}. (Kod: ${debugCode})`,
+    `Payment could not be started. Technical detail: ${message}. (Code: ${debugCode})`,
+    `Le paiement n'a pas pu être démarré. Détail technique : ${message}. (Code : ${debugCode})`,
+  );
+};
+
 export async function processAkbankProductPayment(
   request: ProductAkbankRequest,
 ): Promise<AkbankPaymentActionResponse> {
+  const locale = normalizeLocale(request.locale);
+
+  const missingConfig = [
+    'AKBANK_MERCHANT_SAFE_ID',
+    'AKBANK_TERMINAL_SAFE_ID',
+    'AKBANK_SECRET_KEY',
+  ].filter(name => !process.env[name]?.trim());
+
+  if (missingConfig.length > 0) {
+    return {
+      success: false,
+      error: localizedText(
+        locale,
+        `Ödeme başlatılamadı: sistem ayarları eksik (${missingConfig.join(', ')}).`,
+        `Payment could not start: missing system configuration (${missingConfig.join(', ')}).`,
+        `Le paiement n'a pas pu démarrer : configuration système manquante (${missingConfig.join(', ')}).`,
+      ),
+    };
+  }
+
   try {
     const { userId } = await auth();
 
@@ -210,8 +293,17 @@ export async function processAkbankProductPayment(
       akbankFields,
     };
   } catch (error) {
-    console.error('AKBANK product payment error:', error);
-    return { success: false, error: 'Ödeme işlemi başlatılamadı' };
+    const debugCode = `PAYINIT-${Date.now().toString(36).toUpperCase()}`;
+    console.error('AKBANK product payment error:', {
+      debugCode,
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+
+    return {
+      success: false,
+      error: mapPaymentInitErrorToUserMessage(error, locale, debugCode),
+    };
   }
 }
 

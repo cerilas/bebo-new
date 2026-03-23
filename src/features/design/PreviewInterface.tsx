@@ -407,7 +407,7 @@ export function PreviewInterface({
                 <div className="flex-1">
                   <p className="text-sm text-gray-500 dark:text-gray-400">Çerçeve</p>
                   <p className="font-semibold text-gray-900 dark:text-white">
-                    {priceData?.frameName || tProducts(`frame_${frameSlug.replace('-', '_')}`)}
+                    {priceData?.frameName || tProducts(`frame_${frameSlug === 'no-frame' ? 'none' : frameSlug.replace(/-/g, '_')}`)}
                   </p>
                 </div>
                 <p className="font-semibold text-gray-900 dark:text-white">

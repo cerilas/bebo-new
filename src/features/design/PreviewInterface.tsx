@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowLeft, Check, Frame as FrameIcon, Image as ImageIcon, Move, Package, RectangleHorizontal, RectangleVertical, RotateCcw, Ruler, Sparkles } from 'lucide-react';
+import { ArrowLeft, Check, Frame as FrameIcon, Image as ImageIcon, Move, Package, RotateCcw, Ruler, Sparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 
@@ -41,14 +41,14 @@ export function PreviewInterface({
   const [priceData, setPriceData] = useState<ProductPriceData | null>(null);
   const [isPriceLoading, setIsPriceLoading] = useState(true);
   const [isFlipped, setIsFlipped] = useState(false);
-  const [orientation, setOrientation] = useState<'landscape' | 'portrait'>(initialOrientation === 'portrait' ? 'portrait' : 'landscape');
+  // Orientation is locked to what the user selected on the product selection page
+  const orientation: 'landscape' | 'portrait' = initialOrientation === 'portrait' ? 'portrait' : 'landscape';
   const [isEditing, setIsEditing] = useState(false);
   const [imageTransform, setImageTransform] = useState<ImageTransform>({ x: 0, y: 0, scale: 1 });
   const [isLayoutAdjusted, setIsLayoutAdjusted] = useState(false);
 
   // Mockup varsa flip özelliğini aktif et
   const hasMockup = Boolean(priceData?.mockupTemplate);
-  const hasVerticalMockup = Boolean(priceData?.mockupTemplateVertical);
 
   // Aktif mockup template ve config (orientation'a göre)
   const activeMockupTemplate = orientation === 'portrait' && priceData?.mockupTemplateVertical
@@ -260,37 +260,6 @@ export function PreviewInterface({
                           </span>
                           {hasMockup && (
                             <div className="flex items-center gap-2">
-                              {/* Orientation Toggle - only when vertical mockup exists */}
-                              {hasVerticalMockup && (
-                                <div className="flex items-center gap-1 rounded-lg bg-gray-100 p-1 dark:bg-gray-700">
-                                  <button
-                                    type="button"
-                                    onClick={() => setOrientation('landscape')}
-                                    className={cn(
-                                      'flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-all',
-                                      orientation === 'landscape'
-                                        ? 'bg-white text-gray-900 shadow-sm dark:bg-gray-600 dark:text-white'
-                                        : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200',
-                                    )}
-                                  >
-                                    <RectangleHorizontal className="size-3" />
-                                    Yatay
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => setOrientation('portrait')}
-                                    className={cn(
-                                      'flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-all',
-                                      orientation === 'portrait'
-                                        ? 'bg-white text-gray-900 shadow-sm dark:bg-gray-600 dark:text-white'
-                                        : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200',
-                                    )}
-                                  >
-                                    <RectangleVertical className="size-3" />
-                                    Dikey
-                                  </button>
-                                </div>
-                              )}
                               <button
                                 type="button"
                                 onClick={() => setIsFlipped(true)}

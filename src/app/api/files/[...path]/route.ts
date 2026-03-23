@@ -14,16 +14,44 @@ const PRIMARY_ROOT = process.env.UPLOAD_DIR
 
 const TMP_FALLBACK_ROOT = '/tmp/uploads';
 
+const SCOPES = new Set(['uploads', 'ai']);
+
+function buildCandidatePaths(joinedPath: string): string[] {
+  const normalizedPath = joinedPath
+    .split('/')
+    .filter(Boolean)
+    .join('/');
+
+  if (!normalizedPath) {
+    return [];
+  }
+
+  const segments = normalizedPath.split('/');
+  if (SCOPES.has(segments[0] ?? '')) {
+    return [normalizedPath];
+  }
+
+  return [
+    normalizedPath,
+    path.posix.join('uploads', normalizedPath),
+    path.posix.join('ai', normalizedPath),
+  ];
+}
+
 // Search both primary and /tmp fallback for the file
 function findFile(joinedPath: string): string | null {
-  const primaryPath = path.join(PRIMARY_ROOT, joinedPath);
-  if (existsSync(primaryPath)) {
-    return primaryPath;
+  for (const candidatePath of buildCandidatePaths(joinedPath)) {
+    const primaryPath = path.join(PRIMARY_ROOT, candidatePath);
+    if (existsSync(primaryPath)) {
+      return primaryPath;
+    }
+
+    const tmpPath = path.join(TMP_FALLBACK_ROOT, candidatePath);
+    if (existsSync(tmpPath)) {
+      return tmpPath;
+    }
   }
-  const tmpPath = path.join(TMP_FALLBACK_ROOT, joinedPath);
-  if (existsSync(tmpPath)) {
-    return tmpPath;
-  }
+
   return null;
 }
 

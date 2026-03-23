@@ -3,6 +3,63 @@ import { eq } from 'drizzle-orm';
 import { db } from '@/libs/DB';
 import { aboutContentSchema } from '@/models/Schema';
 
+const FILES_PREFIX = '/api/files/';
+
+type AboutContentRecord = typeof aboutContentSchema.$inferSelect;
+
+function normalizeAboutImageUrl(imageUrl?: string | null): string | null {
+  if (!imageUrl) {
+    return null;
+  }
+
+  let normalizedPath = imageUrl.trim();
+
+  try {
+    if (normalizedPath.startsWith('http://') || normalizedPath.startsWith('https://')) {
+      const parsedUrl = new URL(normalizedPath);
+      normalizedPath = parsedUrl.pathname;
+    }
+  } catch {
+    return imageUrl;
+  }
+
+  if (!normalizedPath.startsWith(FILES_PREFIX)) {
+    return imageUrl;
+  }
+
+  const relativePath = normalizedPath.slice(FILES_PREFIX.length);
+  const segments = relativePath.split('/').filter(Boolean);
+
+  if (segments.length === 0) {
+    return normalizedPath;
+  }
+
+  const hasScopePrefix = segments[0] === 'uploads' || segments[0] === 'ai';
+
+  if (hasScopePrefix) {
+    return normalizedPath;
+  }
+
+  return `${FILES_PREFIX}uploads/${relativePath}`;
+}
+
+function normalizeAboutContentImages<T extends {
+  image1?: string | null;
+  image2?: string | null;
+  image3?: string | null;
+}>(content: T | null): T | null {
+  if (!content) {
+    return null;
+  }
+
+  return {
+    ...content,
+    image1: normalizeAboutImageUrl(content.image1),
+    image2: normalizeAboutImageUrl(content.image2),
+    image3: normalizeAboutImageUrl(content.image3),
+  };
+}
+
 // Get about content by language
 export async function getAboutContent(language: string = 'tr') {
   console.log(`🔍 [About] Fetching content for language: "${language}"`);
@@ -20,7 +77,7 @@ export async function getAboutContent(language: string = 'tr') {
       console.log(`⚠️ [About] No content found for language "${language}"`);
     }
 
-    return result[0] || null;
+    return normalizeAboutContentImages(result[0] || null);
   } catch (error) {
     console.error('❌ [About] Error fetching about content:', error);
     return null;
@@ -34,7 +91,7 @@ export async function getAllAboutContent() {
       .select()
       .from(aboutContentSchema);
 
-    return results;
+    return results.map((content: AboutContentRecord) => normalizeAboutContentImages(content));
   } catch (error) {
     console.error('Error fetching all about content:', error);
     return [];

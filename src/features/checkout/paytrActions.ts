@@ -1,9 +1,12 @@
 'use server';
 
+import { Buffer as NodeBuffer } from 'node:buffer';
+
 import { auth } from '@clerk/nextjs/server';
 import { eq } from 'drizzle-orm';
 import { headers } from 'next/headers';
 
+import { savePublicImageBuffer } from '@/features/design/assetStorage';
 import {
   type Akbank3dPayRequestFields,
   createAkbank3dPayRequestFields,
@@ -45,6 +48,7 @@ export type ProductAkbankRequest = {
   cardCvv: string;
   orientation?: 'landscape' | 'portrait';
   imageTransform?: { x: number; y: number; scale: number };
+  previewImageBase64?: string; // Base64 encoded mockup preview screenshot from client
   locale?: string;
 };
 
@@ -88,6 +92,26 @@ export async function processAkbankProductPayment(
     const requestHeaders = await headers();
     const imageTransform = request.imageTransform ?? DEFAULT_IMAGE_TRANSFORM;
 
+    // Save preview image from base64 if provided
+    let previewImageUrl: string | null = null;
+    if (request.previewImageBase64) {
+      try {
+        // Remove data:image/png;base64, prefix if present
+        const base64Data = request.previewImageBase64.replace(/^data:image\/[a-z]+;base64,/, '');
+        const buffer = NodeBuffer.from(base64Data, 'base64');
+        const previewAsset = await savePublicImageBuffer({
+          scope: 'uploads',
+          filePrefix: 'preview',
+          extension: 'png',
+          buffer,
+        });
+        previewImageUrl = previewAsset.url;
+        console.log('[Akbank] Preview image saved:', previewImageUrl);
+      } catch (err) {
+        console.warn('[Akbank] Failed to save preview image:', err instanceof Error ? err.message : err);
+      }
+    }
+
     await db.insert(orderSchema).values({
       userId,
       generationId: request.generationId,
@@ -116,6 +140,7 @@ export async function processAkbankProductPayment(
       paymentType: request.paymentType ?? 'card',
       orientation: request.orientation ?? 'landscape',
       imageTransform: JSON.stringify(imageTransform),
+      previewImageUrl,
     });
 
     const callbackBaseUrl = `${getBaseUrl()}/api/akbank/return`;

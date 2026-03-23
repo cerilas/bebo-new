@@ -93,6 +93,10 @@ export const renderFinalOrderProductImage = async (
 
   const templateBuffer = await resolveAssetBuffer(input.mockupTemplate);
   const templateMeta = await sharp(templateBuffer).metadata();
+  const effectiveMockupType: MockupType
+    = input.mockupType === 'frame' && !templateMeta.hasAlpha
+      ? 'overlay'
+      : input.mockupType;
 
   const canvasWidth = parsePositive(templateMeta.width ?? 0, 0);
   const canvasHeight = parsePositive(templateMeta.height ?? 0, 0);
@@ -149,7 +153,7 @@ export const renderFinalOrderProductImage = async (
     },
   })
     .composite(
-      input.mockupType === 'frame'
+      effectiveMockupType === 'frame'
         ? [{ input: artworkLayer }, { input: templateBuffer }]
         : [{ input: templateBuffer }, { input: artworkLayer }],
     )

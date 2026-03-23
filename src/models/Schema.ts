@@ -212,6 +212,7 @@ export const orderSchema = pgTable('order', {
   companyAddress: text('company_address'), // Şirket adresi
   orientation: varchar('orientation', { length: 20 }).default('landscape').notNull(), // landscape | portrait
   imageTransform: text('image_transform'), // JSON string: { x: number, y: number, scale: number }
+  previewImageUrl: text('preview_image_url'), // URL of the user's preview screenshot (showing positioned image on frame)
   shippingStatus: varchar('shipping_status', { length: 20 }).default('pending').notNull(), // pending, preparing, shipped, delivered
   trackingNumber: varchar('tracking_number', { length: 100 }),
   notes: text('notes'), // Admin notları

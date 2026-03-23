@@ -130,6 +130,21 @@ const mapPaymentInitErrorToUserMessage = (error: unknown, locale: 'tr' | 'en' | 
   );
 };
 
+const isMissingPreviewImageUrlColumnError = (error: unknown): boolean => {
+  const message = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
+  const code = typeof error === 'object' && error !== null && 'code' in error
+    ? String((error as { code?: string }).code)
+    : '';
+
+  return (
+    code === '42703'
+    && message.includes('preview_image_url')
+  ) || (
+    message.includes('column "preview_image_url"')
+    && message.includes('does not exist')
+  );
+};
+
 export async function processAkbankProductPayment(
   request: ProductAkbankRequest,
 ): Promise<AkbankPaymentActionResponse> {
@@ -195,7 +210,7 @@ export async function processAkbankProductPayment(
       }
     }
 
-    await db.insert(orderSchema).values({
+    const orderValues = {
       userId,
       generationId: request.generationId,
       imageUrl: request.imageUrl,
@@ -224,7 +239,19 @@ export async function processAkbankProductPayment(
       orientation: request.orientation ?? 'landscape',
       imageTransform: JSON.stringify(imageTransform),
       previewImageUrl,
-    });
+    };
+
+    try {
+      await db.insert(orderSchema).values(orderValues);
+    } catch (insertError) {
+      if (!isMissingPreviewImageUrlColumnError(insertError)) {
+        throw insertError;
+      }
+
+      console.warn('[Akbank] order.preview_image_url column missing, retrying insert without previewImageUrl');
+      const { previewImageUrl: _preview, ...legacyOrderValues } = orderValues;
+      await db.insert(orderSchema).values(legacyOrderValues);
+    }
 
     const callbackBaseUrl = `${getBaseUrl()}/api/akbank/return`;
     const okUrl = `${callbackBaseUrl}?flow=product&redirect=${encodeURIComponent(successRedirectPath)}&fail_redirect=${encodeURIComponent(failedRedirectPath)}`;

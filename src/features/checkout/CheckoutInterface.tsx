@@ -203,10 +203,42 @@ export function CheckoutInterface({
         console.warn('mockup-preview element not found');
         return undefined;
       }
+
+      const images = Array.from(mockupElement.querySelectorAll('img'));
+      await Promise.all(
+        images.map(async (img) => {
+          if (img.complete) {
+            return;
+          }
+
+          try {
+            if (typeof img.decode === 'function') {
+              await img.decode();
+              return;
+            }
+          } catch {
+            // Fall through to onload/onerror wait
+          }
+
+          await new Promise<void>((resolve) => {
+            const done = () => {
+              img.removeEventListener('load', done);
+              img.removeEventListener('error', done);
+              resolve();
+            };
+
+            img.addEventListener('load', done);
+            img.addEventListener('error', done);
+          });
+        }),
+      );
+
       const canvas = await html2canvas(mockupElement, {
         scale: 2,
         backgroundColor: '#ffffff',
         logging: false,
+        useCORS: true,
+        imageTimeout: 10000,
       });
       return canvas.toDataURL('image/png');
     } catch (err) {

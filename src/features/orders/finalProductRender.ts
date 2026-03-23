@@ -73,6 +73,10 @@ const parsePositive = (value: number, fallback: number): number => {
   return Number.isFinite(value) && value > 0 ? value : fallback;
 };
 
+const parseFinite = (value: number | undefined, fallback: number): number => {
+  return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
+};
+
 export const renderFinalOrderProductImage = async (
   input: RenderOrderProductImageInput,
 ): Promise<string> => {
@@ -106,8 +110,8 @@ export const renderFinalOrderProductImage = async (
   }
 
   const cfg = input.mockupConfig;
-  const regionLeft = Math.round((parsePositive(cfg.x, 10) / 100) * canvasWidth);
-  const regionTop = Math.round((parsePositive(cfg.y, 10) / 100) * canvasHeight);
+  const regionLeft = Math.round((parseFinite(cfg.x, 10) / 100) * canvasWidth);
+  const regionTop = Math.round((parseFinite(cfg.y, 10) / 100) * canvasHeight);
   const regionWidth = Math.max(1, Math.round((parsePositive(cfg.width, 80) / 100) * canvasWidth));
   const regionHeight = Math.max(1, Math.round((parsePositive(cfg.height, 80) / 100) * canvasHeight));
 

@@ -167,6 +167,7 @@ export const generatedImageSchema = pgTable('generated_image', {
   uploadedImageUrl: text('uploaded_image_url'), // User uploaded reference image
   userGenerationIntent: text('user_generation_intent'), // What user wants to create
   isGenerateMode: boolean('is_generate_mode').default(true).notNull(), // Generate vs inspiration mode
+  orientation: varchar('orientation', { length: 20 }), // 'landscape' | 'portrait' | null
   creditUsed: integer('credit_used').default(1).notNull(), // Credits consumed
   isSelected: boolean('is_selected').default(false).notNull(), // Did user select this for purchase?
   updatedAt: timestamp('updated_at', { mode: 'date' })
@@ -359,6 +360,19 @@ export const productSizeFrameSchema = pgTable('product_size_frame', {
     .defaultNow()
     .$onUpdate(() => new Date())
     .notNull(),
+});
+
+// AI Model Configuration - which OpenAI models to use (text & image), managed from admin
+export const aiModelSchema = pgTable('ai_model', {
+  id: serial('id').primaryKey(),
+  name: varchar('name', { length: 255 }).notNull(), // Human-readable name, e.g. "GPT-4.1"
+  provider: varchar('provider', { length: 100 }).notNull(), // e.g. "OpenAI"
+  modelIdentifier: varchar('model_identifier', { length: 255 }).notNull(), // OpenAI model id, e.g. "gpt-4.1"
+  type: varchar('type', { length: 20 }).default('image').notNull(), // 'chat' | 'image'
+  isActive: boolean('is_active').default(true),
+  sortOrder: integer('sort_order').default(0),
+  createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).defaultNow(),
 });
 
 // Payment Logs Schema - for logging all PayTR callback data for debugging

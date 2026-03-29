@@ -22,7 +22,7 @@
   },
   "Hero": {
     "follow_twitter": "Follow @Birebiro on X",
-    "title": "Get Your Dream Product, Not What's Offered <important>Design Your Dream with <logo></logo></important>",
+    "title": "<important>Get Your Dream Product, Not What's Offered</important> Design Your Dream with <logo></logo>",
     "description": "No pencil, no brush… but you have a dream. No need to waste time with stock products anymore. Birebiro brings this mystical landscape from the depths of your subconscious to life with just a few words, expertly crafts your masterpiece for your home and office, and delivers it to you. This is a masterpiece from your mind.",
     "primary_button": "Get Started",
     "how_it_works": "How It Works?"
@@ -299,7 +299,7 @@
     "selected": "Selected",
     "no_images_yet": "No images generated yet.\nSpecify your requests in the chat area above.",
     "select": "Select",
-    "explore": "Explore",
+    "explore": "Select",
     "creation_date": "Creation Date",
     "your_prompt": "You Created This With These Feelings",
     "art_credits": "Art Credits",

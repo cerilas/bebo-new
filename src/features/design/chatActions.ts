@@ -3,15 +3,26 @@
 import { Buffer } from 'node:buffer';
 
 import { currentUser } from '@clerk/nextjs/server';
+import { GoogleGenAI, Modality } from '@google/genai';
 import { and, desc, eq } from 'drizzle-orm';
 
 import { getProductIdsFromSlugs } from '@/features/products/productActions';
 import { db } from '@/libs/DB';
-import { generatedImageSchema, siteSettingsSchema } from '@/models/Schema';
+import { generatedImageSchema, siteSettingsSchema, userSchema } from '@/models/Schema';
 import { getBaseUrl } from '@/utils/Helpers';
 
 import { savePublicImageBuffer, toBase64DataUrl } from './assetStorage';
-import { getOpenAIClient, getOpenAIImageModel, getOpenAITextModel } from './openaiClient';
+import type { AIModelSelection } from './openaiClient';
+import { getAllImageModels, getAllTextModels, getOpenAIClient } from './openaiClient';
+
+const getGoogleAIClient = (): GoogleGenAI => {
+  const apiKey = process.env.GOOGLE_GEMINI_API_KEY;
+  if (!apiKey) {
+    throw new Error('GOOGLE_GEMINI_API_KEY is not configured');
+  }
+
+  return new GoogleGenAI({ apiKey });
+};
 
 export type ChatRequest = {
   userId: string;
@@ -37,6 +48,10 @@ export type ChatResponse = {
   reply_to_user: string;
   image_generation: boolean;
   generation_id: string;
+  textModel?: string;
+  imageModel?: string;
+  creditDeducted: boolean;
+  newCreditBalance?: number;
 };
 
 type NativeAssistantDecision = {
@@ -64,7 +79,7 @@ You are given runtime values in plain text format:
 User Prompt: ...
 User image generation intent: true/false
 
-If the user has attached an image, it will be provided directly as a vision input — you CAN see it and should analyze its colors, style, composition, and subject to enrich your response and generation prompt.
+If the user has attached an image, it will be provided directly as a vision input — you CAN see it and should analyze its colors, style, composition, subject, textures, patterns, lighting, shadows, mood, and every fine detail to enrich your response and generation prompt.
 
 "User image generation intent" indicates whether the user clicked the image generation button on the interface.
 
@@ -95,7 +110,7 @@ Rules for fields:
 - If user_generation_intent is true, this field MUST be non-empty.
 - If user_generation_intent is false, this field MUST be empty string.
 - Use User Prompt as base.
-- If an image was provided (vision input), analyze its colors, style, mood, subject, and composition, then incorporate those visual details into the prompt.
+- If an image was provided (vision input), analyze its colors, style, mood, subject, composition, textures, patterns, lighting, shadows, and every fine detail, then incorporate those visual details into the prompt.
 - If prompt is vague, still produce meaningful creative prompt when generation is intended.
 
 Additional strict rules:
@@ -245,6 +260,211 @@ const parseDecision = (value: string): NativeAssistantDecision => {
   };
 };
 
+/**
+ * Tries each model in order. If one fails, logs the error and tries the next.
+ * Throws the last error only if ALL models fail.
+ */
+const tryWithFallback = async <T>(
+  models: AIModelSelection[],
+  fn: (model: AIModelSelection) => Promise<T>,
+  label: string,
+): Promise<{ result: T; usedModel: AIModelSelection }> => {
+  let lastError: Error = new Error(`No ${label} models available`);
+  for (const model of models) {
+    try {
+      console.log(`🔄 [${label}] Trying model: ${model.provider}/${model.modelIdentifier}`);
+      const result = await fn(model);
+      return { result, usedModel: model };
+    } catch (err) {
+      lastError = err instanceof Error ? err : new Error(String(err));
+      console.warn(`⚠️ [${label}] Model ${model.modelIdentifier} failed: ${lastError.message}`);
+    }
+  }
+  throw lastError;
+};
+
+const downloadBuffer = async (url: string): Promise<Buffer> => {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Image download failed with status ${response.status}`);
+  }
+
+  const arrayBuffer = await response.arrayBuffer();
+  return Buffer.from(arrayBuffer);
+};
+
+type ContentPart =
+  | { type: 'text'; text: string }
+  | { type: 'image_url'; image_url: { url: string; detail: 'high' | 'low' } };
+
+const callGoogleGeminiTextModel = async (
+  modelIdentifier: string,
+  systemPrompt: string,
+  userMessageContent: string | ContentPart[],
+): Promise<string> => {
+  const ai = getGoogleAIClient();
+
+  let geminiContents: string | any[];
+
+  if (typeof userMessageContent === 'string') {
+    geminiContents = userMessageContent;
+  } else {
+    const parts = await Promise.all(
+      userMessageContent.map(async (item) => {
+        if (item.type === 'text') {
+          return { text: item.text };
+        }
+        try {
+          const buf = await downloadBuffer(item.image_url.url);
+          return { inlineData: { mimeType: 'image/png', data: buf.toString('base64') } };
+        } catch (err) {
+          console.warn(`[Gemini] Image indir hatası (${item.image_url.url}):`, err);
+          return { text: `[Görsel yüklenemedi: ${item.image_url.url}]` };
+        }
+      }),
+    );
+    geminiContents = [{ role: 'user', parts }];
+  }
+
+  const response = await ai.models.generateContent({
+    model: modelIdentifier,
+    contents: geminiContents,
+    config: {
+      systemInstruction: systemPrompt,
+      responseMimeType: 'application/json',
+      temperature: 0.7,
+    },
+  });
+
+  const content = response.text;
+  if (!content) {
+    throw new Error('Gemini text model did not return valid content');
+  }
+
+  return content;
+};
+
+const callGoogleGeminiImageModel = async (
+  modelIdentifier: string,
+  prompt: string,
+  referenceBuffer?: Buffer | null,
+): Promise<Buffer> => {
+  const ai = getGoogleAIClient();
+
+  const contents: any[] = [{ text: prompt }];
+
+  if (referenceBuffer) {
+    const base64Image = referenceBuffer.toString('base64');
+    contents.push({
+      inlineData: {
+        mimeType: 'image/png',
+        data: base64Image,
+      },
+    });
+  }
+
+  const response = await ai.models.generateContent({
+    model: modelIdentifier,
+    contents,
+    config: {
+      responseModalities: [Modality.IMAGE],
+    },
+  });
+
+  const imagePart = response.candidates?.[0]?.content?.parts?.find(
+    (part: any) => part.inlineData,
+  );
+
+  if (!imagePart?.inlineData?.data) {
+    throw new Error('Gemini image model did not return valid image data');
+  }
+
+  return Buffer.from(imagePart.inlineData.data, 'base64');
+};
+
+const createChatCompletion = async (
+  openai: ReturnType<typeof getOpenAIClient>,
+  modelSelection: AIModelSelection,
+  systemPrompt: string,
+  userMessageContent: string | ContentPart[],
+): Promise<string> => {
+  const isGeminiProvider = modelSelection.provider !== 'OpenAI';
+  if (isGeminiProvider) {
+    return callGoogleGeminiTextModel(modelSelection.modelIdentifier, systemPrompt, userMessageContent);
+  }
+
+  const completion = await openai.chat.completions.create({
+    model: modelSelection.modelIdentifier,
+    temperature: 0.7,
+    max_completion_tokens: 2048,
+    response_format: { type: 'json_object' },
+    messages: [
+      {
+        role: 'system',
+        content: systemPrompt,
+      },
+      {
+        role: 'user',
+        content: userMessageContent,
+      },
+    ],
+  });
+
+  const raw = completion.choices[0]?.message?.content;
+  if (!raw) {
+    throw new Error('OpenAI chat response is empty');
+  }
+
+  return raw;
+};
+
+const generateImageWithModel = async (
+  openai: ReturnType<typeof getOpenAIClient>,
+  modelSelection: AIModelSelection,
+  promptWithRatio: string,
+  apiSize: '1024x1024' | '1536x1024' | '1024x1536',
+  fullImageUrl: string | null,
+  referenceBuffer: Buffer | null,
+): Promise<Buffer> => {
+  const isGeminiImageProvider = modelSelection.provider !== 'OpenAI';
+  if (isGeminiImageProvider) {
+    return callGoogleGeminiImageModel(modelSelection.modelIdentifier, promptWithRatio, referenceBuffer);
+  }
+
+  let imageResult;
+  if (fullImageUrl && referenceBuffer) {
+    const imageFile = new File([new Uint8Array(referenceBuffer)], 'reference.png', { type: 'image/png' });
+    imageResult = await openai.images.edit({
+      model: modelSelection.modelIdentifier,
+      image: imageFile,
+      prompt: promptWithRatio,
+      size: apiSize,
+    });
+  } else {
+    imageResult = await openai.images.generate({
+      model: modelSelection.modelIdentifier,
+      prompt: promptWithRatio,
+      size: apiSize,
+      quality: 'low',
+    });
+  }
+
+  const first = imageResult.data?.[0];
+  let imageBuffer: Buffer | null = null;
+
+  if (first?.b64_json) {
+    imageBuffer = Buffer.from(first.b64_json, 'base64');
+  } else if (first?.url) {
+    imageBuffer = await downloadBuffer(first.url);
+  }
+
+  if (!imageBuffer) {
+    throw new Error('OpenAI image response did not contain image data');
+  }
+
+  return imageBuffer;
+};
+
 const buildGenerationId = (): string => {
   return `${Date.now()}${String(Math.floor(Math.random() * 1000)).padStart(3, '0')}`;
 };
@@ -264,6 +484,7 @@ const toGeneratedImageResponse = (row: {
   uploadedImageUrl: string | null;
   userGenerationIntent: string | null;
   isGenerateMode: boolean;
+  orientation?: string | null;
   creditUsed: number;
   isSelected: boolean;
   updatedAt: Date;
@@ -284,21 +505,12 @@ const toGeneratedImageResponse = (row: {
     uploaded_image_url: row.uploadedImageUrl ?? '',
     user_generation_intent: row.userGenerationIntent ?? '',
     is_generate_mode: row.isGenerateMode,
+    orientation: row.orientation ?? null,
     credit_used: row.creditUsed,
     is_selected: row.isSelected,
     updated_at: row.updatedAt.toISOString(),
     created_at: row.createdAt.toISOString(),
   };
-};
-
-const downloadBuffer = async (url: string): Promise<Buffer> => {
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`Image download failed with status ${response.status}`);
-  }
-
-  const arrayBuffer = await response.arrayBuffer();
-  return Buffer.from(arrayBuffer);
 };
 
 export async function sendChatMessage(params: {
@@ -312,6 +524,7 @@ export async function sendChatMessage(params: {
   frameSlug?: string;
   orientationSlug?: 'landscape' | 'portrait';
 }) {
+  let wasImageGenAttempt = false;
   try {
     // Get authenticated user
     const user = await currentUser();
@@ -354,7 +567,7 @@ export async function sendChatMessage(params: {
     const openai = getOpenAIClient();
     const systemPrompt = await getAiDesignSystemPrompt();
 
-    const [latestGeneration] = await db
+    const recentGenerations = await db
       .select({
         improvedPrompt: generatedImageSchema.improvedPrompt,
         textPrompt: generatedImageSchema.textPrompt,
@@ -369,7 +582,8 @@ export async function sendChatMessage(params: {
         ),
       )
       .orderBy(desc(generatedImageSchema.createdAt))
-      .limit(1);
+      .limit(2);
+    const latestGeneration = recentGenerations[0] ?? null;
 
     const baseUrl = getBaseUrl();
     // Convert local file to base64 so OpenAI can read it regardless of environment
@@ -410,34 +624,27 @@ ${historyText || 'No chat history.'}
 Previous generation context:
 ${previousGenerationContext}`;
 
-    const userMessageContent = fullImageUrl
-      ? [
-          { type: 'text' as const, text: textContent },
-          { type: 'image_url' as const, image_url: { url: fullImageUrl, detail: 'low' as const } },
-        ]
-      : textContent;
-
-    const completion = await openai.chat.completions.create({
-      model: getOpenAITextModel(),
-      temperature: 0.7,
-      response_format: { type: 'json_object' },
-      messages: [
-        {
-          role: 'system',
-          content: systemPrompt,
-        },
-        {
-          role: 'user',
-          content: userMessageContent,
-        },
-      ],
-    });
-
-    const rawDecision = completion.choices[0]?.message?.content;
-    if (!rawDecision) {
-      throw new Error('OpenAI chat response is empty');
+    // Build multi-image content: last 2 generated images (oldest first, low detail)
+    // + current user upload (high detail). Text model gets visual context for follow-up edits.
+    const visionParts: ContentPart[] = [{ type: 'text', text: textContent }];
+    for (const gen of [...recentGenerations].reverse()) {
+      const genUrl = gen.imageUrl.startsWith('http') ? gen.imageUrl : `${baseUrl}${gen.imageUrl}`;
+      visionParts.push({ type: 'image_url', image_url: { url: genUrl, detail: 'high' } });
     }
+    if (fullImageUrl) {
+      visionParts.push({ type: 'image_url', image_url: { url: fullImageUrl, detail: 'high' } });
+    }
+    const userMessageContent: string | ContentPart[] = visionParts.length > 1 ? visionParts : textContent;
 
+    // Resolve ALL active text models from DB (sorted by sort_order, for fallback chaining)
+    const textModels = await getAllTextModels();
+
+    const { result: rawDecision, usedModel: usedTextModel } = await tryWithFallback(
+      textModels,
+      model => createChatCompletion(openai, model, systemPrompt, userMessageContent),
+      'TextModel',
+    );
+    const textModel = usedTextModel.modelIdentifier;
     const decision = parseDecision(rawDecision);
     const isGenerationModeActive = params.isGenerateMode;
     const userAskedForImageGeneration = looksLikeImageGenerationRequest(requestBody.textPrompt);
@@ -451,11 +658,16 @@ ${previousGenerationContext}`;
       reply_to_user: replyToUser,
       image_generation: false,
       generation_id: '',
+      textModel,
+      creditDeducted: false,
     };
 
     if (canGenerateImage) {
       const generationId = buildGenerationId();
       const refinedPrompt = decision.improved_generation_prompt?.trim() || requestBody.textPrompt;
+
+      // Resolve ALL active image models (for fallback chaining)
+      const imageModels = await getAllImageModels();
 
       // Resolve the correct aspect ratio from the selected frame size + orientation
       const { apiSize, ratioLabel, physicalLabel } = resolveGenerationSize(
@@ -466,28 +678,45 @@ ${previousGenerationContext}`;
       // Prepend frame ratio constraint so the model composes correctly for the print dimensions
       const ratioConstraint = `IMPORTANT: This artwork will be printed on a ${physicalLabel} frame. Compose the image to fill a strict ${ratioLabel} aspect ratio. Do NOT add letterboxing, borders, or padding. Fill every pixel.`;
       const promptWithRatio = `${ratioConstraint}\n\n${refinedPrompt}`;
-      const promptWithReference = requestBody.imagePromptUrl
-        ? `${promptWithRatio}\n\nReference image URL (composition/style reference): ${requestBody.imagePromptUrl}`
-        : promptWithRatio;
 
-      const imageResult = await openai.images.generate({
-        model: getOpenAIImageModel(),
-        prompt: promptWithReference,
-        size: apiSize,
-        quality: 'low',
-      });
-
-      const first = imageResult.data?.[0];
-      let imageBuffer: Buffer | null = null;
-
-      if (first?.b64_json) {
-        imageBuffer = Buffer.from(first.b64_json, 'base64');
-      } else if (first?.url) {
-        imageBuffer = await downloadBuffer(first.url);
+      // Build image generation request.
+      let referenceBuffer: Buffer | null = null;
+      if (fullImageUrl) {
+        // User uploaded an image — use it as reference (highest priority)
+        if (imageBase64) {
+          referenceBuffer = Buffer.from(imageBase64.replace(/^data:[^;]+;base64,/, ''), 'base64');
+        } else if (requestBody.imagePromptUrl) {
+          const downloadUrl = requestBody.imagePromptUrl.startsWith('http')
+            ? requestBody.imagePromptUrl
+            : `${baseUrl}${requestBody.imagePromptUrl}`;
+          referenceBuffer = await downloadBuffer(downloadUrl);
+        }
+      } else if (latestGeneration?.imageUrl) {
+        // No user upload: use the last generated image as reference for the image model
+        const genUrl = latestGeneration.imageUrl.startsWith('http')
+          ? latestGeneration.imageUrl
+          : `${baseUrl}${latestGeneration.imageUrl}`;
+        try {
+          referenceBuffer = await downloadBuffer(genUrl);
+        } catch (err) {
+          console.warn('[Image Model] Önceki görsel referans olarak kullanılamadı:', err);
+        }
       }
 
+      // Capture referenceBuffer in closure for tryWithFallback
+      const capturedReferenceBuffer = referenceBuffer;
+      const capturedApiSize = apiSize;
+
+      wasImageGenAttempt = true;
+      const { result: imageBuffer, usedModel: usedImageModel } = await tryWithFallback(
+        imageModels,
+        model => generateImageWithModel(openai, model, promptWithRatio, capturedApiSize, fullImageUrl, capturedReferenceBuffer),
+        'ImageModel',
+      );
+      const imageModel = usedImageModel.modelIdentifier;
+
       if (!imageBuffer) {
-        throw new Error('OpenAI image response did not contain image data');
+        throw new Error('Image generation did not return valid image data');
       }
 
       const saved = await savePublicImageBuffer({
@@ -511,14 +740,43 @@ ${previousGenerationContext}`;
         uploadedImageUrl: requestBody.imagePromptUrl || null,
         userGenerationIntent: String(decision.user_generation_intent),
         isGenerateMode: true,
+        orientation: requestBody.orientation || null,
         creditUsed: requestBody.creditUsed,
         isSelected: false,
       });
+
+      // Deduct credit ONLY after image is successfully generated and saved
+      let creditDeducted = false;
+      let newCreditBalance: number | undefined;
+      try {
+        const [currentUser] = await db
+          .select({ artCredits: userSchema.artCredits })
+          .from(userSchema)
+          .where(eq(userSchema.id, user.id))
+          .limit(1);
+
+        if (currentUser && currentUser.artCredits > 0) {
+          const newCredits = currentUser.artCredits - 1;
+          await db
+            .update(userSchema)
+            .set({ artCredits: newCredits })
+            .where(eq(userSchema.id, user.id));
+          creditDeducted = true;
+          newCreditBalance = newCredits;
+          console.log(`💰 [Credits] Deducted 1 credit for user ${user.id}. New balance: ${newCredits}`);
+        }
+      } catch (creditError) {
+        console.error('Failed to deduct credit after successful generation:', creditError);
+      }
 
       data = {
         reply_to_user: replyToUser,
         image_generation: true,
         generation_id: generationId,
+        textModel,
+        imageModel,
+        creditDeducted,
+        newCreditBalance,
       };
     }
 
@@ -531,6 +789,7 @@ ${previousGenerationContext}`;
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Bir hata oluştu',
+      wasImageGenAttempt,
     };
   }
 }
@@ -550,6 +809,7 @@ export type GeneratedImageResponse = {
   uploaded_image_url: string;
   user_generation_intent: string;
   is_generate_mode: boolean;
+  orientation?: string | null;
   credit_used: number;
   is_selected: boolean;
   updated_at: string;

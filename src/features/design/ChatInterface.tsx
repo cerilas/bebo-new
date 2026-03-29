@@ -1,7 +1,7 @@
 'use client';
 
 import { useUser } from '@clerk/nextjs';
-import { AlertCircle, Check, Image as ImageIcon, Loader2, Send, ShoppingCart, Sparkles, Upload, X } from 'lucide-react';
+import { AlertCircle, Check, Image as ImageIcon, Loader2, RectangleHorizontal, RectangleVertical, Send, ShoppingCart, Sparkles, Upload, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 import Cropper from 'react-easy-crop';
@@ -13,7 +13,7 @@ import getCroppedImg from '@/utils/cropImage';
 
 import { type GeneratedImageResponse, getGeneratedImage, getUserGeneratedImages, sendChatMessage } from './chatActions';
 import { generateChatSessionId } from './chatUtils';
-import { decrementArtCredits, getUserArtCredits } from './creditsActions';
+import { getUserArtCredits } from './creditsActions';
 import { uploadImageNative } from './imageUpload';
 
 type Message = {
@@ -283,7 +283,26 @@ export function ChatInterface({
       });
 
       if (!result.success || !result.data) {
-        throw new Error(result.error || 'API yanıt vermedi');
+        const wasImageGen = (result as any).wasImageGenAttempt === true;
+        const errorContent = wasImageGen
+          ? 'Görsel oluşturulamadı, krediniz kullanılmadı. Tekrar deneyebilirsiniz.'
+          : 'Bir sorun oluştu. Lütfen tekrar deneyin.';
+        setMessages(prev => [...prev, {
+          id: (Date.now() + 999).toString(),
+          role: 'assistant' as const,
+          content: errorContent,
+          timestamp: new Date(),
+        }]);
+        setIsGeneratingImage(false);
+        return;
+      }
+
+      // Log which AI models are being used (visible in browser DevTools console)
+      if (result.data.textModel) {
+        console.log(`🤖 [Birebiro AI] Text model: ${result.data.textModel}`);
+      }
+      if (result.data.imageModel) {
+        console.log(`🖼️ [Birebiro AI] Image model: ${result.data.imageModel}`);
       }
 
       // Display AI response
@@ -297,12 +316,9 @@ export function ChatInterface({
 
       // If image_generation is true, wait and fetch the generated image
       if (result.data.image_generation && result.data.generation_id) {
-        // Decrement credits when starting image generation
-        try {
-          const newCredits = await decrementArtCredits();
-          setArtCredits(newCredits);
-        } catch (error) {
-          console.error('Failed to decrement credits:', error);
+        // Credit was already deducted on the server side (only after successful generation)
+        if (result.data.creditDeducted && result.data.newCreditBalance !== undefined) {
+          setArtCredits(result.data.newCreditBalance);
         }
 
         setIsGeneratingImage(true); // Disable input during image generation
@@ -410,13 +426,13 @@ export function ChatInterface({
       }
     } catch (error) {
       console.error('Chat error:', error);
-      const errorMessage: Message = {
+      setMessages(prev => [...prev, {
         id: (Date.now() + 999).toString(),
-        role: 'assistant',
-        content: `Üzgünüm, bir hata oluştu: ${error instanceof Error ? error.message : 'Bilinmeyen hata'}`,
+        role: 'assistant' as const,
+        content: 'Bir sorun oluştu. Lütfen tekrar deneyin.',
         timestamp: new Date(),
-      };
-      setMessages(prev => [...prev, errorMessage]);
+      }]);
+      setIsGeneratingImage(false);
     } finally {
       setIsSending(false);
     }
@@ -784,24 +800,20 @@ export function ChatInterface({
                       <input
                         ref={fileInputRef}
                         type="file"
-                        accept="image/*"
+                        accept="image/png,image/jpeg,image/webp,image/gif"
                         onChange={handleImageUpload}
-                        className="hidden"
+                        style={{ display: 'none' }}
                       />
                       <button
                         type="button"
                         onClick={() => fileInputRef.current?.click()}
                         disabled={isUploading || isSending || isGeneratingImage}
-                        className="flex size-12 items-center justify-center rounded-xl border border-gray-300 bg-white text-gray-600 transition-colors hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
+                        className="flex size-12 shrink-0 items-center justify-center rounded-xl border border-gray-300 bg-white text-gray-600 transition-colors hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
                         title="Görsel yükle"
                       >
                         {isUploading
-                          ? (
-                              <Loader2 className="size-5 animate-spin" />
-                            )
-                          : (
-                              <Upload className="size-5" />
-                            )}
+                          ? <Loader2 className="size-5 animate-spin" />
+                          : <Upload className="size-5" />}
                       </button>
                     </>
                   )}
@@ -919,9 +931,9 @@ export function ChatInterface({
               <input
                 ref={userUploadFileInputRef}
                 type="file"
-                accept="image/*"
+                accept="image/png,image/jpeg,image/webp,image/gif"
                 onChange={handleUserImageUpload}
-                className="hidden"
+                style={{ display: 'none' }}
               />
 
               {!userUploadedImageUrl
@@ -1057,6 +1069,23 @@ export function ChatInterface({
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100">
                           <div className="absolute inset-x-0 bottom-0 p-3">
+                            {image.orientation && (
+                              <span className="mb-1.5 inline-flex items-center gap-1 rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm">
+                                {image.orientation === 'portrait'
+                                  ? (
+                                      <>
+                                        <RectangleVertical className="size-2.5" />
+                                        {locale === 'tr' ? 'Dikey' : locale === 'fr' ? 'Vertical' : 'Portrait'}
+                                      </>
+                                    )
+                                  : (
+                                      <>
+                                        <RectangleHorizontal className="size-2.5" />
+                                        {locale === 'tr' ? 'Yatay' : locale === 'fr' ? 'Horizontal' : 'Landscape'}
+                                      </>
+                                    )}
+                              </span>
+                            )}
                             <p className="mb-2 line-clamp-2 text-xs text-white">
                               {image.text_prompt}
                             </p>
@@ -1067,7 +1096,7 @@ export function ChatInterface({
                                 setSelectedImageDetail(image);
                                 setIsModalOpen(true);
                               }}
-                              className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-blue-500 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-600"
+                              className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-white px-3 py-2 text-sm font-medium text-gray-800 transition-colors hover:bg-gray-100"
                             >
                               {t('explore')}
                             </button>
@@ -1155,7 +1184,7 @@ export function ChatInterface({
                     }
                     router.push(`/design/preview?${params.toString()}`);
                   }}
-                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-500 px-6 py-3 text-base font-medium text-white transition-colors hover:bg-blue-600"
+                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-gray-900 px-6 py-3 text-base font-medium text-white transition-colors hover:bg-gray-700 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100"
                 >
                   <Check className="size-5" />
                   {t('select')}

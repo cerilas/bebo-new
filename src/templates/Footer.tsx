@@ -33,9 +33,10 @@ export const Footer = () => {
       return;
     }
 
-    // Mobilde dinamik footer offset hesaplamasını devre dışı bırak
+    // Mobilde ve dokunmatik cihazlarda (iPad dahil) dinamik footer offset hesaplamasını devre dışı bırak
     // (scroll takılma sorunlarına neden oluyordu)
-    if (window.innerWidth < 768) {
+    const isTouchDevice = navigator.maxTouchPoints > 0;
+    if (window.innerWidth < 768 || isTouchDevice) {
       if (footerOffset !== 0) {
         setFooterOffset(0);
       }
@@ -115,7 +116,7 @@ export const Footer = () => {
       title: t('support_title'),
       links: [
         { label: t('faq'), sectionId: 'sss' },
-        { label: t('email_label'), href: `mailto:${settings.contact_email || 'info@birebiro.com'}` },
+        { label: t('email_label'), href: `/${locale}/contact` },
       ],
     },
   ];
@@ -184,14 +185,23 @@ export const Footer = () => {
                 {section.links.map(link => (
                   <li key={link.label}>
                     {link.href
-                      ? (
-                          <Link
-                            href={link.href}
-                            className="text-gray-400 transition-colors hover:text-white"
-                          >
-                            {link.label}
-                          </Link>
-                        )
+                      ? link.href.startsWith('mailto:')
+                        ? (
+                            <a
+                              href={link.href}
+                              className="text-gray-400 transition-colors hover:text-white"
+                            >
+                              {link.label}
+                            </a>
+                          )
+                        : (
+                            <Link
+                              href={link.href}
+                              className="text-gray-400 transition-colors hover:text-white"
+                            >
+                              {link.label}
+                            </Link>
+                          )
                       : link.sectionId
                         ? (
                             <button

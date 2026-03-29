@@ -22,7 +22,7 @@
   },
   "Hero": {
     "follow_twitter": "X'te @Birebiro'yu takip et",
-    "title": "Sunulanı Değil Hayalindeki Ürünü Al <important>Hayalindeki Tasarım <logo></logo></important>",
+    "title": "<important>Sunulanı Değil Hayalindeki Ürünü Al</important> Hayalindeki Tasarım <logo></logo>",
     "description": "Kalemin yok, fırçan yok… ama hayalin var. Artık sunulan stoklu ürünlerle vakit kaybetmene gerek yok. Birebiro, sadece birkaç kelimenle bilinçaltının derinliklerinden bu mistik manzarayı ortaya çıkarır, evin ve ofisin için ustalıkla eserini işler ve sana ulaştırır. Bu senin zihninden çıkan bir şaheser.",
     "primary_button": "Hemen Tasarla",
     "how_it_works": "Nasıl Çalışır?"
@@ -290,7 +290,7 @@
     "page_title": "Tasarım Oluştur",
     "welcome_message": "Merhaba! Size nasıl yardımcı olabilirim? İstediğiniz tasarımı tarif edin veya ilham almak için sohbet edelim.",
     "selected_product": "Seçili Ürün",
-    "mode_generate": "Görsel Oluştur",
+    "mode_generate": "Tasarım Hakkı Kullan",
     "mode_inspiration": "Tasarım İlhamı Al",
     "generating_image": "Görseliniz oluşturuluyor, lütfen bekleyin...",
     "providing_inspiration": "Size ilham verecek fikirler hazırlıyorum...",
@@ -304,7 +304,7 @@
     "selected": "Seçildi",
     "no_images_yet": "Henüz görsel oluşturulmadı.\nYukarıdaki sohbet alanından isteklerinizi belirtin.",
     "select": "Seç",
-    "explore": "Keşfet",
+    "explore": "Seç",
     "creation_date": "Oluşturulma Tarihi",
     "your_prompt": "Bu Hislerle Oluşturdunuz",
     "art_credits": "Tasarım hakkı",

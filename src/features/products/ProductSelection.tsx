@@ -221,11 +221,12 @@ export const ProductSelection = ({ products, locale, imageUrl }: Props) => {
     }
 
     const timer = window.setTimeout(() => {
+      // Animasyonun (300ms) bitmesini bekleyip tam expanded haldeyken ortala
       targetCard.scrollIntoView({
         behavior: 'smooth',
         block: 'center',
       });
-    }, 60);
+    }, 350);
 
     return () => {
       window.clearTimeout(timer);
@@ -517,6 +518,8 @@ export const ProductSelection = ({ products, locale, imageUrl }: Props) => {
                               <div className="grid gap-2 md:gap-3">
                                 {frames.map((frame) => {
                                   const available = isFrameAvailable(frame.id, config.size);
+                                  const sizeNotSelected = !config.size;
+                                  const isDisabled = !available || sizeNotSelected;
                                   const isSelectedFrame = config.frame === frame.slug;
                                   const previewImage = frame.frameImageLarge || currentProduct?.imageWideUrl;
 
@@ -528,8 +531,8 @@ export const ProductSelection = ({ products, locale, imageUrl }: Props) => {
                                       }}
                                       className={cn(
                                         'overflow-hidden rounded-lg border-2 transition-all duration-300',
-                                        !available
-                                          ? 'cursor-not-allowed border-border opacity-[0.35]'
+                                        isDisabled
+                                          ? 'cursor-not-allowed border-border opacity-40'
                                           : isSelectedFrame
                                             ? 'border-primary bg-primary/5'
                                             : 'border-border hover:border-primary/50',
@@ -537,10 +540,10 @@ export const ProductSelection = ({ products, locale, imageUrl }: Props) => {
                                     >
                                       <button
                                         type="button"
-                                        disabled={!available}
+                                        disabled={isDisabled}
                                         onClick={(e) => {
                                           e.stopPropagation();
-                                          if (available) {
+                                          if (!isDisabled) {
                                             setConfig(prev => ({ ...prev, frame: frame.slug }));
                                           }
                                         }}
@@ -581,11 +584,17 @@ export const ProductSelection = ({ products, locale, imageUrl }: Props) => {
                                           <div className="flex flex-1 items-center justify-between">
                                             <div>
                                               <div className="text-sm font-semibold md:text-base">{frame.name}</div>
-                                              {!available && (
-                                                <div className="text-xs text-muted-foreground">
-                                                  {outOfStockLabel}
-                                                </div>
-                                              )}
+                                              {sizeNotSelected
+                                                ? (
+                                                    <div className="text-xs text-muted-foreground">
+                                                      {locale === 'en' ? 'Select a size first' : locale === 'fr' ? 'Choisissez d\'abord une taille' : 'Önce boyut seçin'}
+                                                    </div>
+                                                  )
+                                                : !available && (
+                                                    <div className="text-xs text-muted-foreground">
+                                                      {outOfStockLabel}
+                                                    </div>
+                                                  )}
                                             </div>
                                             <div className="font-bold text-primary">
                                               {frame.price > 0 ? `+${frame.price}₺` : t('free')}

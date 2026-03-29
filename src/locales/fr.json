@@ -14,7 +14,7 @@
   },
   "Hero": {
     "follow_twitter": "Suivez @Birebiro sur X",
-    "title": "Obtenez Votre Produit de Rêve, Pas Ce Qui Est Offert <important>Concevez Votre Rêve avec <logo></logo></important>",
+    "title": "<important>Obtenez Votre Produit de Rêve, Pas Ce Qui Est Offert</important> Concevez Votre Rêve avec <logo></logo>",
     "description": "Pas de crayon, pas de pinceau… mais vous avez un rêve. Plus besoin de perdre du temps avec des produits en stock. Birebiro donne vie à ce paysage mystique des profondeurs de votre subconscient en quelques mots, façonne expertement votre chef-d'œuvre pour votre maison et bureau, et vous le livre. C'est un chef-d'œuvre de votre esprit.",
     "primary_button": "Démarrer",
     "secondary_button": "Mettez une étoile sur GitHub"
@@ -268,7 +268,7 @@
     "selected": "Sélectionné",
     "no_images_yet": "Aucune image générée pour le moment.\nSpécifiez vos demandes dans la zone de chat ci-dessus.",
     "select": "Sélectionner",
-    "explore": "Explorer",
+    "explore": "Sélectionner",
     "creation_date": "Date de Création",
     "your_prompt": "Vous Avez Créé Ceci Avec Ces Sentiments",
     "art_credits": "Crédits d'Art",

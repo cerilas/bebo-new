@@ -1,7 +1,6 @@
 'use client';
 
 import { useUser } from '@clerk/nextjs';
-import html2canvas from 'html2canvas';
 import { AlertCircle, ArrowLeft, ChevronDown, CreditCard, Loader2, Package, Shield, X } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -12,6 +11,7 @@ import { ProtectedImage } from '@/components/ProtectedImage';
 import { type City, type District, getCities, getDistricts } from '@/features/checkout/geliverActions';
 import { type GeneratedImageResponse, getGeneratedImage, getUserGeneratedImages } from '@/features/design/chatActions';
 import { getProductPricing, type ProductPriceData } from '@/features/design/productPriceActions';
+import { generatePreviewCanvas } from '@/utils/generatePreviewCanvas';
 import { parseMockupConfig } from '@/utils/mockupUtils';
 
 import { processAkbankProductPayment } from './paytrActions';
@@ -198,51 +198,31 @@ export function CheckoutInterface({
 
   const capturePreviewScreenshot = async (): Promise<string | undefined> => {
     try {
-      const mockupElement = document.getElementById('mockup-preview');
-      if (!mockupElement) {
-        console.warn('mockup-preview element not found');
+      if (!imageData?.image_url || !priceData?.mockupTemplate) {
         return undefined;
       }
 
-      const images = Array.from(mockupElement.querySelectorAll('img'));
-      await Promise.all(
-        images.map(async (img) => {
-          if (img.complete) {
-            return;
-          }
+      const activeMockupTemplate
+        = orientation === 'portrait' && priceData.mockupTemplateVertical
+          ? priceData.mockupTemplateVertical
+          : priceData.mockupTemplate;
+      const activeMockupConfigRaw
+        = orientation === 'portrait' && priceData.mockupConfigVertical
+          ? priceData.mockupConfigVertical
+          : priceData.mockupConfig ?? null;
 
-          try {
-            if (typeof img.decode === 'function') {
-              await img.decode();
-              return;
-            }
-          } catch {
-            // Fall through to onload/onerror wait
-          }
+      const mockupConfig = parseMockupConfig(activeMockupConfigRaw);
+      const imageTransform = propImageTransform ?? { x: 0, y: 0, scale: 1 };
 
-          await new Promise<void>((resolve) => {
-            const done = () => {
-              img.removeEventListener('load', done);
-              img.removeEventListener('error', done);
-              resolve();
-            };
-
-            img.addEventListener('load', done);
-            img.addEventListener('error', done);
-          });
-        }),
+      return await generatePreviewCanvas(
+        imageData.image_url,
+        activeMockupTemplate,
+        mockupConfig,
+        imageTransform,
+        mockupConfig.type ?? 'frame',
       );
-
-      const canvas = await html2canvas(mockupElement, {
-        scale: 2,
-        backgroundColor: '#ffffff',
-        logging: false,
-        useCORS: true,
-        imageTimeout: 10000,
-      });
-      return canvas.toDataURL('image/png');
     } catch (err) {
-      console.warn('Failed to capture preview screenshot:', err);
+      console.warn('Failed to generate preview image:', err);
       return undefined;
     }
   };

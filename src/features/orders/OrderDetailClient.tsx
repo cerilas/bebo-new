@@ -123,15 +123,11 @@ export default function OrderDetailClient({ orderDetail }: OrderDetailClientProp
                   )}
                   {(orderDetail.sizeName || orderDetail.sizeDimensions) && (
                     <span className="inline-flex items-center rounded-full bg-blue-100 px-3 py-1 text-sm font-medium text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
-                      📐
-                      {' '}
-                      {orderDetail.sizeName || orderDetail.sizeDimensions}
+                      {orderDetail.sizeDimensions || orderDetail.sizeName}
                     </span>
                   )}
                   {orderDetail.frameName && (
                     <span className="inline-flex items-center rounded-full bg-amber-100 px-3 py-1 text-sm font-medium text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
-                      🖼️
-                      {' '}
                       {orderDetail.frameName}
                     </span>
                   )}

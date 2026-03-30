@@ -93,10 +93,10 @@ export function OrdersList({ initialOrders }: OrdersListProps) {
                         className="rounded-lg object-cover"
                       />
                     )
-                  : (order.finalProductImageUrl || order.imageUrl)
+                  : (order.previewImageUrl || order.finalProductImageUrl || order.imageUrl)
                       ? (
                           <ProtectedImage
-                            src={order.finalProductImageUrl || order.imageUrl!}
+                            src={order.previewImageUrl || order.finalProductImageUrl || order.imageUrl!}
                             alt={order.productName || 'Ürün'}
                             width={150}
                             height={150}

@@ -53,6 +53,8 @@ export async function getUserOrders() {
         // Frame info
         productFrameId: productFrameSchema.id,
         frameName: productFrameSchema.name,
+        // Preview
+        previewImageUrl: orderSchema.previewImageUrl,
       })
       .from(orderSchema)
       .leftJoin(productSchema, eq(orderSchema.productId, productSchema.id))

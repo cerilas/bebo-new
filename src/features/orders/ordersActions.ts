@@ -117,6 +117,8 @@ export async function getOrderDetail(orderId: string) {
         productSizeId: productSizeSchema.id,
         sizeName: productSizeSchema.name,
         sizeDimensions: productSizeSchema.dimensions,
+        // Preview & transform
+        previewImageUrl: orderSchema.previewImageUrl,
         // Frame info
         productFrameId: productFrameSchema.id,
         frameName: productFrameSchema.name,

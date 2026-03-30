@@ -101,14 +101,14 @@ export default function OrderDetailClient({ orderDetail }: OrderDetailClientProp
             </div>
 
             {/* Final Product Preview (with frame) */}
-            {orderDetail.finalProductImageUrl && (
+            {(orderDetail.previewImageUrl || orderDetail.finalProductImageUrl) && (
               <div className="rounded-2xl bg-white p-6 shadow-sm dark:bg-gray-800">
                 <h3 className="mb-4 text-xl font-semibold text-gray-900 dark:text-white">
                   Ürün Ön İzleme
                 </h3>
                 <div className="overflow-hidden rounded-xl">
                   <ProtectedImage
-                    src={orderDetail.finalProductImageUrl}
+                    src={(orderDetail.previewImageUrl || orderDetail.finalProductImageUrl)!}
                     alt="Çerçeveli Ürün Ön İzleme"
                     width={600}
                     height={400}

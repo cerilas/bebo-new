@@ -826,7 +826,7 @@ export function ChatInterface({
                     placeholder={isGeneratingImage ? t('wait_for_generation') : (isGenerateMode ? t('placeholder_generate') : t('placeholder_inspiration'))}
                     rows={1}
                     disabled={isSending || isGeneratingImage}
-                    className="max-h-[88px] min-h-12 flex-1 resize-none overflow-y-auto rounded-xl border border-gray-300 bg-white px-4 py-3.5 text-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+                    className="max-h-[88px] min-h-12 flex-1 resize-none overflow-y-auto rounded-xl border border-gray-300 bg-white px-4 py-3.5 text-base md:text-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
                   />
                   <button
                     type="button"

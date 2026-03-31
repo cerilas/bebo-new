@@ -7,8 +7,6 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
-import { Logo } from './Logo';
-
 const DarkVeil = dynamic(() => import('@/components/DarkVeil'), {
   ssr: false,
   loading: () => <div className="size-full bg-[#0a0a0f]" />,
@@ -54,9 +52,7 @@ export const Hero = () => {
               </span>
             ),
             logo: () => (
-              <span className="inline-flex translate-y-[0.06em] items-center">
-                <Logo size="xl" className="mx-2" />
-              </span>
+              <span>birebiro</span>
             ),
           })}
         </h1>

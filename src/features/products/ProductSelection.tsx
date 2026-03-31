@@ -68,6 +68,7 @@ export const ProductSelection = ({ products, locale, imageUrl }: Props) => {
   const [navigating, setNavigating] = useState(false);
   const [availabilityData, setAvailabilityData] = useState<SizeFrameAvailability[]>([]);
   const frameCardRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const frameSectionRef = useRef<HTMLDivElement | null>(null);
   const [config, setConfig] = useState<ProductConfig>({
     frame: null,
     size: null,
@@ -460,6 +461,12 @@ export const ProductSelection = ({ products, locale, imageUrl }: Props) => {
                                     type="button"
                                     onClick={(e) => {
                                       e.stopPropagation();
+                                      // Mobile-only autoscroll to frame section
+                                      if (window.innerWidth < 768) {
+                                        setTimeout(() => {
+                                          frameSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                        }, 50);
+                                      }
                                       setConfig((prev) => {
                                         const newConfig = { ...prev, size: size.slug };
                                         // Mevcut çerçeve yeni boyutta stokta mı kontrol et
@@ -510,7 +517,7 @@ export const ProductSelection = ({ products, locale, imageUrl }: Props) => {
                             </div>
 
                             {/* Frame Selection */}
-                            <div>
+                            <div ref={frameSectionRef}>
                               <div className="mb-3 flex items-center gap-2">
                                 <Frame className="size-4 text-primary md:size-5" />
                                 <h4 className="text-base font-semibold md:text-lg">{frameLabel || t('select_frame')}</h4>

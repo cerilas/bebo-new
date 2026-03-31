@@ -794,29 +794,25 @@ export function ChatInterface({
                 )}
 
                 <div className="flex gap-3">
-                  {/* Image Upload Button - Only show in generate mode */}
-                  {isGenerateMode && (
-                    <>
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept="image/png,image/jpeg,image/webp,image/gif"
-                        onChange={handleImageUpload}
-                        style={{ display: 'none' }}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        disabled={isUploading || isSending || isGeneratingImage}
-                        className="flex size-12 shrink-0 items-center justify-center rounded-xl border border-gray-300 bg-white text-gray-600 transition-colors hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
-                        title="Görsel yükle"
-                      >
-                        {isUploading
-                          ? <Loader2 className="size-5 animate-spin" />
-                          : <Upload className="size-5" />}
-                      </button>
-                    </>
-                  )}
+                  {/* Image Upload Button - Available in both modes */}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp,image/gif"
+                    onChange={handleImageUpload}
+                    style={{ display: 'none' }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploading || isSending || isGeneratingImage}
+                    className="flex size-12 shrink-0 items-center justify-center rounded-xl border border-gray-300 bg-white text-gray-600 transition-colors hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
+                    title="Görsel yükle"
+                  >
+                    {isUploading
+                      ? <Loader2 className="size-5 animate-spin" />
+                      : <Upload className="size-5" />}
+                  </button>
 
                   <textarea
                     ref={inputRef}

@@ -650,7 +650,9 @@ ${previousGenerationContext}`;
     const userAskedForImageGeneration = looksLikeImageGenerationRequest(requestBody.textPrompt);
     const canGenerateImage = isGenerationModeActive && decision.user_generation_intent;
 
-    const replyToUser = !isGenerationModeActive && userAskedForImageGeneration
+    // Only show the "switch to generate mode" message if there's no uploaded image.
+    // If the user uploaded an image, they want to discuss it — not generate.
+    const replyToUser = !isGenerationModeActive && userAskedForImageGeneration && !requestBody.imagePromptUrl
       ? GENERATION_MODE_REQUIRED_MESSAGE
       : decision.reply_to_user;
 

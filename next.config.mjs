@@ -26,6 +26,9 @@ export default withSentryConfig(
       reactStrictMode: true,
       experimental: {
         serverComponentsExternalPackages: ['@electric-sql/pglite', 'sharp'],
+        serverActions: {
+          bodySizeLimit: '10mb',
+        },
       },
       images: {
         remotePatterns: [

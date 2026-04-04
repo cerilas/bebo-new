@@ -50,6 +50,7 @@ export type ProductAkbankRequest = {
   imageTransform?: { x: number; y: number; scale: number };
   previewImageBase64?: string; // Base64 encoded mockup preview screenshot from client
   locale?: string;
+  queryString?: string;
 };
 
 export type AkbankPaymentActionResponse = {
@@ -179,7 +180,8 @@ export async function processAkbankProductPayment(
     const merchantOid = `BRB${Date.now()}${String(Math.floor(Math.random() * 10000)).padStart(4, '0')}`;
     const localePrefix = request.locale && request.locale !== 'tr' ? `/${request.locale}` : '';
     const successRedirectPath = `${localePrefix}/checkout/success`;
-    const failedRedirectPath = `${localePrefix}/checkout/failed`;
+    const qs = request.queryString ? `?${request.queryString}` : '';
+    const failedRedirectPath = `${localePrefix}/checkout/failed${qs}`;
 
     const amountTl = (request.paymentAmount / 100).toFixed(2);
     const requestDateTime = formatAkbankDateTime();

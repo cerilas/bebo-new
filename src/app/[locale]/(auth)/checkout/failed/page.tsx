@@ -19,7 +19,7 @@ export async function generateMetadata(props: { params: Promise<{ locale: string
 
 export default async function CheckoutFailedPage(props: {
   params: Promise<{ locale: string }>;
-  searchParams: Promise<{ merchant_oid?: string; reason?: string }>;
+  searchParams: Promise<{ [key: string]: string | undefined }>;
 }) {
   const { locale } = await props.params;
   const searchParams = await props.searchParams;
@@ -29,6 +29,14 @@ export default async function CheckoutFailedPage(props: {
   });
   const merchantOid = searchParams.merchant_oid;
   const rawReason = searchParams.reason;
+
+  const retryParams = new URLSearchParams();
+  Object.entries(searchParams).forEach(([key, value]) => {
+    if (key !== 'reason' && value) {
+      retryParams.append(key, value);
+    }
+  });
+  const retryQueryString = retryParams.toString();
 
   const getReadableReason = (reason?: string) => {
     if (!reason) {
@@ -83,7 +91,7 @@ export default async function CheckoutFailedPage(props: {
 
         <div className="flex flex-col gap-4">
           <Link
-            href={merchantOid ? `/checkout?merchant_oid=${merchantOid}` : '/checkout'}
+            href={`/checkout?${retryQueryString}`}
             className="rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 px-6 py-3 font-semibold text-white transition-all hover:from-purple-700 hover:to-pink-700"
           >
             {t('try_again')}

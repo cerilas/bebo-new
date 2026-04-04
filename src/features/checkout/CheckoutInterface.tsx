@@ -333,6 +333,7 @@ export function CheckoutInterface({
         imageTransform: propImageTransform, // Görsel konumlandırma/crop bilgisi
         previewImageBase64: previewBase64, // Preview screenshot as base64
         locale,
+        queryString: searchParams.toString(),
       });
 
       if (result.success && result.akbankActionUrl && result.akbankFields) {

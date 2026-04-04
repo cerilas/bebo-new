@@ -642,22 +642,6 @@ export const ProductSelection = ({ products, locale, imageUrl }: Props) => {
                                                       type="button"
                                                       onClick={(e) => {
                                                         e.stopPropagation();
-                                                        setConfig(prev => ({ ...prev, orientation: 'landscape' }));
-                                                      }}
-                                                      className={cn(
-                                                        'group flex items-center justify-center gap-2 rounded-md border px-3 py-2 text-xs font-medium transition-all duration-300 md:text-sm',
-                                                        config.orientation === 'landscape'
-                                                          ? 'border-primary bg-primary text-primary-foreground shadow-sm'
-                                                          : 'border-border bg-background hover:-translate-y-0.5 hover:border-primary/50 hover:bg-primary/5',
-                                                      )}
-                                                    >
-                                                      <RectangleHorizontal className={cn('size-4 transition-transform duration-300', config.orientation === 'landscape' ? 'scale-110' : 'group-hover:scale-105')} />
-                                                      {t('orientation_landscape')}
-                                                    </button>
-                                                    <button
-                                                      type="button"
-                                                      onClick={(e) => {
-                                                        e.stopPropagation();
                                                         setConfig(prev => ({ ...prev, orientation: 'portrait' }));
                                                       }}
                                                       className={cn(
@@ -669,6 +653,22 @@ export const ProductSelection = ({ products, locale, imageUrl }: Props) => {
                                                     >
                                                       <RectangleVertical className={cn('size-4 transition-transform duration-300', config.orientation === 'portrait' ? 'scale-110' : 'group-hover:scale-105')} />
                                                       {t('orientation_portrait')}
+                                                    </button>
+                                                    <button
+                                                      type="button"
+                                                      onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setConfig(prev => ({ ...prev, orientation: 'landscape' }));
+                                                      }}
+                                                      className={cn(
+                                                        'group flex items-center justify-center gap-2 rounded-md border px-3 py-2 text-xs font-medium transition-all duration-300 md:text-sm',
+                                                        config.orientation === 'landscape'
+                                                          ? 'border-primary bg-primary text-primary-foreground shadow-sm'
+                                                          : 'border-border bg-background hover:-translate-y-0.5 hover:border-primary/50 hover:bg-primary/5',
+                                                      )}
+                                                    >
+                                                      <RectangleHorizontal className={cn('size-4 transition-transform duration-300', config.orientation === 'landscape' ? 'scale-110' : 'group-hover:scale-105')} />
+                                                      {t('orientation_landscape')}
                                                     </button>
                                                   </div>
                                                 </div>

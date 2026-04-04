@@ -5,6 +5,7 @@ import { Buffer } from 'node:buffer';
 import { currentUser } from '@clerk/nextjs/server';
 import { GoogleGenAI, Modality } from '@google/genai';
 import { and, desc, eq } from 'drizzle-orm';
+import sharp from 'sharp';
 
 import { getProductIdsFromSlugs } from '@/features/products/productActions';
 import { db } from '@/libs/DB';
@@ -715,11 +716,64 @@ ${previousGenerationContext}`;
         throw new Error('Image generation did not return valid image data');
       }
 
+      let finalImageBuffer = imageBuffer;
+
+      // Auto-crop logic for exact millimeter mathematical ratio
+      if (sizeDimensions) {
+        try {
+          const cleaned = sizeDimensions.toLowerCase().replace(/cm/g, '').replace(/\s/g, '');
+          const parts = cleaned.split('x').map(Number);
+          if (parts.length === 2 && parts.every(n => Number.isFinite(n) && n > 0)) {
+            const [a, b] = parts as [number, number];
+            const smaller = Math.min(a, b);
+            const larger = Math.max(a, b);
+
+            const frameW = params.orientationSlug === 'landscape' ? larger : smaller;
+            const frameH = params.orientationSlug === 'landscape' ? smaller : larger;
+
+            const targetRatio = frameW / frameH;
+
+            const imgMetadata = await sharp(imageBuffer).metadata();
+            if (imgMetadata.width && imgMetadata.height) {
+              const currentRatio = imgMetadata.width / imgMetadata.height;
+
+              // If difference is significant (>1%), apply perfect center crop
+              if (Math.abs(currentRatio - targetRatio) > 0.01) {
+                console.log(`[Auto-Crop] Correcting ratio from ${currentRatio.toFixed(3)} to ${targetRatio.toFixed(3)}`);
+
+                let targetWidth = imgMetadata.width;
+                let targetHeight = imgMetadata.height;
+
+                if (currentRatio > targetRatio) {
+                  // Image is wider than needed -> clip width
+                  targetWidth = Math.round(imgMetadata.height * targetRatio);
+                } else {
+                  // Image is taller than needed -> clip height
+                  targetHeight = Math.round(imgMetadata.width / targetRatio);
+                }
+
+                finalImageBuffer = await sharp(imageBuffer)
+                  .resize({
+                    width: targetWidth,
+                    height: targetHeight,
+                    fit: 'cover',
+                    position: 'center',
+                  })
+                  .png()
+                  .toBuffer();
+              }
+            }
+          }
+        } catch (cropErr) {
+          console.error('[Auto-Crop] Failed to auto-crop image, falling back to original:', cropErr);
+        }
+      }
+
       const saved = await savePublicImageBuffer({
         scope: 'ai',
         filePrefix: `gen-${generationId}`,
         extension: 'png',
-        buffer: imageBuffer,
+        buffer: finalImageBuffer,
       });
 
       await db.insert(generatedImageSchema).values({

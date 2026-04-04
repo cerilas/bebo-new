@@ -26,11 +26,11 @@ export const AuthWelcomeHeader = () => {
         </h2>
 
         <p className="text-sm font-medium text-gray-600 dark:text-gray-300">
-          Üye ol,
+          Kayıt ol,
           {' '}
-          <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-base font-bold text-transparent">1 ücretsiz tasarım hakkı</span>
+          <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-base font-bold text-transparent">1 ücretsiz tasarım hakkını</span>
           {' '}
-          kazan
+          kazan, sana ait hayalindeki ürün kapına gelsin.
         </p>
 
         {/* Decorative bottom element */}

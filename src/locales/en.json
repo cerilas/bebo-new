@@ -279,7 +279,25 @@
     "orientation_portrait": "Vertical",
     "available_colors": "Available Colors",
     "coming_soon": "Coming Soon",
-    "new_products": "New Products"
+    "new_products": "New Products",
+    "detail_button": "Details"
+  },
+  "ProductDetail": {
+    "meta_title": "{productName} - Birebiro",
+    "meta_description": "{productName} details, gallery, variants and pricing",
+    "short_description": "Short Description",
+    "long_description": "Product Description",
+    "gallery": "Product Gallery",
+    "video": "Product Video",
+    "variants": "Variants",
+    "sizes": "Sizes",
+    "frames": "Frames",
+    "colors": "Colors",
+    "order_now": "Order Now",
+    "starting_from": "Starting from",
+    "free": "Free",
+    "back_to_products": "Back to Products",
+    "no_detail": "No detail information has been added for this product yet."
   },
   "Design": {
     "page_title": "Create Design",

@@ -248,7 +248,25 @@
     "orientation_portrait": "Vertical",
     "available_colors": "Couleurs Disponibles",
     "coming_soon": "Bientôt disponible",
-    "new_products": "Nouveaux produits"
+    "new_products": "Nouveaux produits",
+    "detail_button": "Détails"
+  },
+  "ProductDetail": {
+    "meta_title": "{productName} - Birebiro",
+    "meta_description": "Détails, galerie, variantes et prix de {productName}",
+    "short_description": "Courte Description",
+    "long_description": "Description du Produit",
+    "gallery": "Galerie du Produit",
+    "video": "Vidéo du Produit",
+    "variants": "Variantes",
+    "sizes": "Tailles",
+    "frames": "Cadres",
+    "colors": "Couleurs",
+    "order_now": "Commander Maintenant",
+    "starting_from": "À partir de",
+    "free": "Gratuit",
+    "back_to_products": "Retour aux Produits",
+    "no_detail": "Aucune information détaillée n'a encore été ajoutée pour ce produit."
   },
   "Design": {
     "page_title": "Créer un Design",

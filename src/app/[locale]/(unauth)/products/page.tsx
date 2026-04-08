@@ -1,7 +1,7 @@
 import { getTranslations, unstable_setRequestLocale } from 'next-intl/server';
 
 import { StepProgressBar } from '@/components/StepProgressBar';
-import { getProducts } from '@/features/products/productActions';
+import { getProductsWithDetails } from '@/features/products/productActions';
 import { ProductSelection } from '@/features/products/ProductSelection';
 import { Footer } from '@/templates/Footer';
 import { Navbar, NavbarSpacer } from '@/templates/Navbar';
@@ -27,7 +27,7 @@ const ProductsPage = async (props: {
 }) => {
   unstable_setRequestLocale(props.params.locale);
 
-  const products = await getProducts(props.params.locale);
+  const products = await getProductsWithDetails(props.params.locale);
 
   return (
     <>

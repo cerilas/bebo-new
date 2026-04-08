@@ -284,7 +284,25 @@
     "orientation_portrait": "Dikey",
     "available_colors": "Mevcut Renkler",
     "coming_soon": "Yakında",
-    "new_products": "Yeni Ürünler"
+    "new_products": "Yeni Ürünler",
+    "detail_button": "Detay"
+  },
+  "ProductDetail": {
+    "meta_title": "{productName} - Birebiro",
+    "meta_description": "{productName} detayları, galeri, varyantlar ve fiyatlar",
+    "short_description": "Kısa Açıklama",
+    "long_description": "Ürün Açıklaması",
+    "gallery": "Ürün Galerisi",
+    "video": "Ürün Videosu",
+    "variants": "Varyantlar",
+    "sizes": "Boyutlar",
+    "frames": "Çerçeveler",
+    "colors": "Renkler",
+    "order_now": "Hemen Sipariş Ver",
+    "starting_from": "Başlangıç",
+    "free": "Ücretsiz",
+    "back_to_products": "Ürünlere Dön",
+    "no_detail": "Bu ürün için henüz detay bilgisi eklenmemiştir."
   },
   "Design": {
     "page_title": "Tasarım Oluştur",

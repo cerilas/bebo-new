@@ -375,6 +375,25 @@ export const aiModelSchema = pgTable('ai_model', {
   updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).defaultNow(),
 });
 
+// Product Detail - extended product info for detail/landing page
+export const productDetailSchema = pgTable('product_detail', {
+  id: serial('id').primaryKey(),
+  productId: integer('product_id').notNull().references(() => productSchema.id, { onDelete: 'cascade' }).unique(),
+  shortDescription: text('short_description'), // Kısa açıklama (TR)
+  shortDescriptionEn: text('short_description_en'),
+  shortDescriptionFr: text('short_description_fr'),
+  longDescriptionHtml: text('long_description_html'), // Uzun açıklama HTML (TR)
+  longDescriptionHtmlEn: text('long_description_html_en'),
+  longDescriptionHtmlFr: text('long_description_html_fr'),
+  galleryImages: text('gallery_images').default('[]'), // JSON array of image URLs
+  videoUrl: text('video_url'), // Ürün videosu URL
+  createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { mode: 'date' })
+    .defaultNow()
+    .$onUpdate(() => new Date())
+    .notNull(),
+});
+
 // Payment Logs Schema - for logging all PayTR callback data for debugging
 export const paymentLogsSchema = pgTable('payment_logs', {
   id: serial('id').primaryKey(),

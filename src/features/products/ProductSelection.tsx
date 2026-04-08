@@ -1,8 +1,9 @@
 'use client';
 
-import { ArrowLeft, ChevronRight, Frame, Maximize2, RectangleHorizontal, RectangleVertical } from 'lucide-react';
+import { ArrowLeft, ChevronRight, Frame, Info, Maximize2, RectangleHorizontal, RectangleVertical } from 'lucide-react';
 import NextImage from 'next/image';
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
@@ -23,6 +24,10 @@ type Product = {
   imageSquareUrl2?: string | null;
   imageSquareUrl3?: string | null;
   imageWideUrl?: string | null;
+  sizes?: Size[];
+  frames?: ProductFrame[];
+  sizeLabel?: string;
+  frameLabel?: string;
 };
 
 type Size = {
@@ -58,10 +63,20 @@ type Props = {
 export const ProductSelection = ({ products, locale, imageUrl }: Props) => {
   const t = useTranslations('Products');
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [selectedProduct, setSelectedProduct] = useState<string | null>(null);
   const [sizes, setSizes] = useState<Size[]>([]);
   const [frames, setFrames] = useState<ProductFrame[]>([]);
-  const [productData, setProductData] = useState<Record<string, { sizes: Size[]; frames: ProductFrame[] }>>({});
+  // Seed with server-provided data to avoid client-side fetch on mount
+  const [productData, setProductData] = useState<Record<string, { sizes: Size[]; frames: ProductFrame[]; sizeLabel?: string; frameLabel?: string }>>(() => {
+    const initial: Record<string, { sizes: Size[]; frames: ProductFrame[]; sizeLabel?: string; frameLabel?: string }> = {};
+    products.forEach((p) => {
+      if (p.sizes && p.frames) {
+        initial[p.slug] = { sizes: p.sizes, frames: p.frames, sizeLabel: p.sizeLabel, frameLabel: p.frameLabel };
+      }
+    });
+    return initial;
+  });
   const [sizeLabel, setSizeLabel] = useState<string>('');
   const [frameLabel, setFrameLabel] = useState<string>('');
   const [loading, setLoading] = useState(false);
@@ -75,37 +90,61 @@ export const ProductSelection = ({ products, locale, imageUrl }: Props) => {
     orientation: null,
   });
 
-  // Load full details for all products on mount to calculate starting prices
+  // Sizes/frames are already seeded from server-provided props.
+  // Only fetch if a product was not included in initial data (shouldn't normally happen).
   useEffect(() => {
     products.forEach((product) => {
-      getProductDetails(product.slug, locale).then((details) => {
-        if (details) {
-          setProductData(prev => ({
-            ...prev,
-            [product.slug]: {
-              sizes: details.sizes,
-              frames: details.frames,
-            },
-          }));
-        }
-      });
+      if (!productData[product.slug]) {
+        getProductDetails(product.slug, locale).then((details) => {
+          if (details) {
+            setProductData(prev => ({
+              ...prev,
+              [product.slug]: {
+                sizes: details.sizes,
+                frames: details.frames,
+                sizeLabel: details.sizeLabel,
+                frameLabel: details.frameLabel,
+              },
+            }));
+          }
+        });
+      }
     });
-  }, [products, locale]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Auto-open product from ?openProduct=slug query param (e.g. from detail page "Hemen Sipariş Ver")
+  useEffect(() => {
+    const openSlug = searchParams.get('openProduct');
+    if (openSlug && products.some(p => p.slug === openSlug)) {
+      setSelectedProduct(openSlug);
+      setConfig({ frame: null, size: null, orientation: null });
+    }
+  }, [searchParams, products]);
 
   useEffect(() => {
     if (selectedProduct) {
-      setLoading(true);
-      getProductDetails(selectedProduct, locale).then((details) => {
-        if (details) {
-          setSizes(details.sizes);
-          setFrames(details.frames);
-          setSizeLabel(details.sizeLabel);
-          setFrameLabel(details.frameLabel);
-        }
-        setLoading(false);
-      });
+      const cached = productData[selectedProduct];
+      if (cached) {
+        // Use server-provided data — no network request needed
+        setSizes(cached.sizes);
+        setFrames(cached.frames);
+        setSizeLabel(cached.sizeLabel || '');
+        setFrameLabel(cached.frameLabel || '');
+      } else {
+        setLoading(true);
+        getProductDetails(selectedProduct, locale).then((details) => {
+          if (details) {
+            setSizes(details.sizes);
+            setFrames(details.frames);
+            setSizeLabel(details.sizeLabel);
+            setFrameLabel(details.frameLabel);
+          }
+          setLoading(false);
+        });
+      }
     }
-  }, [selectedProduct, locale]);
+  }, [selectedProduct, locale, productData]);
 
   // Ürün seçildiğinde stok verisini tek seferde çek
   useEffect(() => {
@@ -352,7 +391,17 @@ export const ProductSelection = ({ products, locale, imageUrl }: Props) => {
                                   {' '}
                                   {startingPrice !== null ? `${startingPrice}₺` : '...'}
                                 </span>
-                                <ChevronRight className="size-5 text-muted-foreground transition-transform group-hover:translate-x-1" />
+                                <div className="flex items-center gap-2">
+                                  <Link
+                                    href={`/${locale}/products/${product.slug}`}
+                                    onClick={e => e.stopPropagation()}
+                                    className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground shadow-sm transition-all hover:border-primary hover:text-primary hover:shadow-md"
+                                  >
+                                    <Info className="size-3.5" />
+                                    {t('detail_button')}
+                                  </Link>
+                                  <ChevronRight className="size-5 text-muted-foreground transition-transform group-hover:translate-x-1" />
+                                </div>
                               </div>
                             </div>
                           </div>
@@ -412,7 +461,17 @@ export const ProductSelection = ({ products, locale, imageUrl }: Props) => {
                                 {' '}
                                 {startingPrice !== null ? `${startingPrice}₺` : '...'}
                               </span>
-                              <ChevronRight className="size-5 text-muted-foreground transition-transform group-hover:translate-x-1" />
+                              <div className="flex items-center gap-2">
+                                <Link
+                                  href={`/${locale}/products/${product.slug}`}
+                                  onClick={e => e.stopPropagation()}
+                                  className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground shadow-sm transition-all hover:border-primary hover:text-primary hover:shadow-md"
+                                >
+                                  <Info className="size-3.5" />
+                                  {t('detail_button')}
+                                </Link>
+                                <ChevronRight className="size-5 text-muted-foreground transition-transform group-hover:translate-x-1" />
+                              </div>
                             </div>
                           </div>
                         </div>

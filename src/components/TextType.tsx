@@ -1,7 +1,7 @@
 'use client';
 
 import { gsap } from 'gsap';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 type TextTypeProps = {
   text: string;
@@ -16,7 +16,8 @@ type TextTypeProps = {
 
 /**
  * Single-string typing effect for AI chat messages.
- * Types once, no delete, no loop. StrictMode-safe (ref-based, no callback deps).
+ * Pure state-driven (count-based). No mutations, no ref hacks.
+ * Safe under React 18 concurrent mode and StrictMode double-invoke.
  */
 const TextType = ({
   text,
@@ -28,19 +29,38 @@ const TextType = ({
   className = '',
   onComplete,
 }: TextTypeProps) => {
-  const [displayed, setDisplayed] = useState('');
-  const [done, setDone] = useState(false);
+  const safeText = text ?? '';
+  const chars = useMemo(() => Array.from(safeText), [safeText]);
+  const [count, setCount] = useState(0);
   const cursorRef = useRef<HTMLSpanElement>(null);
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
 
-  // All mutable state lives in a single ref to avoid stale closure / double-run issues
-  const stateRef = useRef({
-    text,
-    index: 0,
-    cancelled: false,
-    timerId: null as ReturnType<typeof setTimeout> | null,
-  });
+  const done = chars.length > 0 && count >= chars.length;
 
-  // Cursor blink
+  // Reset counter whenever text changes
+  useEffect(() => {
+    setCount(0);
+  }, [safeText]);
+
+  // Schedule next character — purely driven by count state
+  useEffect(() => {
+    if (count >= chars.length) {
+      if (chars.length > 0) {
+        onCompleteRef.current?.();
+      }
+      return undefined;
+    }
+    const delay = count === 0 ? 40 : typingSpeed;
+    const timer = setTimeout(() => {
+      setCount(c => c + 1);
+    }, delay);
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [count, chars.length, typingSpeed]);
+
+  // Cursor blink via gsap
   useEffect(() => {
     if (!showCursor || !cursorRef.current) {
       return undefined;
@@ -58,7 +78,7 @@ const TextType = ({
     };
   }, [showCursor, cursorBlinkDuration]);
 
-  // Hide cursor when done
+  // Fade cursor out after typing completes
   useEffect(() => {
     if (done && cursorRef.current) {
       gsap.killTweensOf(cursorRef.current);
@@ -66,51 +86,7 @@ const TextType = ({
     }
   }, [done]);
 
-  // Typing engine — fully ref-driven, immune to StrictMode double-invoke
-  useEffect(() => {
-    const chars = Array.from(text);
-    const s = stateRef.current;
-
-    // Cancel any previous run
-    s.cancelled = true;
-    if (s.timerId !== null) {
-      clearTimeout(s.timerId);
-    }
-
-    // Reset for new text
-    s.text = text;
-    s.index = 0;
-    s.cancelled = false;
-    setDisplayed('');
-    setDone(false);
-
-    const tick = () => {
-      if (s.cancelled) {
-        return;
-      }
-      if (s.index >= chars.length) {
-        setDone(true);
-        onComplete?.();
-        return;
-      }
-      const char = chars[s.index];
-      s.index += 1;
-      setDisplayed(prev => prev + char);
-      s.timerId = setTimeout(tick, typingSpeed);
-    };
-
-    // Small initial delay so the message bubble renders first
-    s.timerId = setTimeout(tick, 40);
-
-    return () => {
-      s.cancelled = true;
-      if (s.timerId !== null) {
-        clearTimeout(s.timerId);
-      }
-    };
-    // onComplete intentionally excluded — calling it once is enough, no re-run needed
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [text, typingSpeed]);
+  const displayed = useMemo(() => chars.slice(0, count).join(''), [chars, count]);
 
   return (
     <span className={`inline whitespace-pre-wrap ${className}`}>

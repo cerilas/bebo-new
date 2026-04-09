@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from 'react';
 import Cropper from 'react-easy-crop';
 
 import { ProtectedImage } from '@/components/ProtectedImage';
+import TextType from '@/components/TextType';
 import { getProductDetails } from '@/features/products/productActions';
 import { useRouter } from '@/libs/i18nNavigation';
 import getCroppedImg from '@/utils/cropImage';
@@ -23,6 +24,7 @@ type Message = {
   imageUrl?: string;
   userImageUrl?: string; // User uploaded image
   timestamp: Date;
+  isNew?: boolean; // Triggers typing animation
 };
 
 type ChatInterfaceProps = {
@@ -217,6 +219,7 @@ export function ChatInterface({
         role: 'assistant',
         content: t('welcome_message'),
         timestamp: new Date(),
+        isNew: true,
       };
       setMessages([welcomeMessage]);
     }
@@ -318,6 +321,7 @@ export function ChatInterface({
         role: 'assistant',
         content: result.data.reply_to_user,
         timestamp: new Date(),
+        isNew: true,
       };
       setMessages(prev => [...prev, aiMessage]);
 
@@ -388,6 +392,7 @@ export function ChatInterface({
                 content: t('image_generated'),
                 imageUrl: imageResult.data.image_url,
                 timestamp: new Date(),
+                isNew: true,
               };
               setMessages(prev => [...prev, imageMessage]);
               setIsGeneratingImage(false);
@@ -743,7 +748,19 @@ export function ChatInterface({
                         : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-100'
                       }`}
                     >
-                      <p className="whitespace-pre-wrap text-sm">{message.content}</p>
+                      {message.role === 'assistant' && message.isNew
+                        ? (
+                            <TextType
+                              text={message.content}
+                              typingSpeed={18}
+                              showCursor
+                              cursorCharacter="▍"
+                              className="text-sm"
+                            />
+                          )
+                        : (
+                            <p className="whitespace-pre-wrap text-sm">{message.content}</p>
+                          )}
                       {/* User uploaded image */}
                       {message.userImageUrl && (
                         <ProtectedImage

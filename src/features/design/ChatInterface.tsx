@@ -751,7 +751,7 @@ export function ChatInterface({
                       {message.role === 'assistant' && message.isNew
                         ? (
                             <TextType
-                              text={message.content}
+                              text={message.content ?? ''}
                               typingSpeed={18}
                               showCursor
                               cursorCharacter="▍"

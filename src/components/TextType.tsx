@@ -1,7 +1,7 @@
 'use client';
 
 import { gsap } from 'gsap';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 type TextTypeProps = {
   text: string;
@@ -16,7 +16,7 @@ type TextTypeProps = {
 
 /**
  * Single-string typing effect for AI chat messages.
- * Types once, no delete, no loop.
+ * Types once, no delete, no loop. StrictMode-safe (ref-based, no callback deps).
  */
 const TextType = ({
   text,
@@ -31,17 +31,20 @@ const TextType = ({
   const [displayed, setDisplayed] = useState('');
   const [done, setDone] = useState(false);
   const cursorRef = useRef<HTMLSpanElement>(null);
-  const indexRef = useRef(0);
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const chars = useMemo(() => Array.from(text), [text]);
+  // All mutable state lives in a single ref to avoid stale closure / double-run issues
+  const stateRef = useRef({
+    text,
+    index: 0,
+    cancelled: false,
+    timerId: null as ReturnType<typeof setTimeout> | null,
+  });
 
-  // Cursor blink via gsap
+  // Cursor blink
   useEffect(() => {
     if (!showCursor || !cursorRef.current) {
       return undefined;
     }
-
     gsap.set(cursorRef.current, { opacity: 1 });
     const tween = gsap.to(cursorRef.current, {
       opacity: 0,
@@ -50,7 +53,6 @@ const TextType = ({
       yoyo: true,
       ease: 'power2.inOut',
     });
-
     return () => {
       tween.kill();
     };
@@ -64,36 +66,51 @@ const TextType = ({
     }
   }, [done]);
 
-  // Typing loop
-  const type = useCallback(() => {
-    if (indexRef.current >= chars.length) {
-      setDone(true);
-      onComplete?.();
-      return;
-    }
-    setDisplayed(prev => prev + chars[indexRef.current]);
-    indexRef.current += 1;
-    timeoutRef.current = setTimeout(type, typingSpeed);
-  }, [chars, typingSpeed, onComplete]);
-
+  // Typing engine — fully ref-driven, immune to StrictMode double-invoke
   useEffect(() => {
-    // Reset when text changes (new message)
+    const chars = Array.from(text);
+    const s = stateRef.current;
+
+    // Cancel any previous run
+    s.cancelled = true;
+    if (s.timerId !== null) {
+      clearTimeout(s.timerId);
+    }
+
+    // Reset for new text
+    s.text = text;
+    s.index = 0;
+    s.cancelled = false;
     setDisplayed('');
     setDone(false);
-    indexRef.current = 0;
 
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
+    const tick = () => {
+      if (s.cancelled) {
+        return;
+      }
+      if (s.index >= chars.length) {
+        setDone(true);
+        onComplete?.();
+        return;
+      }
+      const char = chars[s.index];
+      s.index += 1;
+      setDisplayed(prev => prev + char);
+      s.timerId = setTimeout(tick, typingSpeed);
+    };
 
-    timeoutRef.current = setTimeout(type, 40);
+    // Small initial delay so the message bubble renders first
+    s.timerId = setTimeout(tick, 40);
 
     return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
+      s.cancelled = true;
+      if (s.timerId !== null) {
+        clearTimeout(s.timerId);
       }
     };
-  }, [text, type]);
+    // onComplete intentionally excluded — calling it once is enough, no re-run needed
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [text, typingSpeed]);
 
   return (
     <span className={`inline whitespace-pre-wrap ${className}`}>

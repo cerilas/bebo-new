@@ -269,10 +269,16 @@ export function ChatInterface({
           content: message.content,
         }));
 
+      // Find the last user-uploaded image from chat history (for reference when switching modes)
+      const lastUploadedImage = !currentImageUrl
+        ? [...messages].reverse().find(m => m.role === 'user' && m.userImageUrl)?.userImageUrl
+        : undefined;
+
       // Call API
       const result = await sendChatMessage({
         textPrompt: currentInput,
         imagePromptUrl: currentImageUrl,
+        lastUploadedImageUrl: lastUploadedImage,
         isGenerateMode,
         chatSessionId,
         chatHistory: recentChatHistory,

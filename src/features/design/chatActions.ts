@@ -60,6 +60,7 @@ type NativeAssistantDecision = {
   reply_to_user: string;
   user_generation_intent: boolean;
   improved_generation_prompt?: string;
+  use_reference_image?: boolean;
 };
 
 type ChatHistoryItem = {
@@ -90,7 +91,8 @@ Your ONLY job is to return ONE JSON object in the following exact format, with n
 {
   "reply_to_user": "",
   "user_generation_intent": true,
-  "improved_generation_prompt": ""
+  "improved_generation_prompt": "",
+  "use_reference_image": false
 }
 
 Rules for fields:
@@ -115,8 +117,13 @@ Rules for fields:
 - If an image was provided (vision input), analyze its colors, style, mood, subject, composition, textures, patterns, lighting, shadows, and every fine detail, then incorporate those visual details into the prompt.
 - If prompt is vague, still produce meaningful creative prompt when generation is intended.
 
+4) use_reference_image
+- Set true ONLY when the user explicitly wants to use/modify/transform a previously uploaded or generated image (e.g. "bu fotoyu", "yüklediğim resmi", "önceki görseli", "bunu maymuna çevir", "aynı tarzda", "bu adamı", "şunu değiştir").
+- Set false when user wants a completely new/fresh image from scratch, or is just chatting.
+- Default is false.
+
 Additional strict rules:
-- Return ONLY JSON object with exactly these 3 fields.
+- Return ONLY JSON object with exactly these 4 fields.
 - No markdown, no backticks, no extra keys.
 - Stay on art/interior/design scope only.
 - Use recent conversation history and previous generation context to resolve follow-up edits (e.g. “yazının rengini kırmızı yap”).
@@ -255,6 +262,7 @@ const parseDecision = (value: string): NativeAssistantDecision => {
     reply_to_user: reply,
     user_generation_intent: Boolean(parsed.user_generation_intent),
     improved_generation_prompt: typeof parsed.improved_generation_prompt === 'string' ? parsed.improved_generation_prompt : undefined,
+    use_reference_image: Boolean(parsed.use_reference_image),
   };
 };
 
@@ -528,6 +536,7 @@ const toGeneratedImageResponse = (row: {
 export async function sendChatMessage(params: {
   textPrompt: string;
   imagePromptUrl?: string;
+  lastUploadedImageUrl?: string;
   isGenerateMode: boolean;
   chatSessionId: string;
   chatHistory?: ChatHistoryItem[];
@@ -599,16 +608,20 @@ export async function sendChatMessage(params: {
     const latestGeneration = recentGenerations[0] ?? null;
 
     const baseUrl = getBaseUrl();
+
+    // Determine the effective image URL: current upload > last uploaded in chat history
+    const effectiveImageUrl = requestBody.imagePromptUrl || params.lastUploadedImageUrl || '';
+
     // Convert local file to base64 so OpenAI can read it regardless of environment
-    const imageBase64 = requestBody.imagePromptUrl
-      ? await toBase64DataUrl(requestBody.imagePromptUrl)
+    const imageBase64 = effectiveImageUrl
+      ? await toBase64DataUrl(effectiveImageUrl)
       : null;
     // Fallback: if not a local file, use the absolute URL
     const fullImageUrl = imageBase64
-      ?? (requestBody.imagePromptUrl
-        ? (requestBody.imagePromptUrl.startsWith('http')
-            ? requestBody.imagePromptUrl
-            : `${baseUrl}${requestBody.imagePromptUrl}`)
+      ?? (effectiveImageUrl
+        ? (effectiveImageUrl.startsWith('http')
+            ? effectiveImageUrl
+            : `${baseUrl}${effectiveImageUrl}`)
         : null);
 
     const historyText = (params.chatHistory ?? [])
@@ -716,37 +729,43 @@ ${previousGenerationContext}`;
       const promptWithRatio = `${ratioConstraint}\n\n${refinedPrompt}`;
 
       // Build image generation request.
+      // Only use reference image when AI decides user wants to modify/transform an existing image
+      const shouldUseReference = decision.use_reference_image === true;
       let referenceBuffer: Buffer | null = null;
-      if (fullImageUrl) {
-        // User uploaded an image — use it as reference (highest priority)
-        if (imageBase64) {
-          referenceBuffer = Buffer.from(imageBase64.replace(/^data:[^;]+;base64,/, ''), 'base64');
-        } else if (requestBody.imagePromptUrl) {
-          const downloadUrl = requestBody.imagePromptUrl.startsWith('http')
-            ? requestBody.imagePromptUrl
-            : `${baseUrl}${requestBody.imagePromptUrl}`;
-          referenceBuffer = await downloadBuffer(downloadUrl);
-        }
-      } else if (latestGeneration?.imageUrl) {
-        // No user upload: use the last generated image as reference for the image model
-        const genUrl = latestGeneration.imageUrl.startsWith('http')
-          ? latestGeneration.imageUrl
-          : `${baseUrl}${latestGeneration.imageUrl}`;
-        try {
-          referenceBuffer = await downloadBuffer(genUrl);
-        } catch (err) {
-          console.warn('[Image Model] Önceki görsel referans olarak kullanılamadı:', err);
+
+      if (shouldUseReference) {
+        if (fullImageUrl) {
+          // User uploaded an image (current or from chat history) — use it as reference
+          if (imageBase64) {
+            referenceBuffer = Buffer.from(imageBase64.replace(/^data:[^;]+;base64,/, ''), 'base64');
+          } else if (effectiveImageUrl) {
+            const downloadUrl = effectiveImageUrl.startsWith('http')
+              ? effectiveImageUrl
+              : `${baseUrl}${effectiveImageUrl}`;
+            referenceBuffer = await downloadBuffer(downloadUrl);
+          }
+        } else if (latestGeneration?.imageUrl) {
+          // No user upload: use the last generated image as reference for the image model
+          const genUrl = latestGeneration.imageUrl.startsWith('http')
+            ? latestGeneration.imageUrl
+            : `${baseUrl}${latestGeneration.imageUrl}`;
+          try {
+            referenceBuffer = await downloadBuffer(genUrl);
+          } catch (err) {
+            console.warn('[Image Model] Önceki görsel referans olarak kullanılamadı:', err);
+          }
         }
       }
 
       // Capture referenceBuffer in closure for tryWithFallback
       const capturedReferenceBuffer = referenceBuffer;
       const capturedApiSize = apiSize;
+      const capturedRefUrl = shouldUseReference ? fullImageUrl : null;
 
       wasImageGenAttempt = true;
       const { result: imageBuffer, usedModel: usedImageModel } = await tryWithFallback(
         imageModels,
-        model => generateImageWithModel(openai, model, promptWithRatio, capturedApiSize, fullImageUrl, capturedReferenceBuffer),
+        model => generateImageWithModel(openai, model, promptWithRatio, capturedApiSize, capturedRefUrl, capturedReferenceBuffer),
         'ImageModel',
       );
       const imageModel = usedImageModel.modelIdentifier;

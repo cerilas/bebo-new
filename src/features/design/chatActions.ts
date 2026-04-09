@@ -378,7 +378,7 @@ const callGoogleGeminiTextModel = async (
       responseJsonSchema: NATIVE_ASSISTANT_DECISION_SCHEMA,
       temperature: 0.7,
       thinkingConfig: {
-        thinkingLevel: ThinkingLevel.LOW,
+        thinkingLevel: ThinkingLevel.HIGH,
       },
     },
   });
@@ -446,7 +446,7 @@ const createChatCompletion = async (
   const completion = await openai.chat.completions.create({
     model: modelSelection.modelIdentifier,
     temperature: 0.7,
-    max_completion_tokens: 2048,
+    max_completion_tokens: 8192,
     response_format: { type: 'json_object' },
     messages: [
       {
@@ -495,7 +495,7 @@ const generateImageWithModel = async (
       model: modelSelection.modelIdentifier,
       prompt: promptWithRatio,
       size: apiSize,
-      quality: 'low',
+      quality: 'high',
     });
   }
 
@@ -681,8 +681,8 @@ ${historyText || 'No chat history.'}
 Previous generation context:
 ${previousGenerationContext}`;
 
-    // Build multi-image content: last 2 generated images (oldest first, low detail)
-    // + current user upload (high detail). Text model gets visual context for follow-up edits.
+    // Build multi-image content: all images at high detail for maximum visual analysis.
+    // Last 2 generated images (oldest first) + current user upload.
     const visionParts: ContentPart[] = [{ type: 'text', text: textContent }];
     for (const gen of [...recentGenerations].reverse()) {
       const genUrl = gen.imageUrl.startsWith('http') ? gen.imageUrl : `${baseUrl}${gen.imageUrl}`;

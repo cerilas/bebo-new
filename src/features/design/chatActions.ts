@@ -5,6 +5,7 @@ import { Buffer } from 'node:buffer';
 import { currentUser } from '@clerk/nextjs/server';
 import { GoogleGenAI, Modality } from '@google/genai';
 import { and, desc, eq } from 'drizzle-orm';
+import { toFile } from 'openai';
 
 import { getProductIdsFromSlugs } from '@/features/products/productActions';
 import { db } from '@/libs/DB';
@@ -375,7 +376,7 @@ const callGoogleGeminiImageModel = async (
     model: modelIdentifier,
     contents,
     config: {
-      responseModalities: [Modality.IMAGE],
+      responseModalities: [Modality.TEXT, Modality.IMAGE],
     },
   });
 
@@ -384,7 +385,10 @@ const callGoogleGeminiImageModel = async (
   );
 
   if (!imagePart?.inlineData?.data) {
-    throw new Error('Gemini image model did not return valid image data');
+    const textPart = response.candidates?.[0]?.content?.parts?.find(
+      (part: any) => part.text,
+    );
+    throw new Error(`Gemini image model did not return valid image data${textPart?.text ? `: ${textPart.text}` : ''}`);
   }
 
   return Buffer.from(imagePart.inlineData.data, 'base64');
@@ -441,7 +445,7 @@ const generateImageWithModel = async (
 
   let imageResult;
   if (fullImageUrl && referenceBuffer) {
-    const imageFile = new File([new Uint8Array(referenceBuffer)], 'reference.png', { type: 'image/png' });
+    const imageFile = await toFile(referenceBuffer, 'reference.png', { type: 'image/png' });
     imageResult = await openai.images.edit({
       model: modelSelection.modelIdentifier,
       image: imageFile,

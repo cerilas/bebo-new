@@ -79,6 +79,7 @@ const NATIVE_ASSISTANT_DECISION_SCHEMA = {
 type ChatHistoryItem = {
   role: 'user' | 'assistant';
   content: string;
+  userImageUrl?: string;
 };
 
 const DEFAULT_AI_DESIGN_SYSTEM_PROMPT = `You are the AI visual design assistant of birebiro.com.
@@ -682,12 +683,30 @@ Previous generation context:
 ${previousGenerationContext}`;
 
     // Build multi-image content: all images at high detail for maximum visual analysis.
-    // Last 2 generated images (oldest first) + current user upload.
+    // 1) User-uploaded images from chat history (oldest → newest, deduped)
+    // 2) Last 2 generated images (oldest → newest)
+    // 3) Current user upload (highest priority — always last)
     const visionParts: ContentPart[] = [{ type: 'text', text: textContent }];
+
+    // Collect unique user-uploaded image URLs from chat history (exclude current upload)
+    const historyImageUrls = (params.chatHistory ?? [])
+      .slice(-12)
+      .filter(m => m.role === 'user' && m.userImageUrl && m.userImageUrl !== effectiveImageUrl)
+      .map(m => m.userImageUrl as string)
+      .filter((url, idx, arr) => arr.indexOf(url) === idx); // dedupe
+
+    for (const imgUrl of historyImageUrls) {
+      const resolvedUrl = imgUrl.startsWith('http') ? imgUrl : `${baseUrl}${imgUrl}`;
+      visionParts.push({ type: 'image_url', image_url: { url: resolvedUrl, detail: 'high' } });
+    }
+
+    // Generated images from DB (oldest first)
     for (const gen of [...recentGenerations].reverse()) {
       const genUrl = gen.imageUrl.startsWith('http') ? gen.imageUrl : `${baseUrl}${gen.imageUrl}`;
       visionParts.push({ type: 'image_url', image_url: { url: genUrl, detail: 'high' } });
     }
+
+    // Current user upload — last so it's treated as primary subject
     if (fullImageUrl) {
       visionParts.push({ type: 'image_url', image_url: { url: fullImageUrl, detail: 'high' } });
     }

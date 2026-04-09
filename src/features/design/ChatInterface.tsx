@@ -267,6 +267,7 @@ export function ChatInterface({
         .map(message => ({
           role: message.role,
           content: message.content,
+          userImageUrl: message.userImageUrl,
         }));
 
       // Find the last user-uploaded image from chat history (for reference when switching modes)

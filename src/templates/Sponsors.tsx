@@ -18,7 +18,7 @@ export const Sponsors = () => {
             // eslint-disable-next-line @next/next/no-img-element
             <img
               key={n}
-              src={`/assets/images/isbirlik-logolar/${n}.svg`}
+              src={`/assets/images/isbirlik-logolar-png/${n}.png`}
               alt={`isbirligi-${n}`}
               loading="lazy"
               className="h-10 w-auto shrink-0 object-contain px-2 md:h-12"
@@ -28,7 +28,7 @@ export const Sponsors = () => {
             // eslint-disable-next-line @next/next/no-img-element
             <img
               key={`dup-${n}`}
-              src={`/assets/images/isbirlik-logolar/${n}.svg`}
+              src={`/assets/images/isbirlik-logolar-png/${n}.png`}
               alt=""
               aria-hidden
               loading="lazy"

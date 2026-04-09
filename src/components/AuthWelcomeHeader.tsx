@@ -1,6 +1,6 @@
 'use client';
 
-import { Sparkles } from 'lucide-react';
+import { Gift } from 'lucide-react';
 
 export const AuthWelcomeHeader = () => {
   // We can use translations here if we add them, or hardcode for now as per previous files
@@ -16,7 +16,7 @@ export const AuthWelcomeHeader = () => {
 
         {/* Icon with glow */}
         <div className="relative mb-4 flex size-14 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 shadow-lg shadow-purple-500/30">
-          <Sparkles className="size-7 animate-pulse text-white" />
+          <Gift className="size-7 animate-pulse text-white" />
           <div className="absolute inset-0 rounded-full bg-white/20 blur-md"></div>
         </div>
 

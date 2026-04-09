@@ -107,6 +107,18 @@
     "description": "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
     "button_text": "Mettez une étoile sur GitHub"
   },
+  "ProcessSteps": {
+    "section_title": "<gradient>3 Étapes</gradient> Vers Votre Produit de Rêve",
+    "section_description": "Nous vous accompagnons à chaque étape, de la conception à la livraison",
+    "step1_title": "Concevoir et Commander",
+    "step1_description": "Choisissez votre produit, concevez-le avec l'IA et passez votre commande.",
+    "step2_title": "Production Personnalisée",
+    "step2_description": "Votre produit est fabriqué exclusivement pour vous.",
+    "step3_title": "Livraison Sécurisée",
+    "step3_description": "Votre commande est expédiée en toute sécurité et avec qualité.",
+    "footer_text": "Nous vous guidons à chaque étape",
+    "cta_button": "Commencer"
+  },
   "Footer": {
     "product": "Produit",
     "docs": "Docs",

@@ -464,7 +464,8 @@
     "step2_description": "Your product is produced exclusively for you.",
     "step3_title": "Secure Shipping",
     "step3_description": "Your order is shipped safely and with quality.",
-    "footer_text": "We guide you at every step"
+    "footer_text": "We guide you at every step",
+    "cta_button": "Design Now"
   },
   "Stats": {
     "happy_customers": "Happy Customers",

@@ -1,7 +1,8 @@
 'use client';
 
-import { Package, ShieldCheck, Sparkles } from 'lucide-react';
+import { ArrowRight, Package, ShieldCheck, Sparkles } from 'lucide-react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 
 export const ProcessSteps = () => {
@@ -136,11 +137,15 @@ export const ProcessSteps = () => {
           ))}
         </div>
 
-        {/* Bottom CTA or Info */}
+        {/* Bottom CTA */}
         <div className="mt-16 text-center">
-          <p className="text-sm text-gray-500">
-            {t('footer_text')}
-          </p>
+          <Link
+            href="/products"
+            className="group inline-flex items-center gap-3 rounded-full bg-white px-8 py-4 font-semibold text-black transition-all hover:scale-105 hover:shadow-[0_0_40px_rgba(168,85,247,0.4)]"
+          >
+            {t('cta_button')}
+            <ArrowRight className="size-5 transition-transform group-hover:translate-x-1" />
+          </Link>
         </div>
       </div>
     </section>

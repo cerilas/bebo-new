@@ -119,6 +119,7 @@ Rules for fields:
 
 4) use_reference_image
 - Set true ONLY when the user explicitly wants to use/modify/transform a previously uploaded or generated image (e.g. "bu fotoyu", "yüklediğim resmi", "önceki görseli", "bunu maymuna çevir", "aynı tarzda", "bu adamı", "şunu değiştir").
+- ALSO set true when "User has reference image from chat history: true" AND the user's prompt refers to modifying/using that image.
 - Set false when user wants a completely new/fresh image from scratch, or is just chatting.
 - Default is false.
 
@@ -332,8 +333,19 @@ const callGoogleGeminiTextModel = async (
           return { text: item.text };
         }
         try {
-          const buf = await downloadBuffer(item.image_url.url);
-          return { inlineData: { mimeType: 'image/png', data: buf.toString('base64') } };
+          const url = item.image_url.url;
+          // data: URLs (base64 inline) — extract directly without fetch
+          if (url.startsWith('data:')) {
+            const mimeMatch = url.match(/^data:([^;]+);base64,/);
+            const mime = mimeMatch?.[1] ?? 'image/png';
+            const base64 = url.replace(/^data:[^;]+;base64,/, '');
+            return { inlineData: { mimeType: mime, data: base64 } };
+          }
+          const buf = await downloadBuffer(url);
+          const ext = url.split('.').pop()?.toLowerCase() ?? 'png';
+          const mimeMap: Record<string, string> = { webp: 'image/webp', jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png' };
+          const mime = mimeMap[ext] ?? 'image/png';
+          return { inlineData: { mimeType: mime, data: buf.toString('base64') } };
         } catch (err) {
           console.warn(`[Gemini] Image indir hatası (${item.image_url.url}):`, err);
           return { text: `[Görsel yüklenemedi: ${item.image_url.url}]` };
@@ -638,6 +650,7 @@ Last uploaded reference image URL: ${latestGeneration.uploadedImageUrl || ''}`
 
     const textContent = `User Prompt: ${requestBody.textPrompt}
 User image generation intent: ${params.isGenerateMode}
+User has reference image from chat history: ${!!params.lastUploadedImageUrl && !requestBody.imagePromptUrl}
 Product slug: ${requestBody.productSlug}
 Size slug: ${requestBody.sizeSlug}
 Frame slug: ${requestBody.frameSlug}
@@ -697,7 +710,8 @@ ${previousGenerationContext}`;
 
     const isGenerationModeActive = params.isGenerateMode;
     const userAskedForImageGeneration = looksLikeImageGenerationRequest(requestBody.textPrompt);
-    const canGenerateImage = isGenerationModeActive && decision.user_generation_intent;
+    // Double safety: NEVER generate or deduct credits if isGenerateMode is false
+    const canGenerateImage = isGenerationModeActive === true && decision.user_generation_intent === true;
 
     const replyToUser = !isGenerationModeActive && userAskedForImageGeneration
       ? GENERATION_MODE_REQUIRED_MESSAGE

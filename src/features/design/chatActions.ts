@@ -3,7 +3,7 @@
 import { Buffer } from 'node:buffer';
 
 import { currentUser } from '@clerk/nextjs/server';
-import { GoogleGenAI, Modality } from '@google/genai';
+import { GoogleGenAI, Modality, ThinkingLevel } from '@google/genai';
 import { and, desc, eq } from 'drizzle-orm';
 import { toFile } from 'openai';
 
@@ -61,6 +61,19 @@ type NativeAssistantDecision = {
   user_generation_intent: boolean;
   improved_generation_prompt?: string;
   use_reference_image?: boolean;
+};
+
+// JSON Schema to enforce structured output from Gemini text model
+const NATIVE_ASSISTANT_DECISION_SCHEMA = {
+  type: 'object',
+  properties: {
+    reply_to_user: { type: 'string', description: 'The friendly reply shown to the user.' },
+    user_generation_intent: { type: 'boolean', description: 'Whether the user wants to generate an image.' },
+    improved_generation_prompt: { type: 'string', description: 'English image generation prompt. Empty string if not generating.' },
+    use_reference_image: { type: 'boolean', description: 'Whether to use the previously uploaded/generated image as reference.' },
+  },
+  required: ['reply_to_user', 'user_generation_intent', 'improved_generation_prompt', 'use_reference_image'],
+  propertyOrdering: ['reply_to_user', 'user_generation_intent', 'improved_generation_prompt', 'use_reference_image'],
 };
 
 type ChatHistoryItem = {
@@ -352,7 +365,8 @@ const callGoogleGeminiTextModel = async (
         }
       }),
     );
-    geminiContents = [{ role: 'user', parts }];
+    // Pass parts directly (Part[] format) as shown in Gemini API docs
+    geminiContents = parts;
   }
 
   const response = await ai.models.generateContent({
@@ -361,7 +375,11 @@ const callGoogleGeminiTextModel = async (
     config: {
       systemInstruction: systemPrompt,
       responseMimeType: 'application/json',
+      responseJsonSchema: NATIVE_ASSISTANT_DECISION_SCHEMA,
       temperature: 0.7,
+      thinkingConfig: {
+        thinkingLevel: ThinkingLevel.LOW,
+      },
     },
   });
 
@@ -380,21 +398,21 @@ const callGoogleGeminiImageModel = async (
 ): Promise<Buffer> => {
   const ai = getGoogleAIClient();
 
-  const contents: any[] = [{ text: prompt }];
+  // Build parts array: text prompt first, then optional reference image (inline data)
+  const parts: any[] = [{ text: prompt }];
 
   if (referenceBuffer) {
-    const base64Image = referenceBuffer.toString('base64');
-    contents.push({
+    parts.push({
       inlineData: {
         mimeType: 'image/png',
-        data: base64Image,
+        data: referenceBuffer.toString('base64'),
       },
     });
   }
 
   const response = await ai.models.generateContent({
     model: modelIdentifier,
-    contents,
+    contents: parts,
     config: {
       responseModalities: [Modality.TEXT, Modality.IMAGE],
     },

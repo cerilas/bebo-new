@@ -21,8 +21,9 @@ export const getOpenAIClient = (): OpenAI => {
 };
 
 // --- Hardcoded fallbacks (used when DB is unavailable or empty) ---
-const FALLBACK_TEXT_MODEL = 'gemini-2.5-flash';
-const FALLBACK_IMAGE_MODEL = 'gemini-2.5-flash-image';
+// Updated to Gemini 3 series per official docs
+const FALLBACK_TEXT_MODEL = 'gemini-3-flash-preview';
+const FALLBACK_IMAGE_MODEL = 'gemini-3.1-flash-image-preview'; // Nano Banana 2 — fast, high-volume
 const FALLBACK_PROVIDER = 'Google';
 
 /**

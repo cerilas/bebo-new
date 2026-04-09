@@ -394,6 +394,53 @@ export const productDetailSchema = pgTable('product_detail', {
     .notNull(),
 });
 
+// AI Logs Schema - comprehensive logging for all AI chat & image generation events
+export const aiLogSchema = pgTable('ai_log', {
+  id: serial('id').primaryKey(),
+  userId: varchar('user_id', { length: 256 }),
+  chatSessionId: varchar('chat_session_id', { length: 256 }),
+  // Event type: 'chat' | 'image_generation' | 'text_model_call' | 'image_model_call' | 'credit_deduction' | 'error'
+  eventType: varchar('event_type', { length: 50 }).notNull(),
+  // Status: 'success' | 'error' | 'fallback'
+  status: varchar('status', { length: 20 }).notNull(),
+  // Model info
+  textModel: varchar('text_model', { length: 128 }),
+  imageModel: varchar('image_model', { length: 128 }),
+  modelProvider: varchar('model_provider', { length: 50 }),
+  // Request details
+  userPrompt: text('user_prompt'),
+  improvedPrompt: text('improved_prompt'),
+  systemPrompt: text('system_prompt'),
+  uploadedImageUrl: text('uploaded_image_url'),
+  // Generation details
+  generationId: varchar('generation_id', { length: 128 }),
+  isGenerateMode: boolean('is_generate_mode'),
+  productSlug: varchar('product_slug', { length: 256 }),
+  sizeSlug: varchar('size_slug', { length: 256 }),
+  frameSlug: varchar('frame_slug', { length: 256 }),
+  orientation: varchar('orientation', { length: 20 }),
+  apiSize: varchar('api_size', { length: 20 }),
+  // AI response
+  aiRawResponse: text('ai_raw_response'),
+  aiParsedReply: text('ai_parsed_reply'),
+  userGenerationIntent: boolean('user_generation_intent'),
+  // Credit info
+  creditUsed: integer('credit_used'),
+  creditDeducted: boolean('credit_deducted'),
+  creditBalanceAfter: integer('credit_balance_after'),
+  // Error details
+  errorMessage: text('error_message'),
+  errorStack: text('error_stack'),
+  errorCode: varchar('error_code', { length: 50 }),
+  // Generated output
+  generatedImageUrl: text('generated_image_url'),
+  // Timing
+  durationMs: integer('duration_ms'),
+  // Extra metadata (JSON string for anything else)
+  metadata: text('metadata'),
+  createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
+});
+
 // Payment Logs Schema - for logging all PayTR callback data for debugging
 export const paymentLogsSchema = pgTable('payment_logs', {
   id: serial('id').primaryKey(),

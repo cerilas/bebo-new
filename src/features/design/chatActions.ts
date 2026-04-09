@@ -5,13 +5,13 @@ import { Buffer } from 'node:buffer';
 import { currentUser } from '@clerk/nextjs/server';
 import { GoogleGenAI, Modality } from '@google/genai';
 import { and, desc, eq } from 'drizzle-orm';
-import sharp from 'sharp';
 
 import { getProductIdsFromSlugs } from '@/features/products/productActions';
 import { db } from '@/libs/DB';
 import { generatedImageSchema, siteSettingsSchema, userSchema } from '@/models/Schema';
 import { getBaseUrl } from '@/utils/Helpers';
 
+import { logAiEvent } from './aiLogger';
 import { savePublicImageBuffer, toBase64DataUrl } from './assetStorage';
 import type { AIModelSelection } from './openaiClient';
 import { getAllImageModels, getAllTextModels, getOpenAIClient } from './openaiClient';
@@ -275,6 +275,17 @@ const tryWithFallback = async <T>(
     } catch (err) {
       lastError = err instanceof Error ? err : new Error(String(err));
       console.warn(`⚠️ [${label}] Model ${model.modelIdentifier} failed: ${lastError.message}`);
+      // Log model fallback
+      await logAiEvent({
+        eventType: label === 'ImageModel' ? 'image_model_call' : 'text_model_call',
+        status: 'fallback',
+        textModel: label === 'TextModel' ? model.modelIdentifier : null,
+        imageModel: label === 'ImageModel' ? model.modelIdentifier : null,
+        modelProvider: model.provider,
+        errorMessage: lastError.message,
+        errorStack: lastError.stack,
+        metadata: { fallbackLabel: label },
+      });
     }
   }
   throw lastError;
@@ -522,6 +533,7 @@ export async function sendChatMessage(params: {
   orientationSlug?: 'landscape' | 'portrait';
 }) {
   let wasImageGenAttempt = false;
+  const startTime = Date.now();
   try {
     // Get authenticated user
     const user = await currentUser();
@@ -643,6 +655,29 @@ ${previousGenerationContext}`;
     );
     const textModel = usedTextModel.modelIdentifier;
     const decision = parseDecision(rawDecision);
+
+    // Log text model call
+    await logAiEvent({
+      userId: user.id,
+      chatSessionId: params.chatSessionId,
+      eventType: 'text_model_call',
+      status: 'success',
+      textModel,
+      modelProvider: usedTextModel.provider,
+      userPrompt: requestBody.textPrompt,
+      isGenerateMode: params.isGenerateMode,
+      productSlug: params.productSlug,
+      sizeSlug: params.sizeSlug,
+      frameSlug: params.frameSlug,
+      orientation: params.orientationSlug,
+      uploadedImageUrl: requestBody.imagePromptUrl || null,
+      aiRawResponse: rawDecision,
+      aiParsedReply: decision.reply_to_user,
+      userGenerationIntent: decision.user_generation_intent,
+      improvedPrompt: decision.improved_generation_prompt || null,
+      durationMs: Date.now() - startTime,
+    });
+
     const isGenerationModeActive = params.isGenerateMode;
     const userAskedForImageGeneration = looksLikeImageGenerationRequest(requestBody.textPrompt);
     const canGenerateImage = isGenerationModeActive && decision.user_generation_intent;
@@ -713,67 +748,28 @@ ${previousGenerationContext}`;
       const imageModel = usedImageModel.modelIdentifier;
 
       if (!imageBuffer) {
+        await logAiEvent({
+          userId: user.id,
+          chatSessionId: params.chatSessionId,
+          eventType: 'image_generation',
+          status: 'error',
+          imageModel,
+          modelProvider: usedImageModel.provider,
+          userPrompt: requestBody.textPrompt,
+          improvedPrompt: refinedPrompt,
+          isGenerateMode: true,
+          apiSize: capturedApiSize,
+          errorMessage: 'Image generation did not return valid image data',
+          durationMs: Date.now() - startTime,
+        });
         throw new Error('Image generation did not return valid image data');
-      }
-
-      let finalImageBuffer = imageBuffer;
-
-      // Auto-crop logic for exact millimeter mathematical ratio
-      if (sizeDimensions) {
-        try {
-          const cleaned = sizeDimensions.toLowerCase().replace(/cm/g, '').replace(/\s/g, '');
-          const parts = cleaned.split('x').map(Number);
-          if (parts.length === 2 && parts.every(n => Number.isFinite(n) && n > 0)) {
-            const [a, b] = parts as [number, number];
-            const smaller = Math.min(a, b);
-            const larger = Math.max(a, b);
-
-            const frameW = params.orientationSlug === 'landscape' ? larger : smaller;
-            const frameH = params.orientationSlug === 'landscape' ? smaller : larger;
-
-            const targetRatio = frameW / frameH;
-
-            const imgMetadata = await sharp(imageBuffer).metadata();
-            if (imgMetadata.width && imgMetadata.height) {
-              const currentRatio = imgMetadata.width / imgMetadata.height;
-
-              // If difference is significant (>1%), apply perfect center crop
-              if (Math.abs(currentRatio - targetRatio) > 0.01) {
-                console.log(`[Auto-Crop] Correcting ratio from ${currentRatio.toFixed(3)} to ${targetRatio.toFixed(3)}`);
-
-                let targetWidth = imgMetadata.width;
-                let targetHeight = imgMetadata.height;
-
-                if (currentRatio > targetRatio) {
-                  // Image is wider than needed -> clip width
-                  targetWidth = Math.round(imgMetadata.height * targetRatio);
-                } else {
-                  // Image is taller than needed -> clip height
-                  targetHeight = Math.round(imgMetadata.width / targetRatio);
-                }
-
-                finalImageBuffer = await sharp(imageBuffer)
-                  .resize({
-                    width: targetWidth,
-                    height: targetHeight,
-                    fit: 'cover',
-                    position: 'center',
-                  })
-                  .png()
-                  .toBuffer();
-              }
-            }
-          }
-        } catch (cropErr) {
-          console.error('[Auto-Crop] Failed to auto-crop image, falling back to original:', cropErr);
-        }
       }
 
       const saved = await savePublicImageBuffer({
         scope: 'ai',
         filePrefix: `gen-${generationId}`,
         extension: 'png',
-        buffer: finalImageBuffer,
+        buffer: imageBuffer,
       });
 
       await db.insert(generatedImageSchema).values({
@@ -817,6 +813,15 @@ ${previousGenerationContext}`;
         }
       } catch (creditError) {
         console.error('Failed to deduct credit after successful generation:', creditError);
+        await logAiEvent({
+          userId: user.id,
+          chatSessionId: params.chatSessionId,
+          eventType: 'credit_deduction',
+          status: 'error',
+          errorMessage: creditError instanceof Error ? creditError.message : 'Credit deduction failed',
+          errorStack: creditError instanceof Error ? creditError.stack : undefined,
+          durationMs: Date.now() - startTime,
+        });
       }
 
       data = {
@@ -828,6 +833,56 @@ ${previousGenerationContext}`;
         creditDeducted,
         newCreditBalance,
       };
+
+      // Log successful image generation
+      await logAiEvent({
+        userId: user.id,
+        chatSessionId: params.chatSessionId,
+        eventType: 'image_generation',
+        status: 'success',
+        textModel,
+        imageModel,
+        modelProvider: usedImageModel.provider,
+        userPrompt: requestBody.textPrompt,
+        improvedPrompt: refinedPrompt,
+        uploadedImageUrl: requestBody.imagePromptUrl || null,
+        generationId,
+        isGenerateMode: true,
+        productSlug: params.productSlug,
+        sizeSlug: params.sizeSlug,
+        frameSlug: params.frameSlug,
+        orientation: params.orientationSlug,
+        apiSize: capturedApiSize,
+        aiParsedReply: replyToUser,
+        userGenerationIntent: true,
+        creditUsed: requestBody.creditUsed,
+        creditDeducted,
+        creditBalanceAfter: newCreditBalance ?? null,
+        generatedImageUrl: saved.url,
+        durationMs: Date.now() - startTime,
+      });
+    }
+
+    // Log successful chat completion
+    if (!data.image_generation) {
+      await logAiEvent({
+        userId: user.id,
+        chatSessionId: params.chatSessionId,
+        eventType: 'chat',
+        status: 'success',
+        textModel,
+        modelProvider: usedTextModel.provider,
+        userPrompt: requestBody.textPrompt,
+        isGenerateMode: params.isGenerateMode,
+        productSlug: params.productSlug,
+        sizeSlug: params.sizeSlug,
+        frameSlug: params.frameSlug,
+        orientation: params.orientationSlug,
+        uploadedImageUrl: requestBody.imagePromptUrl || null,
+        aiParsedReply: replyToUser,
+        userGenerationIntent: decision.user_generation_intent,
+        durationMs: Date.now() - startTime,
+      });
     }
 
     return {
@@ -836,6 +891,26 @@ ${previousGenerationContext}`;
     };
   } catch (error) {
     console.error('Chat API error:', error);
+
+    // Log error — capture everything available
+    await logAiEvent({
+      userId: undefined,
+      chatSessionId: params.chatSessionId,
+      eventType: 'error',
+      status: 'error',
+      userPrompt: params.textPrompt,
+      isGenerateMode: params.isGenerateMode,
+      productSlug: params.productSlug,
+      sizeSlug: params.sizeSlug,
+      frameSlug: params.frameSlug,
+      orientation: params.orientationSlug,
+      uploadedImageUrl: params.imagePromptUrl || null,
+      errorMessage: error instanceof Error ? error.message : String(error),
+      errorStack: error instanceof Error ? error.stack : undefined,
+      durationMs: Date.now() - startTime,
+      metadata: { wasImageGenAttempt },
+    });
+
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Bir hata oluştu',

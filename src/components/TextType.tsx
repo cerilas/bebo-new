@@ -21,7 +21,7 @@ type TextTypeProps = {
  */
 const TextType = ({
   text,
-  typingSpeed = 18,
+  typingSpeed = 8,
   showCursor = true,
   cursorCharacter = '▍',
   cursorClassName = '',

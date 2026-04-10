@@ -752,7 +752,7 @@ export function ChatInterface({
                         ? (
                             <TextType
                               text={message.content ?? ''}
-                              typingSpeed={18}
+                              typingSpeed={8}
                               showCursor
                               cursorCharacter="▍"
                               className="text-sm"

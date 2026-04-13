@@ -10,7 +10,7 @@ const trTRPatched = {
     ...trTR.signIn,
     start: {
       ...trTR.signIn?.start,
-      titleCombined: '{{applicationName}} ile devam et',
+      titleCombined: '{{applicationName}}\'a giriş yap',
     },
   },
 };

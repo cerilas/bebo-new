@@ -1,5 +1,6 @@
 import '@/styles/global.css';
 
+import { enUS, trTR } from '@clerk/localizations';
 import { ClerkProvider } from '@clerk/nextjs';
 import { NextIntlClientProvider, useMessages } from 'next-intl';
 import { unstable_setRequestLocale } from 'next-intl/server';
@@ -11,17 +12,23 @@ export const metadata = {
   description: 'Development Mode',
 };
 
+const clerkLocales: Record<string, typeof trTR> = {
+  tr: trTR,
+  en: enUS,
+};
+
 export default function RootLayout(props: {
   children: React.ReactNode;
   params: { locale: string };
 }) {
   unstable_setRequestLocale(props.params.locale);
   const messages = useMessages();
+  const clerkLocalization = clerkLocales[props.params.locale] ?? enUS;
 
   return (
     <html lang={props.params.locale} suppressHydrationWarning>
       <body>
-        <ClerkProvider>
+        <ClerkProvider localization={clerkLocalization}>
           <ThemeProvider
             attribute="class"
             defaultTheme="system"

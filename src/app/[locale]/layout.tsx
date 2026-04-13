@@ -1,20 +1,14 @@
 import '@/styles/global.css';
 
-import { enUS, trTR } from '@clerk/localizations';
-import { ClerkProvider } from '@clerk/nextjs';
 import { NextIntlClientProvider, useMessages } from 'next-intl';
 import { unstable_setRequestLocale } from 'next-intl/server';
 
+import { ClerkProviderWithLocale } from '@/components/ClerkProviderWithLocale';
 import { ThemeProvider } from '@/components/ThemeProvider';
 
 export const metadata = {
   title: 'Birebiro - Dev Mode',
   description: 'Development Mode',
-};
-
-const clerkLocales: Record<string, typeof trTR> = {
-  tr: trTR,
-  en: enUS,
 };
 
 export default function RootLayout(props: {
@@ -23,12 +17,11 @@ export default function RootLayout(props: {
 }) {
   unstable_setRequestLocale(props.params.locale);
   const messages = useMessages();
-  const clerkLocalization = clerkLocales[props.params.locale] ?? enUS;
 
   return (
     <html lang={props.params.locale} suppressHydrationWarning>
       <body>
-        <ClerkProvider localization={clerkLocalization}>
+        <ClerkProviderWithLocale locale={props.params.locale}>
           <ThemeProvider
             attribute="class"
             defaultTheme="system"
@@ -39,7 +32,7 @@ export default function RootLayout(props: {
               {props.children}
             </NextIntlClientProvider>
           </ThemeProvider>
-        </ClerkProvider>
+        </ClerkProviderWithLocale>
       </body>
     </html>
   );

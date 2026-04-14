@@ -30,7 +30,8 @@ export const AuthWelcomeHeader = () => {
           {' '}
           <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-base font-bold text-transparent">1 ücretsiz tasarım hakkını</span>
           {' '}
-          kazan, sana ait hayalindeki ürün kapına gelsin.
+          <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-base font-bold text-transparent">kazan</span>
+          , sana ait hayalindeki ürün kapına gelsin.
         </p>
 
         {/* Decorative bottom element */}

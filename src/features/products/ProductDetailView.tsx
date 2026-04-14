@@ -35,6 +35,8 @@ type ProductDetailData = {
   longDescriptionHtml: string | null;
   galleryImages: string[];
   videoUrl: string | null;
+  sizeLabel: string;
+  frameLabel: string;
   sizes: Size[];
   frames: Frame[];
 };
@@ -228,7 +230,7 @@ export function ProductDetailView({ product, locale }: Props) {
             {product.sizes.length > 0 && (
               <div className="mb-5">
                 <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-                  {t('sizes')}
+                  {product.sizeLabel}
                 </h3>
                 <div className="flex flex-wrap gap-2">
                   {product.sizes.map(size => (
@@ -256,9 +258,7 @@ export function ProductDetailView({ product, locale }: Props) {
             {product.frames.length > 0 && (
               <div className="mb-5">
                 <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-                  {t('frames')}
-                  {' / '}
-                  {t('colors')}
+                  {product.frameLabel}
                 </h3>
                 <div className="flex flex-wrap gap-3">
                   {product.frames.map(frame => (

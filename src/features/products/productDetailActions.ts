@@ -70,6 +70,18 @@ export async function getProductDetailPage(productSlug: string, locale: string =
           : detail.longDescriptionHtml)
     : null;
 
+  const localizedSizeLabel = locale === 'en'
+    ? (product.sizeLabelEn || product.sizeLabel)
+    : locale === 'fr'
+      ? (product.sizeLabelFr || product.sizeLabel)
+      : product.sizeLabel;
+
+  const localizedFrameLabel = locale === 'en'
+    ? (product.frameLabelEn || product.frameLabel)
+    : locale === 'fr'
+      ? (product.frameLabelFr || product.frameLabel)
+      : product.frameLabel;
+
   let galleryImages: string[] = [];
   if (detail?.galleryImages) {
     try {
@@ -103,6 +115,8 @@ export async function getProductDetailPage(productSlug: string, locale: string =
     longDescriptionHtml,
     galleryImages,
     videoUrl: detail?.videoUrl || null,
+    sizeLabel: localizedSizeLabel,
+    frameLabel: localizedFrameLabel,
     sizes: sizes.map((size: typeof productSizeSchema.$inferSelect) => ({
       id: size.id,
       slug: size.slug,

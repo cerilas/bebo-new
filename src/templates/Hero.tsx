@@ -45,8 +45,8 @@ export const Hero = () => {
 
         <h1 className="mb-6 text-center text-[2.85rem] font-bold leading-tight tracking-tight text-white md:text-[4.2rem] lg:text-[5.4rem]">
           {t.rich('title', {
-            important: chunks => (
-              <span className="inline-flex flex-wrap items-center justify-center gap-x-3 bg-gradient-to-r from-purple-400 via-pink-400 to-orange-400 bg-clip-text text-transparent">
+            gradient: chunks => (
+              <span className="block bg-gradient-to-r from-purple-400 via-pink-400 to-orange-400 bg-clip-text text-transparent">
                 {chunks}
               </span>
             ),

@@ -1,0 +1,139 @@
+19,,anonymous-wall-art-1775731737986,error,error,,,,bu adamı maymuna çevirmelisin,,,/api/files/uploads/2026/04/user_37biUou2deiBMFM1TMuPMnfdtb6-c8b1514e-image-1775731741036-f06b051b.webp,,true,wall-art,small,black,portrait,,,,,,,,File is not defined,"ReferenceError: File is not defined
+    at L (/app/.next/server/chunks/8220.js:54:4161)
+    at /app/.next/server/chunks/8220.js:71:462
+    at $ (/app/.next/server/chunks/8220.js:54:2023)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async b (/app/.next/server/chunks/8220.js:71:449)
+    at async /app/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:17:286
+    at async rE (/app/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:15:8297)
+    at async no (/app/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:19:1144)
+    at async doRender (/app/node_modules/next/dist/server/base-server.js:1427:30)
+    at async cacheEntry.responseCache.get.routeKind (/app/node_modules/next/dist/server/base-server.js:1588:28)",,,15125,"{""wasImageGenAttempt"":true}",2026-04-09 10:49:22.082441
+18,,,image_model_call,fallback,,gpt-image-latest,OpenAI,,,,,,,,,,,,,,,,,,File is not defined,"ReferenceError: File is not defined
+    at L (/app/.next/server/chunks/8220.js:54:4161)
+    at /app/.next/server/chunks/8220.js:71:462
+    at $ (/app/.next/server/chunks/8220.js:54:2023)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async b (/app/.next/server/chunks/8220.js:71:449)
+    at async /app/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:17:286
+    at async rE (/app/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:15:8297)
+    at async no (/app/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:19:1144)
+    at async doRender (/app/node_modules/next/dist/server/base-server.js:1427:30)
+    at async cacheEntry.responseCache.get.routeKind (/app/node_modules/next/dist/server/base-server.js:1588:28)",,,,"{""fallbackLabel"":""ImageModel""}",2026-04-09 10:49:22.075615
+17,,,image_model_call,fallback,,gpt-image-1.5,OpenAI,,,,,,,,,,,,,,,,,,File is not defined,"ReferenceError: File is not defined
+    at L (/app/.next/server/chunks/8220.js:54:4161)
+    at /app/.next/server/chunks/8220.js:71:462
+    at $ (/app/.next/server/chunks/8220.js:54:2023)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async b (/app/.next/server/chunks/8220.js:71:449)
+    at async /app/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:17:286
+    at async rE (/app/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:15:8297)
+    at async no (/app/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:19:1144)
+    at async doRender (/app/node_modules/next/dist/server/base-server.js:1427:30)
+    at async cacheEntry.responseCache.get.routeKind (/app/node_modules/next/dist/server/base-server.js:1588:28)",,,,"{""fallbackLabel"":""ImageModel""}",2026-04-09 10:49:22.073236
+16,,,image_model_call,fallback,,gemini-1.5-flash,banana,,,,,,,,,,,,,,,,,,"{""error"":{""code"":404,""message"":""models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods."",""status"":""NOT_FOUND""}}","ApiError: {""error"":{""code"":404,""message"":""models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods."",""status"":""NOT_FOUND""}}
+    at ra (/app/.next/server/chunks/8582.js:14:135867)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async /app/.next/server/chunks/8582.js:14:131082
+    at async r_.generateContent (/app/.next/server/chunks/8582.js:14:162278)
+    at async A (/app/.next/server/chunks/8220.js:54:3392)
+    at async $ (/app/.next/server/chunks/8220.js:54:2017)
+    at async b (/app/.next/server/chunks/8220.js:71:449)
+    at async /app/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:17:286
+    at async rE (/app/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:15:8297)
+    at async no (/app/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:19:1144)",,,,"{""fallbackLabel"":""ImageModel""}",2026-04-09 10:49:22.069904
+15,,,image_model_call,fallback,,gemini-3-pro-image-preview,banana,,,,,,,,,,,,,,,,,,Gemini image model did not return valid image data,"Error: Gemini image model did not return valid image data
+    at A (/app/.next/server/chunks/8220.js:54:3575)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async $ (/app/.next/server/chunks/8220.js:54:2017)
+    at async b (/app/.next/server/chunks/8220.js:71:449)
+    at async /app/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:17:286
+    at async rE (/app/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:15:8297)
+    at async no (/app/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:19:1144)
+    at async doRender (/app/node_modules/next/dist/server/base-server.js:1427:30)
+    at async cacheEntry.responseCache.get.routeKind (/app/node_modules/next/dist/server/base-server.js:1588:28)
+    at async NextNodeServer.renderToResponseWithComponentsImpl (/app/node_modules/next/dist/server/base-server.js:1496:28)",,,,"{""fallbackLabel"":""ImageModel""}",2026-04-09 10:49:21.985509
+14,user_37biUou2deiBMFM1TMuPMnfdtb6,anonymous-wall-art-1775731737986,text_model_call,success,gemini-3.1-pro-preview,,banana,bu adamı maymuna çevirmelisin,"A surrealist and whimsical digital painting of an anthropomorphic monkey wearing a formal blue business suit and a yellow patterned tie, standing at a wooden podium speaking into microphones. Blurred flags in the background. High-quality, detailed, satirical art style, perfect for a quirky portrait wall art.",,/api/files/uploads/2026/04/user_37biUou2deiBMFM1TMuPMnfdtb6-c8b1514e-image-1775731741036-f06b051b.webp,,true,wall-art,small,black,portrait,,"{
+  ""reply_to_user"": ""Sürreal ve esprili bir yaklaşım! Mekanınıza oldukça dikkat çekici ve mizahi bir dokunuş katacak bu sanatsal dönüşümü hemen başlatıyorum. Siyah çerçevenizle harika bir kontrast yaratacak."",
+  ""user_generation_intent"": true,
+  ""improved_generation_prompt"": ""A surrealist and whimsical digital painting of an anthropomorphic monkey wearing a formal blue business suit and a yellow patterned tie, standing at a wooden podium speaking into microphones. Blurred flags in the background. High-quality, detailed, satirical art style, perfect for a quirky portrait wall art.""
+}",Sürreal ve esprili bir yaklaşım! Mekanınıza oldukça dikkat çekici ve mizahi bir dokunuş katacak bu sanatsal dönüşümü hemen başlatıyorum. Siyah çerçevenizle harika bir kontrast yaratacak.,true,,,,,,,,13157,,2026-04-09 10:49:20.112141
+13,,,text_model_call,fallback,gemini-1.5-flash,,banana,,,,,,,,,,,,,,,,,,"{""error"":{""code"":404,""message"":""models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods."",""status"":""NOT_FOUND""}}","ApiError: {""error"":{""code"":404,""message"":""models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods."",""status"":""NOT_FOUND""}}
+    at ra (/app/.next/server/chunks/8582.js:14:135867)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async /app/.next/server/chunks/8582.js:14:131082
+    at async r_.generateContent (/app/.next/server/chunks/8582.js:14:162278)
+    at async z (/app/.next/server/chunks/8220.js:54:3045)
+    at async $ (/app/.next/server/chunks/8220.js:54:2017)
+    at async b (/app/.next/server/chunks/8220.js:69:313)
+    at async /app/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:17:286
+    at async rE (/app/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:15:8297)
+    at async no (/app/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:19:1144)",,,,"{""fallbackLabel"":""TextModel""}",2026-04-09 10:49:07.275194
+12,user_37biUou2deiBMFM1TMuPMnfdtb6,user_37biUou2deiBMFM1TMuPMnfdtb6-wall-art-1775731554336,image_generation,success,gemini-3.1-pro-preview,gemini-3-pro-image-preview,banana,sana ilettiğim adamı çevirmelisin maymuna ,"A highly detailed and artistic portrait of a monkey replacing a human man, maintaining the pose, clothing, and essence of the original reference image. Surrealistic fine art painting, elegant vintage attire, playful yet sophisticated tone, rich dark moody lighting, masterpiece, perfect for a portrait wall art piece.",,,1775731672793161,true,wall-art,small,black,portrait,1024x1536,,"Harika bir fikir! İlettiğiniz figürü sanatsal ve esprili bir yaklaşımla, siyah çerçevenizde harika duracak şık bir maymun portresine dönüştürüyorum. Hemen hazırlıyorum!",true,1,true,3,,,,/api/files/ai/2026/04/gen-1775731672793161-1775731691178-0047216a.png,32009,,2026-04-09 10:48:11.191298
+11,user_37biUou2deiBMFM1TMuPMnfdtb6,user_37biUou2deiBMFM1TMuPMnfdtb6-wall-art-1775731554336,text_model_call,success,gemini-3.1-pro-preview,,banana,sana ilettiğim adamı çevirmelisin maymuna ,"A highly detailed and artistic portrait of a monkey replacing a human man, maintaining the pose, clothing, and essence of the original reference image. Surrealistic fine art painting, elegant vintage attire, playful yet sophisticated tone, rich dark moody lighting, masterpiece, perfect for a portrait wall art piece.",,,,true,wall-art,small,black,portrait,,"{
+  ""reply_to_user"": ""Harika bir fikir! İlettiğiniz figürü sanatsal ve esprili bir yaklaşımla, siyah çerçevenizde harika duracak şık bir maymun portresine dönüştürüyorum. Hemen hazırlıyorum!"",
+  ""user_generation_intent"": true,
+  ""improved_generation_prompt"": ""A highly detailed and artistic portrait of a monkey replacing a human man, maintaining the pose, clothing, and essence of the original reference image. Surrealistic fine art painting, elegant vintage attire, playful yet sophisticated tone, rich dark moody lighting, masterpiece, perfect for a portrait wall art piece.""
+}","Harika bir fikir! İlettiğiniz figürü sanatsal ve esprili bir yaklaşımla, siyah çerçevenizde harika duracak şık bir maymun portresine dönüştürüyorum. Hemen hazırlıyorum!",true,,,,,,,,13608,,2026-04-09 10:47:52.790703
+10,,,text_model_call,fallback,gemini-1.5-flash,,banana,,,,,,,,,,,,,,,,,,"{""error"":{""code"":404,""message"":""models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods."",""status"":""NOT_FOUND""}}","ApiError: {""error"":{""code"":404,""message"":""models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods."",""status"":""NOT_FOUND""}}
+    at ra (/app/.next/server/chunks/8582.js:14:135867)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async /app/.next/server/chunks/8582.js:14:131082
+    at async r_.generateContent (/app/.next/server/chunks/8582.js:14:162278)
+    at async z (/app/.next/server/chunks/8220.js:54:3045)
+    at async $ (/app/.next/server/chunks/8220.js:54:2017)
+    at async b (/app/.next/server/chunks/8220.js:69:313)
+    at async /app/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:17:286
+    at async rE (/app/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:15:8297)
+    at async no (/app/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:19:1144)",,,,"{""fallbackLabel"":""TextModel""}",2026-04-09 10:47:39.686906
+9,user_37biUou2deiBMFM1TMuPMnfdtb6,user_37biUou2deiBMFM1TMuPMnfdtb6-wall-art-1775731554336,image_generation,success,gemini-3.1-pro-preview,gemini-3-pro-image-preview,banana,şimdi geçtim ,"A highly detailed, artistic portrait of a monkey with human-like features, wearing elegant vintage clothing, playful and surrealistic style, fine art painting, dark moody lighting, sophisticated wall art composition, portrait orientation.",,,1775731618837262,true,wall-art,small,black,portrait,1024x1536,,"Harika! Görsel oluşturma moduna geçtiğinize göre, bahsettiğiniz eğlenceli ve sanatsal maymun figürünü tasarlamaya hemen başlıyorum. Siyah çerçevenize çok yakışacak, esprili ve dikkat çekici bir eser geliyor!",true,1,true,4,,,,/api/files/ai/2026/04/gen-1775731618837262-1775731636119-489c4a60.png,28318,,2026-04-09 10:47:16.132288
+8,user_37biUou2deiBMFM1TMuPMnfdtb6,user_37biUou2deiBMFM1TMuPMnfdtb6-wall-art-1775731554336,text_model_call,success,gemini-3.1-pro-preview,,banana,şimdi geçtim ,"A highly detailed, artistic portrait of a monkey with human-like features, wearing elegant vintage clothing, playful and surrealistic style, fine art painting, dark moody lighting, sophisticated wall art composition, portrait orientation.",,,,true,wall-art,small,black,portrait,,"{
+  ""reply_to_user"": ""Harika! Görsel oluşturma moduna geçtiğinize göre, bahsettiğiniz eğlenceli ve sanatsal maymun figürünü tasarlamaya hemen başlıyorum. Siyah çerçevenize çok yakışacak, esprili ve dikkat çekici bir eser geliyor!"",
+  ""user_generation_intent"": true,
+  ""improved_generation_prompt"": ""A highly detailed, artistic portrait of a monkey with human-like features, wearing elegant vintage clothing, playful and surrealistic style, fine art painting, dark moody lighting, sophisticated wall art composition, portrait orientation.""
+}","Harika! Görsel oluşturma moduna geçtiğinize göre, bahsettiğiniz eğlenceli ve sanatsal maymun figürünü tasarlamaya hemen başlıyorum. Siyah çerçevenize çok yakışacak, esprili ve dikkat çekici bir eser geliyor!",true,,,,,,,,11020,,2026-04-09 10:46:58.834325
+7,,,text_model_call,fallback,gemini-1.5-flash,,banana,,,,,,,,,,,,,,,,,,"{""error"":{""code"":404,""message"":""models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods."",""status"":""NOT_FOUND""}}","ApiError: {""error"":{""code"":404,""message"":""models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods."",""status"":""NOT_FOUND""}}
+    at ra (/app/.next/server/chunks/8582.js:14:135867)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async /app/.next/server/chunks/8582.js:14:131082
+    at async r_.generateContent (/app/.next/server/chunks/8582.js:14:162278)
+    at async z (/app/.next/server/chunks/8220.js:54:3045)
+    at async $ (/app/.next/server/chunks/8220.js:54:2017)
+    at async b (/app/.next/server/chunks/8220.js:69:313)
+    at async /app/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:17:286
+    at async rE (/app/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:15:8297)
+    at async no (/app/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:19:1144)",,,,"{""fallbackLabel"":""TextModel""}",2026-04-09 10:46:48.116784
+6,user_37biUou2deiBMFM1TMuPMnfdtb6,user_37biUou2deiBMFM1TMuPMnfdtb6-wall-art-1775731554336,chat,success,gemini-3.1-pro-preview,,banana,bu adamı maymuna çevir ,,,/api/files/uploads/2026/04/user_37biUou2deiBMFM1TMuPMnfdtb6-447e07d6-image-1775731588281-5f87216e.webp,,false,wall-art,small,black,portrait,,,"Görsel oluşturma modunda değilsiniz. Sağ üstteki ‘Görsel Oluştur’ butonuna tıklamalısınız. Şu anda ilham modundayım. Renkler, kompozisyonlar veya duvarlarınızı süsleyecek sanatsal fikirler üzerine konuşmak isterseniz zevkle yardımcı olurum!",false,,,,,,,,10569,,2026-04-09 10:46:42.815280
+5,user_37biUou2deiBMFM1TMuPMnfdtb6,user_37biUou2deiBMFM1TMuPMnfdtb6-wall-art-1775731554336,text_model_call,success,gemini-3.1-pro-preview,,banana,bu adamı maymuna çevir ,,,/api/files/uploads/2026/04/user_37biUou2deiBMFM1TMuPMnfdtb6-447e07d6-image-1775731588281-5f87216e.webp,,false,wall-art,small,black,portrait,,"{
+  ""reply_to_user"": ""Görsel oluşturma modunda değilsiniz. Sağ üstteki ‘Görsel Oluştur’ butonuna tıklamalısınız. Şu anda ilham modundayım. Renkler, kompozisyonlar veya duvarlarınızı süsleyecek sanatsal fikirler üzerine konuşmak isterseniz zevkle yardımcı olurum!"",
+  ""user_generation_intent"": false,
+  ""improved_generation_prompt"": """"
+}","Görsel oluşturma modunda değilsiniz. Sağ üstteki ‘Görsel Oluştur’ butonuna tıklamalısınız. Şu anda ilham modundayım. Renkler, kompozisyonlar veya duvarlarınızı süsleyecek sanatsal fikirler üzerine konuşmak isterseniz zevkle yardımcı olurum!",false,,,,,,,,10567,,2026-04-09 10:46:42.812423
+4,,,text_model_call,fallback,gemini-1.5-flash,,banana,,,,,,,,,,,,,,,,,,"{""error"":{""code"":404,""message"":""models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods."",""status"":""NOT_FOUND""}}","ApiError: {""error"":{""code"":404,""message"":""models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods."",""status"":""NOT_FOUND""}}
+    at ra (/app/.next/server/chunks/8582.js:14:135867)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async /app/.next/server/chunks/8582.js:14:131082
+    at async r_.generateContent (/app/.next/server/chunks/8582.js:14:162278)
+    at async z (/app/.next/server/chunks/8220.js:54:3045)
+    at async $ (/app/.next/server/chunks/8220.js:54:2017)
+    at async b (/app/.next/server/chunks/8220.js:69:313)
+    at async /app/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:17:286
+    at async rE (/app/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:15:8297)
+    at async no (/app/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:19:1144)",,,,"{""fallbackLabel"":""TextModel""}",2026-04-09 10:46:32.580011
+3,user_37biUou2deiBMFM1TMuPMnfdtb6,user_37biUou2deiBMFM1TMuPMnfdtb6-wall-art-1775731554336,chat,success,gemini-3.1-pro-preview,,banana,naber,,,,,false,wall-art,small,black,portrait,,,"İyiyim, çok teşekkür ederim! Sanatın, renklerin ve dokuların büyüleyici dünyasında yeni ilhamlar arıyorum. Sizin için nasıl bir yaratıcı yolculuğa çıkalım? Belki duvarlarınızı canlandıracak yeni bir tablo fikri veya evinizin enerjisini değiştirecek bir dekorasyon stili üzerine konuşmak istersiniz.",false,,,,,,,,7671,,2026-04-09 10:46:05.817132
+2,user_37biUou2deiBMFM1TMuPMnfdtb6,user_37biUou2deiBMFM1TMuPMnfdtb6-wall-art-1775731554336,text_model_call,success,gemini-3.1-pro-preview,,banana,naber,,,,,false,wall-art,small,black,portrait,,"{
+  ""reply_to_user"": ""İyiyim, çok teşekkür ederim! Sanatın, renklerin ve dokuların büyüleyici dünyasında yeni ilhamlar arıyorum. Sizin için nasıl bir yaratıcı yolculuğa çıkalım? Belki duvarlarınızı canlandıracak yeni bir tablo fikri veya evinizin enerjisini değiştirecek bir dekorasyon stili üzerine konuşmak istersiniz."",
+  ""user_generation_intent"": false,
+  ""improved_generation_prompt"": """"
+}","İyiyim, çok teşekkür ederim! Sanatın, renklerin ve dokuların büyüleyici dünyasında yeni ilhamlar arıyorum. Sizin için nasıl bir yaratıcı yolculuğa çıkalım? Belki duvarlarınızı canlandıracak yeni bir tablo fikri veya evinizin enerjisini değiştirecek bir dekorasyon stili üzerine konuşmak istersiniz.",false,,,,,,,,7668,,2026-04-09 10:46:05.814014
+1,,,text_model_call,fallback,gemini-1.5-flash,,banana,,,,,,,,,,,,,,,,,,"{""error"":{""code"":404,""message"":""models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods."",""status"":""NOT_FOUND""}}","ApiError: {""error"":{""code"":404,""message"":""models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods."",""status"":""NOT_FOUND""}}
+    at ra (/app/.next/server/chunks/8582.js:14:135867)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async /app/.next/server/chunks/8582.js:14:131082
+    at async r_.generateContent (/app/.next/server/chunks/8582.js:14:162278)
+    at async z (/app/.next/server/chunks/8220.js:54:3045)
+    at async $ (/app/.next/server/chunks/8220.js:54:2017)
+    at async b (/app/.next/server/chunks/8220.js:69:313)
+    at async /app/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:17:286
+    at async rE (/app/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:15:8297)
+    at async no (/app/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:19:1144)",,,,"{""fallbackLabel"":""TextModel""}",2026-04-09 10:45:58.500839

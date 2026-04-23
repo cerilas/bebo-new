@@ -85,13 +85,17 @@ export function ProductDetailView({ product, locale }: Props) {
       <div className="mx-auto max-w-screen-xl">
         {/* Back Button */}
         <div className="mb-4 md:mb-6">
-          <Link
-            href={`/${locale}/products`}
-            className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+          <Button
+            asChild
+            variant="outline"
+            size="sm"
+            className="border-primary/30 bg-primary/5 text-primary transition-all hover:bg-primary/10 hover:text-primary-foreground"
           >
-            <ArrowLeft className="size-4" />
-            {t('back_to_products')}
-          </Link>
+            <Link href={`/${locale}/products`}>
+              <ArrowLeft className="mr-2 size-4" />
+              {t('back_to_products')}
+            </Link>
+          </Button>
         </div>
 
         {/* Main layout: gallery left, info right */}

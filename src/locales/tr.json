@@ -22,7 +22,7 @@
   },
   "Hero": {
     "follow_twitter": "X'te @Birebiro'yu takip et",
-    "title": "<important>Sunulanı Değil</important> Hayalindeki Ürünü Al",
+    "title": "Sunulanı Değil <gradient>Hayalindeki Ürünü Al</gradient>",
     "description": "Saniyeler içinde yapay zeka desteği ile, her dilde hayallerinizi ve yaşam alanlarınızı benzersiz kılacak size ve ana özel eşsiz kaliteli gerçek ürünleri tasarlayın, duygularınızı birebiro ile mekanlarınıza taşıyalım.",
     "primary_button": "Hemen Tasarla",
     "how_it_works": "Nasıl Çalışır?"
@@ -317,7 +317,7 @@
     "placeholder_inspiration": "Örn: 'Yatak odası için sakin bir tasarım öner' veya 'Modern ofis dekorasyonu hakkında fikir ver'",
     "wait_for_generation": "Görsel oluşturuluyor, lütfen bekleyin...",
     "hint": "Shift + Enter ile yeni satır, Enter ile gönder",
-    "generated_images": "Oluşturulan Görseller",
+    "generated_images": "Oluşturulan Tasarımlar",
     "history_images": "Geçmiş Tasarımlarım",
     "selected": "Seçildi",
     "no_images_yet": "Henüz görsel oluşturulmadı.\nYukarıdaki sohbet alanından isteklerinizi belirtin.",

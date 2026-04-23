@@ -144,7 +144,7 @@ Additional strict rules:
 - Use recent conversation history and previous generation context to resolve follow-up edits (e.g. “yazının rengini kırmızı yap”).
 - Keep response compact (single-line JSON preferred).`;
 
-const GENERATION_MODE_REQUIRED_MESSAGE = 'Görsel oluşturma modunda değilsiniz. Sağ üstteki “Görsel Oluştur” butonuna tıklamalısınız. Şu anda ilham modundayım.';
+const GENERATION_MODE_REQUIRED_MESSAGE = 'Görsel oluşturma modunda değilsiniz. Üstteki “Görsel Oluştur” butonuna tıklamalısınız. Şu anda ilham modundayım.';
 /**
  * Maps physical frame dimensions (e.g. "30x40") + orientation to the closest
  * OpenAI gpt-image-1 supported size string.

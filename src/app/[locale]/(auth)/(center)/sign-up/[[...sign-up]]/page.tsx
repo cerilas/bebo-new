@@ -30,7 +30,7 @@ const SignUpPage = (props: {
     = typeof redirectUrl === 'string' ? redirectUrl : undefined;
 
   return (
-    <div className="flex flex-col items-center px-4 py-10 sm:px-6">
+    <div className="flex flex-col items-center px-4 sm:px-6">
       <ClerkLegalLinkFixer />
       <AuthWelcomeHeader />
 

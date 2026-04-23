@@ -30,6 +30,7 @@ type ProductDetailData = {
   id: number;
   slug: string;
   name: string;
+  detailTitle?: string | null;
   description: string;
   shortDescription: string | null;
   longDescriptionHtml: string | null;
@@ -74,8 +75,10 @@ export function ProductDetailView({ product, locale }: Props) {
     setCurrentIndex(prev => (prev === totalSlides - 1 ? 0 : prev + 1));
   }, [totalSlides]);
 
+  const visibleFrames = product.frames.filter(frame => frame.price > 0);
+
   const minPrice = product.sizes.length > 0
-    ? Math.min(...product.sizes.map(s => s.price)) + (product.frames.length > 0 ? Math.min(...product.frames.map(f => f.price)) : 0)
+    ? Math.min(...product.sizes.map(s => s.price)) + (visibleFrames.length > 0 ? Math.min(...visibleFrames.map(f => f.price)) : 0)
     : null;
 
   const orderUrl = `/${locale}/products?openProduct=${product.slug}`;
@@ -164,7 +167,7 @@ export function ProductDetailView({ product, locale }: Props) {
 
             {/* Thumbnail Strip */}
             {totalSlides > 1 && (
-              <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
+              <div className="mt-3 flex flex-wrap gap-2 pb-1">
                 {product.galleryImages.map((img, index) => (
                   <button
                     type="button"
@@ -209,7 +212,7 @@ export function ProductDetailView({ product, locale }: Props) {
           <div className="flex flex-col">
             {/* Product Name */}
             <h1 className="mb-2 text-2xl font-bold md:text-3xl lg:text-4xl">
-              {product.name}
+              {product.detailTitle || product.name}
             </h1>
 
             {/* Short Description */}
@@ -259,13 +262,13 @@ export function ProductDetailView({ product, locale }: Props) {
             )}
 
             {/* Frames / Colors */}
-            {product.frames.length > 0 && (
+            {visibleFrames.length > 0 && (
               <div className="mb-5">
                 <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
                   {product.frameLabel}
                 </h3>
                 <div className="flex flex-wrap gap-3">
-                  {product.frames.map(frame => (
+                  {visibleFrames.map(frame => (
                     <div
                       key={frame.id}
                       className="flex items-center gap-2 rounded-lg border bg-card px-3 py-2 text-sm transition-colors"
@@ -298,7 +301,7 @@ export function ProductDetailView({ product, locale }: Props) {
             )}
 
             {/* Order Button */}
-            <div className="mt-auto pt-4">
+            <div className="mt-6">
               <Link href={orderUrl}>
                 <Button size="lg" className="w-full gap-2 text-base md:text-lg">
                   <ShoppingCart className="size-5" />

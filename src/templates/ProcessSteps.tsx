@@ -80,7 +80,7 @@ export const ProcessSteps = () => {
           {steps.map((step, index) => (
             <div
               key={step.number}
-              className="group relative"
+              className="group relative h-full"
             >
               {/* Connecting Line (hidden on mobile, shown on desktop between cards) */}
               {index < steps.length - 1 && (

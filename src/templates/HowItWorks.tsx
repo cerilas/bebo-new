@@ -72,9 +72,9 @@ const HowItWorks = ({
           {steps.map((step) => {
             const Icon = step.icon;
             return (
-              <div key={step.number} className="group relative">
+              <div key={step.number} className="group relative h-full">
                 {/* Card */}
-                <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm transition-all duration-500 hover:border-white/20 hover:bg-white/10">
+                <div className="relative h-full overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm transition-all duration-500 hover:border-white/20 hover:bg-white/10">
                   {/* Glow effect on hover */}
                   <div
                     className={`absolute -inset-px rounded-2xl bg-gradient-to-r ${step.gradient} opacity-0 blur transition-opacity duration-500 group-hover:opacity-20`}

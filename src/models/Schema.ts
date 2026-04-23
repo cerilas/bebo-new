@@ -379,6 +379,9 @@ export const aiModelSchema = pgTable('ai_model', {
 export const productDetailSchema = pgTable('product_detail', {
   id: serial('id').primaryKey(),
   productId: integer('product_id').notNull().references(() => productSchema.id, { onDelete: 'cascade' }).unique(),
+  detailTitle: text('detail_title'), // Ürün detay sayfası başlığı (TR)
+  detailTitleEn: text('detail_title_en'),
+  detailTitleFr: text('detail_title_fr'),
   shortDescription: text('short_description'), // Kısa açıklama (TR)
   shortDescriptionEn: text('short_description_en'),
   shortDescriptionFr: text('short_description_fr'),

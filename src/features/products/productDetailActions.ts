@@ -48,6 +48,14 @@ export async function getProductDetailPage(productSlug: string, locale: string =
       ? (product.nameFr || product.name)
       : product.name;
 
+  const detailTitle = detail
+    ? (locale === 'en'
+        ? (detail.detailTitleEn || detail.detailTitle || localizedName)
+        : locale === 'fr'
+          ? (detail.detailTitleFr || detail.detailTitle || localizedName)
+          : (detail.detailTitle || localizedName))
+    : localizedName;
+
   const localizedDescription = locale === 'en'
     ? (product.descriptionEn || product.description)
     : locale === 'fr'
@@ -110,6 +118,7 @@ export async function getProductDetailPage(productSlug: string, locale: string =
     id: product.id,
     slug: product.slug,
     name: localizedName,
+    detailTitle,
     description: localizedDescription,
     shortDescription,
     longDescriptionHtml,

@@ -225,8 +225,7 @@ export function ProductDetailView({ product, locale }: Props) {
             {/* Price */}
             {minPrice !== null && (
               <div className="mb-6">
-                <span className="text-sm text-muted-foreground">{t('starting_from')}</span>
-                <span className="ml-2 text-2xl font-bold text-primary md:text-3xl">
+                <span className="text-2xl font-bold text-primary md:text-3xl">
                   {minPrice}
                   ₺
                 </span>
